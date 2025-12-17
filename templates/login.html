@@ -1,10 +1,15 @@
 {% extends "base.html" %}
 
-{% block content %}
-    <h2>Login</h2>
-    <form>
-        <input type="text" placeholder="Email">
-        <input type="password" placeholder="Password">
-        <button type="submit">Sign In</button>
-    </form>
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
 {% endblock %}
+
+{% block content %}
+    <div class="login-container">
+        <h2>Login</h2>
+        <form>
+            <input type="text" placeholder="Email">
+            <input type="password" placeholder="Password">
+            <button type="submit">Sign In</button>
+        </form>
+    </div> {% endblock %}
