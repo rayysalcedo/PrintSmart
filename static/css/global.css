@@ -1,50 +1,238 @@
-/* --- 1. SETUP BODY FOR STICKY FOOTER --- */
-html, body {
-    height: 100%; /* Essential for sticky footer */
-    margin: 0;
-}
-
+/* General Reset */
 body {
-    font-family: Arial, sans-serif;
-    display: flex;       /* Flexbox is the secret weapon */
-    flex-direction: column;
-    padding-top: 80px;   /* CRITICAL: Pushes content down so it's not hidden behind the fixed header */
+    margin: 0;
+    padding: 0;
+    font-family: 'Alexandria', sans-serif;
 }
 
-/* --- 2. FIXED HEADER (NAVBAR) --- */
-.navbar {
-    position: fixed; /* Freezes it in place */
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 60px;    /* Define a set height */
-    background-color: #ff6600;
-    z-index: 1000;   /* Ensures it sits ON TOP of everything else */
-    
-    /* Flexbox for alignment inside the bar */
+/* Header Container */
+.site-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 20px; /* Add some spacing on sides */
-    box-sizing: border-box; /* Ensures padding doesn't widen the page */
+    padding: 15px 50px;
+    background-color: #FFFFFF;
+    border-bottom: 1px solid #eee; /* Optional: adds a subtle line */
 }
 
-/* --- 3. MAIN CONTENT AREA --- */
-.container {
-    flex: 1; /* This forces the content to grow and push the footer to the bottom */
-    width: 100%;
+/* Logo Sizing */
+.header-logo img {
+    height: 50px; /* Adjust based on your actual logo size */
+    width: auto;
+}
+
+/* Navigation Links */
+.header-nav {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.nav-link {
+    text-decoration: none;
+    color: #000;
+    font-size: 18px;
+    font-weight: 500;
+    padding: 10px 25px;
+    border-radius: 8px; /* Rounded corners for the button */
+    transition: all 0.3s ease;
+}
+
+/* The Orange Button Style (Active State) */
+.nav-link.active-btn {
+    background-color: #DC5601; /* The exact orange from your image */
+    color: #FFFFFF;
+    font-weight: 600;
+    box-shadow: 0 4px 6px rgba(220, 86, 1, 0.2);
+}
+
+/* Hover Effect for non-active links */
+.nav-link:not(.active-btn):hover {
+    color: #DC5601;
+}
+
+/* Icons Section */
+.header-icons {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.header-icons img {
+    height: 24px;
+    width: 24px;
+    cursor: pointer;
+}
+
+/* --- FOOTER STYLES --- */
+.site-footer {
+    background-color: #0A0A0A;
+    color: #FFFFFF;
+    padding-top: 60px;
+    margin-top: auto; /* Pushes footer to bottom if page is short */
+    font-family: 'Alexandria', sans-serif;
+}
+
+.footer-container {
     max-width: 1200px;
-    margin: 0 auto; /* Centers the container */
-    padding: 20px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 20px 60px;
+    flex-wrap: wrap;
+    gap: 40px;
+    border-bottom: 1px solid #333;
 }
 
-/* --- 4. FOOTER --- */
-footer {
-    background-color: #333;
-    color: white;
-    text-align: center;
-    padding: 15px;
-    width: 100%;
-    /* No need for position: fixed here if you use the flex method above. 
-       It will always be at the bottom of the content or the screen, whichever is taller. */
+/* Brand Section */
+.footer-brand {
+    max-width: 350px;
 }
+.footer-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.footer-logo img {
+    height: 50px;
+}
+.brand-text h3 {
+    margin: 0;
+    font-size: 20px;
+    letter-spacing: 1px;
+}
+.brand-text p {
+    margin: 0;
+    font-size: 12px;
+    color: #999;
+    letter-spacing: 2px;
+}
+.brand-desc {
+    color: #CCC;
+    line-height: 1.6;
+    font-size: 14px;
+}
+
+/* Columns */
+.footer-col h4 {
+    color: #FFFFFF;
+    font-size: 18px;
+    margin-bottom: 20px;
+}
+.footer-col ul {
+    list-style: none;
+    padding: 0;
+}
+.footer-col li {
+    margin-bottom: 12px;
+}
+.footer-col a {
+    color: #BBBBBB;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+.footer-col a:hover {
+    color: #FF6B1A; /* Orange hover effect */
+}
+
+/* Contact Bar */
+.footer-contact-bar {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.contact-item .icon {
+    color: #FF6B1A;
+    font-size: 24px;
+}
+.contact-item strong {
+    display: block;
+    font-size: 16px;
+    margin-bottom: 4px;
+}
+.contact-item p {
+    margin: 0;
+    color: #CCC;
+    font-size: 14px;
+}
+
+/* Bottom Bar */
+.footer-bottom {
+    background-color: #050505;
+    padding: 20px 0;
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+}
+.footer-legal a {
+    color: #666;
+    text-decoration: none;
+    margin-left: 20px;
+}
+/* --- FOOTER STYLES --- */
+.site-footer {
+    background-color: #0A0A0A;
+    color: #FFFFFF;
+    padding-top: 60px;
+    margin-top: auto;
+    font-family: 'Alexandria', sans-serif;
+}
+
+.footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 20px 60px;
+    flex-wrap: wrap;
+    gap: 40px;
+    border-bottom: 1px solid #333;
+}
+
+.footer-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+.footer-logo img { height: 50px; }
+.brand-text h3 { margin: 0; font-size: 20px; color: #fff; }
+.brand-text p { margin: 0; font-size: 12px; color: #999; letter-spacing: 2px; }
+.brand-desc { color: #CCC; line-height: 1.6; font-size: 14px; max-width: 300px; }
+
+.footer-col h4 { color: #FFFFFF; font-size: 18px; margin-bottom: 20px; }
+.footer-col ul { list-style: none; padding: 0; }
+.footer-col li { margin-bottom: 12px; }
+.footer-col a { color: #BBBBBB; text-decoration: none; transition: 0.3s; }
+.footer-col a:hover { color: #FF6B1A; }
+
+.footer-contact-bar {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+.contact-item { display: flex; align-items: center; gap: 15px; }
+.contact-item .icon { color: #FF6B1A; font-size: 24px; }
+.contact-item strong { display: block; font-size: 16px; margin-bottom: 4px; }
+.contact-item p { margin: 0; color: #CCC; font-size: 14px; }
+
+.footer-bottom {
+    background-color: #050505;
+    padding: 20px 0;
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+}
+.footer-legal a { color: #666; text-decoration: none; margin-left: 20px; }

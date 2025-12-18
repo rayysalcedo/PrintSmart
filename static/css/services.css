@@ -1,0 +1,204 @@
+/* Import Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Akatab:wght@400;500;800&family=Alata&family=Alexandria:wght@300;400;500&display=swap');
+
+body {
+    font-family: 'Alexandria', sans-serif;
+    margin: 0;
+    background-color: #FFFFFF;
+}
+
+/* --- HERO SECTION --- */
+.services-hero {
+    /* The Gradient from your Figma */
+    background: linear-gradient(117.28deg, #FFDC58 1.73%, #DC5500 70.06%);
+    padding: 80px 20px;
+    text-align: center;
+    color: white;
+}
+
+.hero-content h1 {
+    font-size: 50px;
+    margin-bottom: 20px;
+    font-weight: 300;
+}
+
+.trusted-badge {
+    background: rgba(255, 255, 255, 0.29);
+    padding: 10px 20px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-bottom: 20px;
+}
+
+/* --- CATEGORY NAV (The Beige Pill) --- */
+.main-container {
+    max-width: 1200px;
+    margin: -40px auto 60px; /* Pulls it up slightly over the hero if desired */
+    padding: 0 20px;
+    position: relative;
+}
+
+.category-wrapper {
+    background: #FFF5E6;
+    border-radius: 50px;
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 60px;
+}
+
+.category-nav {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+}
+
+.cat-tab {
+    flex: 1;
+    text-align: center;
+    padding: 15px 0;
+    text-decoration: none;
+    color: #000;
+    font-family: 'Alata', sans-serif;
+    font-size: 18px;
+    border-radius: 40px;
+    transition: 0.3s;
+}
+
+.cat-tab.active {
+    background-color: #FFFFFF;
+    font-weight: bold;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+/* --- PRODUCT CARDS --- */
+.category-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 30px;
+    justify-content: center;
+}
+
+.category-header h2 {
+    font-family: 'Akatab', serif;
+    font-weight: 800;
+}
+
+.products-grid {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.product-card {
+    background: #FFFFFF;
+    border: 3px solid #FFE7DA;
+    border-radius: 20px;
+    width: 400px;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.card-body h3 {
+    font-family: 'Akatab', serif;
+    font-size: 22px;
+    margin-top: 0;
+}
+
+.desc {
+    color: #9A5A00;
+    font-family: 'Akatab', serif;
+    font-size: 18px;
+    margin-bottom: 25px;
+}
+
+.features {
+    list-style: none;
+    padding: 0;
+}
+
+.features li {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    color: #9A5A00;
+    font-family: 'Akatab', serif;
+}
+
+.check {
+    color: #FF6B1A;
+    font-weight: bold;
+}
+
+.btn-order {
+    background: #FF6B1A;
+    color: white;
+    text-align: center;
+    padding: 15px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 800;
+    display: block;
+    margin-top: 20px;
+}
+
+/* --- HOW IT WORKS SECTION --- */
+.process-section {
+    background-color: #FFF5E6;
+    padding: 80px 20px;
+    text-align: center;
+    margin-top: 80px;
+}
+
+.process-section h2 {
+    font-family: 'Akatab', serif;
+    font-size: 40px;
+    margin-bottom: 10px;
+}
+
+.steps-container {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    max-width: 1200px;
+    margin: 50px auto 0;
+    flex-wrap: wrap;
+}
+
+.step-item {
+    width: 250px;
+    position: relative;
+}
+
+.step-circle {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(147deg, #FFDC58, #DC5500);
+    color: white;
+    border-radius: 50%;
+    font-size: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-family: 'Aksara Bali Galang', sans-serif; /* Or fallback */
+}
+
+/* --- CUSTOM QUOTE BOX --- */
+.quote-container {
+    max-width: 1000px;
+    margin: 80px auto;
+    padding: 0 20px;
+}
+
+.quote-box {
+    border: 2px solid #FF6B1A;
+    border-radius: 20px;
+    padding: 40px;
+    text-align: center;
+    background: #FFF;
+}
