@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin | Printagram</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        /* --- GLOBAL & SIDEBAR --- */
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7fa; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Sidebar */
+        .sidebar { width: 260px; background: #ff6600; color: white; display: flex; flex-direction: column; padding: 20px; }
+        .brand { font-size: 24px; font-weight: bold; margin-bottom: 40px; display: flex; align-items: center; gap: 10px; }
+        .brand i { background: white; color: #ff6600; padding: 8px; border-radius: 5px; }
+        
+        .nav-item { padding: 15px; cursor: pointer; border-radius: 8px; margin-bottom: 5px; display: flex; align-items: center; gap: 15px; font-size: 16px; transition: 0.3s; }
+        .nav-item:hover { background: rgba(255,255,255,0.2); }
+        .nav-item.active { background: white; color: #ff6600; font-weight: bold; }
+        
+        .logout-btn { margin-top: auto; background: rgba(0,0,0,0.2); }
+
+        /* Main Content */
+        .main-content { flex: 1; overflow-y: auto; padding: 30px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .search-bar input { padding: 10px 15px; width: 300px; border: 1px solid #ddd; border-radius: 20px; outline: none; }
+        
+        /* --- VIEW SECTIONS (TABS) --- */
+        .view-section { display: none; } /* Hide all by default */
+        .view-section.active { display: block; } /* Show active one */
+
+        /* --- DASHBOARD CARDS --- */
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; }
+        .stat-card h3 { margin: 0; color: #777; font-size: 14px; font-weight: normal; }
+        .stat-card .value { font-size: 28px; font-weight: bold; margin: 10px 0; color: #333; }
+        .stat-card .trend { font-size: 13px; color: #28a745; }
+        .stat-icon { position: absolute; top: 25px; right: 25px; background: #ff6600; color: white; width: 45px; height: 45px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+
+        /* Chart Area */
+        .chart-container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); height: 350px; }
+
+        /* --- INVENTORY / PRODUCTS STYLES --- */
+        .product-manager-card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; gap: 20px; }
+        .img-preview { width: 100px; height: 100px; border-radius: 8px; object-fit: cover; border: 1px solid #eee; }
+        .pm-info { flex: 1; }
+        .variant-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        .variant-table th { text-align: left; color: #888; border-bottom: 1px solid #eee; padding: 5px; }
+        .variant-table td { padding: 5px; border-bottom: 1px solid #eee; }
+        .input-edit { width: 70px; padding: 5px; border: 1px solid #ddd; border-radius: 4px; }
+        .btn-save { background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="brand">
+            <i class="fas fa-print"></i> Printagram
+        </div>
+        
+        <div class="nav-item active" onclick="switchTab('dashboard', this)">
+            <i class="fas fa-th-large"></i> Dashboard
+        </div>
+        
+        <div class="nav-item" onclick="switchTab('orders', this)">
+            <i class="fas fa-shopping-cart"></i> Orders
+        </div>
+        
+        <div class="nav-item" onclick="switchTab('products', this)">
+            <i class="fas fa-box"></i> Products
+        </div>
+        
+        <div class="nav-item" onclick="switchTab('analytics', this)">
+            <i class="fas fa-chart-line"></i> Analytics
+        </div>
+
+        <a href="/logout" style="text-decoration:none; color:white;" class="nav-item logout-btn">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </a>
+    </div>
+
+    <div class="main-content">
+        
+        <div class="header">
+            <h2 id="page-title">Dashboard Overview</h2>
+            <div class="search-bar">
+                <input type="text" placeholder="Search orders, products...">
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <i class="fas fa-bell" style="color:#aaa; cursor:pointer;"></i>
+                <div style="width:35px; height:35px; background:#ddd; border-radius:50%;"></div>
+            </div>
+        </div>
+
+        <div id="dashboard" class="view-section active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Revenue</h3>
+                    <div class="value">₱{{ "{:,.2f}".format(total_revenue) }}</div>
+                    <div class="trend"><i class="fas fa-arrow-up"></i> +12.5% vs last month</div>
+                    <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
+                </div>
+
+                <div class="stat-card">
+                    <h3>Total Orders</h3>
+                    <div class="value">{{ total_orders }}</div>
+                    <div class="trend"><i class="fas fa-arrow-up"></i> +8.3% vs last month</div>
+                    <div class="stat-icon"><i class="fas fa-shopping-cart"></i></div>
+                </div>
+
+                <div class="stat-card">
+                    <h3>Active Products</h3>
+                    <div class="value">{{ products|length }}</div>
+                    <div class="trend">In Catalog</div>
+                    <div class="stat-icon"><i class="fas fa-box"></i></div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+
+        <div id="products" class="view-section">
+            <h3>Product Inventory & Prices</h3>
+            
+            {% for product in products %}
+            <div class="product-manager-card">
+                <div style="text-align:center;">
+                    <img src="{{ url_for('static', filename=product.image_path if product.image_path else 'images/icon-signage.png') }}" class="img-preview">
+                    <form action="/admin/upload_product_image" method="POST" enctype="multipart/form-data" style="margin-top:10px;">
+                        <input type="hidden" name="product_id" value="{{ product.product_id }}">
+                        <input type="file" name="product_image" id="file-{{product.product_id}}" style="display:none;" onchange="this.form.submit()">
+                        <label for="file-{{product.product_id}}" style="font-size:12px; color:#ff6600; cursor:pointer;">Change Image</label>
+                    </form>
+                </div>
+
+                <div class="pm-info">
+                    <h4 style="margin:0;">{{ product.name }}</h4>
+                    <p style="color:#888; font-size:12px; margin-bottom:10px;">{{ product.description }}</p>
+
+                    {% if product.product_id in variants_map %}
+                    <table class="variant-table">
+                        <thead><tr><th>Variant</th><th>Price (₱)</th><th>Stock</th><th>Action</th></tr></thead>
+                        <tbody>
+                            {% for variant in variants_map[product.product_id] %}
+                            <tr>
+                                <form action="/admin/update_variant" method="POST">
+                                    <input type="hidden" name="variant_id" value="{{ variant.variant_id }}">
+                                    <td>{{ variant.variant_name }}</td>
+                                    <td><input type="number" name="price" value="{{ variant.price }}" step="0.01" class="input-edit"></td>
+                                    <td><input type="number" name="stock" value="{{ variant.stock_quantity }}" class="input-edit"></td>
+                                    <td><button type="submit" class="btn-save"><i class="fas fa-check"></i></button></td>
+                                </form>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                        <small>No variants configured.</small>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div id="orders" class="view-section">
+            <div style="text-align:center; padding:50px; color:#999;">
+                <i class="fas fa-tools" style="font-size:40px; margin-bottom:20px;"></i>
+                <h3>Order Management System Coming Soon</h3>
+                <p>This is where you will update order status (Pending -> Completed).</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // 1. Tab Switching Logic
+        function switchTab(tabId, navItem) {
+            // Hide all sections
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            // Show target section
+            document.getElementById(tabId).classList.add('active');
+            
+            // Update Sidebar Active State
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            navItem.classList.add('active');
+
+            // Update Header Title
+            document.getElementById('page-title').innerText = tabId.charAt(0).toUpperCase() + tabId.slice(1);
+        }
+
+        // 2. Simple Revenue Chart (Using Chart.js)
+        const ctx = document.getElementById('revenueChart').getContext('2d');
+        const myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Revenue (₱)',
+                    data: [12000, 19000, 15000, 25000, 22000, 30000], // Dummy Data for now
+                    borderColor: '#ff6600',
+                    backgroundColor: 'rgba(255, 102, 0, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: 'Monthly Revenue Trends' }
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>

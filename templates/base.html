@@ -34,10 +34,30 @@
             </a>
         </nav>
 
-        <div class="header-icons">
-            <a href="#" class="icon-link">
-                <img src="{{ url_for('static', filename='images/cart-icon.png') }}" alt="Cart">
+       <div class="header-icons">
+            <a href="/checkout" style="text-decoration:none; color: inherit; position: relative; display: inline-block;">
+                <img src="{{ url_for('static', filename='images/Cart.png') }}" alt="Cart" style="height: 24px;">
+                
+                {% if cart_count > 0 %}
+                <span style="
+                    position: absolute;
+                    top: -8px;
+                    right: -8px;
+                    background-color: #ff6600;
+                    color: white;
+                    border-radius: 50%;
+                    padding: 2px 6px;
+                    font-size: 10px;
+                    font-weight: bold;
+                    border: 1px solid white;
+                    min-width: 14px; /* Ensures circle shape */
+                    text-align: center;
+                ">
+                    {{ cart_count }}
+                </span>
+                {% endif %}
             </a>
+
             <a href="{{ url_for('login') }}" class="icon-link">
                 <img src="{{ url_for('static', filename='images/profile-icon.png') }}" alt="Profile">
             </a>

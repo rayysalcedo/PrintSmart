@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<div class="checkout-container">
+    
+    <div class="checkout-header">
+        <h2>Checkout</h2>
+        <p>Complete your order and review details</p>
+    </div>
+
+    <form action="/place_order" method="POST" class="checkout-grid">
+        <input type="hidden" name="grand_total" value="{{ grand_total }}">
+
+        <div class="left-col">
+            
+            {% for item in cart_items %}
+            <div class="card item-card">
+                <div class="card-header">
+                    <i class="fas fa-shopping-cart"></i> Order Details
+                </div>
+                <div class="card-body item-row">
+                    <div class="item-info">
+                        <h4>{{ item.product_name }}</h4>
+                        <p class="desc">{{ item.item_details }}</p>
+                        
+                        {% if item.file_list %}
+                        <div style="margin-top:8px;">
+                            {% for file in item.file_list %}
+                            <p class="file-tag">
+                                <i class="fas fa-paperclip"></i> 
+                                {% set full_name = file.split('/')[-1] %}
+                                {% if 'cart_' in full_name %}
+                                    {{ full_name.split('_', 2)[-1] }}
+                                {% else %}
+                                    {{ full_name }}
+                                {% endif %}
+                            </p>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        </div>
+                    <div class="item-price">
+                        ₱{{ "{:,.2f}".format(item.total_price) }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="card payment-card">
+                <div class="card-header">
+                    <i class="fas fa-credit-card"></i> Payment Method
+                </div>
+                <div class="card-body">
+                    <div class="payment-tabs">
+                        <label class="pay-tab active" onclick="selectPay(this)">
+                            <input type="radio" name="payment_method" value="Credit Card" checked>
+                            <i class="fas fa-credit-card"></i> Credit/Debit Card
+                        </label>
+                        <label class="pay-tab" onclick="selectPay(this)">
+                            <input type="radio" name="payment_method" value="GCash">
+                            <i class="fas fa-mobile-alt"></i> GCash
+                        </label>
+                    </div>
+
+                    <div class="pay-inputs">
+                        <label>Cardholder Name</label>
+                        <input type="text" placeholder="John Doe" class="full-input">
+                        
+                        <label>Card Number</label>
+                        <input type="text" placeholder="1234 5678 9012 3456" class="full-input">
+                        
+                        <div class="row-inputs">
+                            <div>
+                                <label>Expiry Date</label>
+                                <input type="text" placeholder="MM/YY">
+                            </div>
+                            <div>
+                                <label>CVV</label>
+                                <input type="text" placeholder="123">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="right-col">
+            <div class="card summary-card">
+                <div class="card-header">Order Summary</div>
+                <div class="card-body">
+                    
+                    {% for item in cart_items %}
+                    <div class="summary-row">
+                        <span>{{ item.product_name }} (x{{ item.quantity }})</span>
+                        <span>₱{{ "{:,.2f}".format(item.total_price) }}</span>
+                    </div>
+                    {% endfor %}
+
+                    <div class="summary-row">
+                        <span>Processing Fee</span>
+                        <span>₱{{ "{:,.2f}".format(processing_fee) }}</span>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="summary-row total">
+                        <span>Total</span>
+                        <span>₱{{ "{:,.2f}".format(grand_total) }}</span>
+                    </div>
+
+                    <button type="submit" class="btn-complete">Complete Order</button>
+                    
+                    <div class="secure-badge">
+                        <i class="fas fa-lock"></i> Secure checkout with 256-bit SSL encryption
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </form>
+</div>
+
+<style>
+    body { font-family: 'Poppins', sans-serif; background: #fffcf9; }
+    .checkout-container { max-width: 1100px; margin: 40px auto; }
+    
+    .checkout-header { margin-bottom: 30px; }
+    .checkout-header h2 { font-size: 24px; color: #333; margin: 0; }
+    .checkout-header p { color: #777; margin: 5px 0; }
+
+    .checkout-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; }
+
+    /* CARDS */
+    .card { background: white; border: 1px solid #eee; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 20px; }
+    .card-header { padding: 15px 20px; border-bottom: 1px solid #f5f5f5; font-weight: 500; color: #ff6600; display: flex; align-items: center; gap: 10px; }
+    .card-body { padding: 25px; }
+
+    /* Items */
+    .item-row { display: flex; justify-content: space-between; align-items: center; }
+    .item-info h4 { margin: 0 0 5px 0; font-size: 16px; }
+    .desc { margin: 0; color: #777; font-size: 13px; }
+    .file-tag { font-size: 12px; color: #28a745; margin-top: 5px; }
+    .item-price { font-size: 18px; font-weight: 600; color: #ff6600; }
+
+    /* Payment Tabs */
+    .payment-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+    .pay-tab { flex: 1; border: 1px solid #ddd; padding: 12px; text-align: center; border-radius: 4px; cursor: pointer; font-size: 14px; transition: 0.2s; }
+    .pay-tab:hover { background: #fffbf8; border-color: #ff6600; }
+    .pay-tab.active { background: #ff6600; color: white; border-color: #ff6600; }
+    .pay-tab input { display: none; }
+
+    /* Inputs */
+    .pay-inputs label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; font-weight: 500; }
+    .full-input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 15px; box-sizing: border-box; background: #f9f9f9; }
+    .row-inputs { display: flex; gap: 20px; }
+    .row-inputs input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9; box-sizing: border-box; }
+
+    /* Summary */
+    .summary-row { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 14px; color: #555; }
+    .summary-row.total { font-weight: bold; font-size: 18px; color: #333; margin-top: 15px; }
+    
+    .btn-complete { width: 100%; background: #ff6600; color: white; padding: 15px; border: none; border-radius: 4px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+    .btn-complete:hover { background: #e65c00; }
+
+    .secure-badge { text-align: center; background: #fff5e6; color: #d95700; padding: 10px; font-size: 12px; border-radius: 4px; margin-top: 15px; }
+
+</style>
+
+<script>
+    function selectPay(element) {
+        document.querySelectorAll('.pay-tab').forEach(el => el.classList.remove('active'));
+        element.classList.add('active');
+        element.querySelector('input').checked = true;
+    }
+</script>
+
+{% endblock %}

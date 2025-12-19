@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<div class="product-page-container">
+
+    <form action="/add_to_cart" method="POST" enctype="multipart/form-data" onsubmit="return validateOrder(event)">
+        <input type="hidden" name="product_id" value="{{ product.product_id }}">
+
+        <div class="product-top-section">
+            
+            <div class="product-gallery">
+                <div class="main-image-box">
+                    <img id="main-img" src="{{ url_for('static', filename=product.image_path if product.image_path else 'images/icon-signage.png') }}" alt="Product">
+                </div>
+                <div class="thumbnail-row">
+                    <img src="{{ url_for('static', filename=product.image_path if product.image_path else 'images/icon-signage.png') }}" class="thumb active" onclick="changeImage(this)">
+                    <img src="{{ url_for('static', filename='images/icon-doc.png') }}" class="thumb" onclick="changeImage(this)">
+                    <img src="{{ url_for('static', filename='images/icon-sticker.png') }}" class="thumb" onclick="changeImage(this)">
+                </div>
+            </div>
+
+            <div class="product-info-column">
+                
+                <h1 class="product-title">{{ product.name }}</h1>
+                
+                <div class="rating-row">
+                    <span class="stars">★★★★★</span> 
+                    <span class="rating-text">4.9 | 1.2K Ratings | 3.5K Sold</span>
+                </div>
+
+                <div class="price-display">
+                    ₱<span id="total-price">0.00</span>
+                    </div>
+
+                {% if product.product_id == 1 %}
+                
+                <div class="config-group">
+                    <label class="config-label">Material Type</label>
+                    <div class="chip-row">
+                        {% for variant in variants %}
+                            <label class="chip-btn">
+                                <input type="radio" name="material_variant_id" value="{{ variant.price }}" 
+                                       {% if loop.first %}checked{% endif %} 
+                                       onchange="calculateTarp()">
+                                <span>{{ variant.variant_name }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="config-group">
+                    <label class="config-label">Dimensions (Feet)</label>
+                    <div class="input-row">
+                        <div class="input-wrap">
+                            <input type="number" name="height_ft" id="tarp-h" value="2" class="custom-input" oninput="calculateTarp()" required>
+                            <span class="unit-label">Height</span>
+                        </div>
+                        <div class="input-wrap">
+                            <input type="number" name="width_ft" id="tarp-w" value="3" class="custom-input" oninput="calculateTarp()" required>
+                            <span class="unit-label">Width</span>
+                        </div>
+                    </div>
+                    <small style="color:#ff6600; font-size:12px; margin-top:5px; display:block;">
+                        Area: <span id="area-display">6</span> sq ft
+                    </small>
+                </div>
+
+                {% endif %}
+
+                <div class="config-group qty-group">
+                    <label class="config-label">Quantity</label>
+                    <div class="qty-control">
+                        <button type="button" onclick="changeQty(-1)">-</button>
+                        <input type="number" name="quantity" id="main-qty" value="1" min="1" readonly>
+                        <button type="button" onclick="changeQty(1)">+</button>
+                    </div>
+                    <span style="font-size: 13px; color: #777; margin-left: 15px;">{{ variants[0].stock_quantity if variants else 100 }} pieces available</span>
+                </div>
+
+                <div class="action-buttons">
+    <button type="submit" name="action" value="add_cart" class="btn-cart">
+        <i class="fas fa-cart-plus"></i> Add to Cart
+    </button>
+    
+    <button type="submit" name="action" value="buy_now" class="btn-buy">
+        Buy Now
+    </button>
+</div>
+
+            </div> </div>
+
+        <div class="design-section">
+            <div class="toggle-header">
+                <h3>Design & Layout Options</h3>
+                <div class="toggle-wrapper">
+                    <span class="price-add">Request Layout Service (+₱150.00)</span>
+                    <label class="switch">
+                        <input type="checkbox" name="has_layout" id="layout-toggle" onchange="toggleLayoutAll()">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <div id="layout-inputs" class="slide-down" style="display:none;">
+                <textarea name="instructions" class="custom-textarea" placeholder="Describe your layout (e.g., 'Happy Birthday layout with Bluey theme, blue background')..."></textarea>
+            </div>
+
+         <div class="upload-area" id="drop-zone">
+                <div class="upload-content" id="upload-placeholder">
+                    <span style="font-size:30px; color:#ff6600;">☁️</span>
+                    <p style="margin:5px 0; font-weight:500;">Click to Upload Design or References</p>
+                    <small style="color:#999;">Supported: PNG, JPG, PDF, PSD, AI (max 5GB)</small>
+                </div>
+                
+                <div id="file-list-display" style="display:none; text-align:center;">
+                    <span style="font-size:30px; color:#28a745;">✅</span>
+                    <p style="margin:5px 0; font-weight:bold; color:#333;">Files Selected:</p>
+                    <div id="file-names" style="color:#555; font-size:14px; margin-bottom:10px;"></div>
+                    <small style="color:#ff6600; cursor:pointer;">(Click to change files)</small>
+                </div>
+
+                <input type="file" name="design_file" class="file-input" multiple onchange="updateFileList(this)">
+            </div>
+            </div>
+        </div>
+
+    </form>
+
+    <div class="product-tabs-container">
+        <div class="tab-header">
+            <button class="tab-btn active" onclick="openTab('specs')">Product Specifications</button>
+            <button class="tab-btn" onclick="openTab('desc')">Product Description</button>
+            <button class="tab-btn" onclick="openTab('reviews')">Reviews (1.2k)</button>
+        </div>
+
+        <div id="specs" class="tab-content" style="display:block;">
+            <div class="spec-row">
+                <span class="spec-label">Category</span>
+                <span class="spec-val">Printing Services > {{ product.name }}</span>
+            </div>
+            <div class="spec-row">
+                <span class="spec-label">Stock</span>
+                <span class="spec-val">{{ variants[0].stock_quantity if variants else 100 }}</span>
+            </div>
+            <div class="spec-row">
+                <span class="spec-label">Ships From</span>
+                <span class="spec-val">Metro Manila</span>
+            </div>
+        </div>
+
+        <div id="desc" class="tab-content" style="display:none;">
+            <p style="line-height: 1.6; color: #555;">{{ product.description }}</p>
+            <p style="line-height: 1.6; color: #555; margin-top:10px;">
+                High-quality printing services tailored to your needs. We use premium materials to ensure durability and vibrant colors for all your signage and document requirements.
+            </p>
+        </div>
+
+        <div id="reviews" class="tab-content" style="display:none;">
+            <div class="review-item">
+                <div class="user-row">
+                    <div class="user-avatar">J</div>
+                    <div>
+                        <span class="user-name">Juan Dela Cruz</span>
+                        <div class="stars" style="font-size:12px;">★★★★★</div>
+                    </div>
+                    <span class="review-date">2023-12-08</span>
+                </div>
+                <p class="review-text">Excellent quality! The tarpaulin came out perfect. Colors are vibrant and the material is very thick. Fast delivery too!</p>
+            </div>
+            <div class="review-item">
+                <div class="user-row">
+                    <div class="user-avatar" style="background:#28a745;">M</div>
+                    <div>
+                        <span class="user-name">Maria Santos</span>
+                        <div class="stars" style="font-size:12px;">★★★★★</div>
+                    </div>
+                    <span class="review-date">2023-11-20</span>
+                </div>
+                <p class="review-text">Great service! Quick printing and the layout they made for my son's birthday was superb.</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<style>
+    body { font-family: 'Poppins', sans-serif; background: #f5f5f5; }
+    
+    .product-page-container { max-width: 1100px; margin: 30px auto; }
+    .product-top-section { display: flex; gap: 30px; background: white; padding: 20px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    
+    /* Left Gallery */
+    .product-gallery { flex: 4; }
+    .main-image-box { width: 100%; height: 400px; background: #f9f9f9; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    .main-image-box img { max-width: 100%; max-height: 100%; }
+    .thumbnail-row { display: flex; gap: 10px; margin-top: 10px; }
+    .thumb { width: 60px; height: 60px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; object-fit: cover; }
+    .thumb:hover, .thumb.active { border: 2px solid #ff6600; }
+
+    /* Right Info */
+    .product-info-column { flex: 5; padding-left: 20px; }
+    .product-title { font-size: 22px; font-weight: 500; margin: 0 0 10px 0; line-height: 1.2; }
+    
+    .rating-row { font-size: 14px; color: #757575; margin-bottom: 15px; }
+    .stars { color: #ff6600; }
+    
+    .price-display { background: #fafafa; padding: 15px; margin: 15px 0; border-radius: 4px; }
+    .price-display span[id="total-price"] { font-size: 30px; color: #ff6600; font-weight: 600; }
+
+    /* Configuration Chips */
+    .config-group { margin-bottom: 25px; }
+    .config-label { font-size: 14px; color: #757575; margin-bottom: 10px; display: block; }
+    
+    .chip-row { display: flex; flex-wrap: wrap; gap: 10px; }
+    .chip-btn input { display: none; }
+    .chip-btn span {
+        display: inline-block; padding: 8px 20px; border: 1px solid #e0e0e0; 
+        border-radius: 2px; cursor: pointer; font-size: 14px; color: #333; transition: 0.2s;
+    }
+    .chip-btn:hover span { border-color: #ff6600; color: #ff6600; }
+    .chip-btn input:checked + span { border: 1px solid #ff6600; color: #ff6600; background: #fff5e6; font-weight: 500; }
+
+    /* Inputs */
+    .input-row { display: flex; gap: 15px; }
+    .input-wrap { flex: 1; border: 1px solid #e0e0e0; border-radius: 2px; padding: 5px 10px; display: flex; flex-direction: column; }
+    .input-wrap:focus-within { border-color: #ff6600; background: #fffbf8; }
+    .custom-input { border: none; outline: none; font-size: 16px; width: 100%; background: transparent; color: #333; }
+    .unit-label { font-size: 11px; color: #999; }
+
+    /* Buttons */
+    .action-buttons { display: flex; gap: 15px; margin-top: 30px; }
+    .btn-cart { flex: 1; padding: 15px; border: 1px solid #ff6600; background: #fff5e6; color: #ff6600; font-weight: 500; cursor: pointer; border-radius: 4px; font-size: 16px; }
+    .btn-buy { flex: 1; padding: 15px; border: none; background: #ff6600; color: white; font-weight: 500; cursor: pointer; border-radius: 4px; font-size: 16px; }
+    .btn-buy:hover { background: #d95700; }
+
+    /* Quantity */
+    .qty-control { display: inline-flex; border: 1px solid #ddd; }
+    .qty-control button { width: 32px; height: 32px; border: none; background: #f8f8f8; cursor: pointer; font-size: 16px; }
+    .qty-control input { width: 50px; text-align: center; border: none; border-left: 1px solid #ddd; border-right: 1px solid #ddd; outline: none; }
+
+    /* Design Section */
+    .design-section { background: white; margin-top: 20px; padding: 25px; border-radius: 4px; }
+    .toggle-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+    .toggle-header h3 { margin: 0; font-size: 18px; font-weight: 500; }
+    .custom-textarea { width: 100%; padding: 15px; border: 1px solid #e0e0e0; border-radius: 4px; margin-bottom: 15px; font-family: inherit; }
+    .upload-area { border: 2px dashed #ff6600; background: #fffbf8; padding: 30px; text-align: center; border-radius: 6px; position: relative; cursor: pointer; }
+    .file-input { position: absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor: pointer; }
+
+    /* Switch Toggle */
+    .switch { position: relative; display: inline-block; width: 44px; height: 22px; margin-left: 10px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+    .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: #ff6600; }
+    input:checked + .slider:before { transform: translateX(22px); }
+
+    /* --- TABS SECTION STYLES --- */
+    .product-tabs-container { background: white; margin-top: 20px; padding: 20px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .tab-header { border-bottom: 1px solid #eee; display: flex; gap: 30px; margin-bottom: 20px; }
+    .tab-btn { background: none; border: none; padding: 15px 0; cursor: pointer; font-size: 16px; color: #666; font-family: inherit; position: relative; }
+    .tab-btn.active { color: #ff6600; font-weight: 500; }
+    .tab-btn.active::after { content: ''; position: absolute; bottom: -1px; left: 0; width: 100%; height: 3px; background: #ff6600; }
+    
+    .tab-content { animation: fadeIn 0.3s; }
+    .spec-row { display: flex; padding: 10px 0; font-size: 14px; }
+    .spec-label { width: 150px; color: #999; }
+    .spec-val { color: #333; }
+    
+    .review-item { border-bottom: 1px solid #f0f0f0; padding-bottom: 15px; margin-bottom: 15px; }
+    .user-row { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+    .user-avatar { width: 30px; height: 30px; background: #ccc; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+    .user-name { font-size: 12px; font-weight: 500; }
+    .review-date { margin-left: auto; font-size: 12px; color: #999; }
+    .review-text { font-size: 14px; color: #555; margin: 0; }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+</style>
+
+<script>
+    // 1. CHANGE MAIN IMAGE
+    function changeImage(thumb) {
+        let mainImg = document.getElementById('main-img');
+        if(mainImg) mainImg.src = thumb.src;
+        
+        document.querySelectorAll('.thumb').forEach(t => t.classList.remove('active'));
+        thumb.classList.add('active');
+    }
+
+    // 2. QUANTITY
+    function changeQty(amount) {
+        let qtyInput = document.getElementById('main-qty');
+        let current = parseInt(qtyInput.value) || 1;
+        let newVal = current + amount;
+        if(newVal < 1) newVal = 1;
+        qtyInput.value = newVal;
+        calculateTarp();
+    }
+
+    // 3. TOGGLE LAYOUT
+    function toggleLayoutAll() {
+        let toggle = document.getElementById('layout-toggle');
+        let inputs = document.getElementById('layout-inputs');
+        if(toggle && inputs) {
+            inputs.style.display = toggle.checked ? 'block' : 'none';
+            calculateTarp();
+        }
+    }
+
+    // 4. TARP MATH (With Safety Checks)
+    function calculateTarp() {
+        // SAFETY CHECK: If we are not on the Tarp page (ID 1), stop here so we don't crash.
+        let heightInput = document.getElementById('tarp-h');
+        if (!heightInput) return; 
+
+        let selectedChip = document.querySelector('input[name="material_variant_id"]:checked');
+        let pricePerSqFt = selectedChip ? parseFloat(selectedChip.value) : 0;
+        
+        let h = parseFloat(document.getElementById('tarp-h').value) || 0;
+        let w = parseFloat(document.getElementById('tarp-w').value) || 0;
+        let qty = parseInt(document.getElementById('main-qty').value) || 1;
+        
+        let layoutToggle = document.getElementById('layout-toggle');
+        let hasLayout = layoutToggle ? layoutToggle.checked : false;
+
+        let area = h * w;
+        let areaDisplay = document.getElementById('area-display');
+        if(areaDisplay) areaDisplay.innerText = area;
+
+        let productCost = (area * pricePerSqFt) * qty;
+        let layoutCost = hasLayout ? 150 : 0;
+        let total = productCost + layoutCost;
+
+        let totalPriceDisplay = document.getElementById('total-price');
+        if(totalPriceDisplay) {
+            totalPriceDisplay.innerText = total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+    }
+
+    // 5. FILE UPLOAD UI (Fixed Scope)
+    function updateFileList(input) {
+        let placeholder = document.getElementById('upload-placeholder');
+        let display = document.getElementById('file-list-display');
+        let nameList = document.getElementById('file-names');
+        
+        if (input.files.length > 0) {
+            // Hide the "Cloud" icon
+            if(placeholder) placeholder.style.display = 'none';
+            // Show the "Checkmark" section
+            if(display) display.style.display = 'block';
+            
+            // List all files
+            let names = [];
+            for (let i = 0; i < input.files.length; i++) {
+                names.push(input.files[i].name);
+            }
+            if(nameList) nameList.innerHTML = names.join('<br>'); 
+        } else {
+            // Reset if they cancel
+            if(placeholder) placeholder.style.display = 'block';
+            if(display) display.style.display = 'none';
+        }
+    }
+
+    // 6. TABS LOGIC
+    function openTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        
+        let target = document.getElementById(tabName);
+        if(target) target.style.display = 'block';
+        
+        // Simple active state loop
+        let buttons = document.querySelectorAll('.tab-btn');
+        if(tabName === 'specs' && buttons[0]) buttons[0].classList.add('active');
+        if(tabName === 'desc' && buttons[1]) buttons[1].classList.add('active');
+        if(tabName === 'reviews' && buttons[2]) buttons[2].classList.add('active');
+    }
+
+    // Initialize logic safely
+    window.onload = function() {
+        calculateTarp();
+    };
+    // VALIDATION: Prevent submit if no files
+function validateOrder(event) {
+    let fileInput = document.querySelector('input[name="design_file"]');
+    // Check if files are selected
+    if (fileInput.files.length === 0) {
+        alert("⚠️ Please upload a design file or reference to continue.");
+        event.preventDefault(); // Stop the form from submitting
+        return false;
+    }
+    return true;
+}
+</script>
+{% endblock %}
