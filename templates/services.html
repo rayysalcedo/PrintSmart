@@ -16,136 +16,52 @@
 
     <div class="category-wrapper">
         <div class="category-nav">
-            <div class="cat-tab active" onclick="openCategory(event, 'signage')">Large Format & Signage</div>
-            <div class="cat-tab" onclick="openCategory(event, 'stickers')">Sticker Labels</div>
-            <div class="cat-tab" onclick="openCategory(event, 'documents')">Document & Photo Printing</div>
-            <div class="cat-tab" onclick="openCategory(event, 'apparel')">Apparel</div>
+            {% for category in categories %}
+                <div id="tab-{{ category.slug }}" 
+                     class="cat-tab {{ 'active' if loop.first else '' }}" 
+                     onclick="openCategory(event, '{{ category.slug }}')">
+                     {{ category.name }}
+                </div>
+            {% endfor %}
         </div>
     </div>
 
-    <div id="signage" class="category-content" style="display: block;">
-        <div class="category-header">
-            <div class="icon-box"><img src="{{ url_for('static', filename='images/icon-signage.png') }}" alt=""></div>
-            <h2>Large Format and Signage</h2>
-        </div>
-        <div class="products-grid">
-            <div class="product-card">
-                <div class="card-body">
-                    <h3>Tarpaulin Printing</h3>
-                    <p class="desc">Durable tarpaulin prints for indoor and outdoor use</p>
-                    <ul class="features">
-                        <li><span class="check">✓</span> Multiple material options</li>
-                        <li><span class="check">✓</span> Custom sizes with automatic price calculation</li>
-                        <li><span class="check">✓</span> Optional layout design support available</li>
-                    </ul>
-                </div>
-                <a href="{{ url_for('order') }}" class="btn-order">Order Now &rarr;</a>
+    {% for category in categories %}
+        
+        <div id="{{ category.slug }}" class="category-content" style="display: {{ 'block' if loop.first else 'none' }};">
+            
+            <div class="category-header">
+                <div class="icon-box"><img src="{{ url_for('static', filename=category.icon_path) }}" alt=""></div>
+                <h2>{{ category.name }}</h2>
             </div>
-            <div class="product-card">
-                <div class="card-body">
-                    <h3>Sintra Board</h3>
-                    <p class="desc">Clean, rigid displays ideal for signage and standees</p>
-                    <ul class="features">
-                        <li><span class="check">✓</span> Available in 3mm and 5mm thickness</li>
-                        <li><span class="check">✓</span> Standard or fully custom sizing</li>
-                        <li><span class="check">✓</span> Optional back stand or box type add-on</li>
-                    </ul>
-                </div>
-                <a href="{{ url_for('order') }}" class="btn-order">Order Now &rarr;</a>
-            </div>
-        </div>
-    </div>
 
-    <div id="stickers" class="category-content" style="display: none;">
-        <div class="category-header">
-            <div class="icon-box"><img src="{{ url_for('static', filename='images/icon-sticker.png') }}" alt=""></div>
-            <h2>Custom Label Solutions</h2>
-        </div>
-        <div class="products-grid">
-            <div class="product-card">
-                <div class="card-body">
-                    <h3>Sticker Labels</h3>
-                    <p class="desc">High-quality sticker labels for products and packaging</p>
-                    <ul class="features">
-                        <li><span class="check">✓</span> Glossy or matte finish options</li>
-                        <li><span class="check">✓</span> Sheet-based or custom size pricing</li>
-                        <li><span class="check">✓</span> Optional pre-cut and label design service</li>
-                    </ul>
-                </div>
-                <a href="{{ url_for('order') }}" class="btn-order">Order Now &rarr;</a>
-            </div>
-        </div>
-    </div>
+            <div class="products-grid">
+                {% for product in products %}
+                    {% if product.category_slug == category.slug %}
+                    
+                    <div class="product-card">
+                        <div class="card-body">
+                            <h3>{{ product.name }}</h3>
+                            <p class="desc">{{ product.description }}</p>
+                            
+                            <ul class="features">
+                                {% if product.product_id in features_map %}
+                                    {% for feature in features_map[product.product_id] %}
+                                        <li><span class="check">✓</span> {{ feature }}</li>
+                                    {% endfor %}
+                                {% endif %}
+                            </ul>
+                        </div>
+                        <a href="{{ url_for('order', product_id=product.product_id) }}" class="btn-order">Order Now &rarr;</a>
+                    </div>
 
-    <div id="documents" class="category-content" style="display: none;">
-        <div class="category-header">
-            <div class="icon-box"><img src="{{ url_for('static', filename='images/icon-doc.png') }}" alt=""></div>
-            <h2>Document and Photo Printing</h2>
-        </div>
-        <div class="products-grid">
-            <div class="product-card">
-                <div class="card-body">
-                    <h3>Document Printing</h3>
-                    <p class="desc">Professional document printing for everyday needs</p>
-                    <ul class="features">
-                        <li><span class="check">✓</span> Multiple paper sizes and color options</li>
-                        <li><span class="check">✓</span> Clear, matrix-based pricing</li>
-                        <li><span class="check">✓</span> Supports PDF and DOCX files</li>
-                    </ul>
-                </div>
-                <a href="{{ url_for('order') }}" class="btn-order">Order Now &rarr;</a>
-            </div>
-            <div class="product-card">
-                <div class="card-body">
-                    <h3>Photo Printing</h3>
-                    <p class="desc">Sharp, vibrant photo prints in various sizes</p>
-                    <ul class="features">
-                        <li><span class="check">✓</span> Wide range of photo sizes available</li>
-                        <li><span class="check">✓</span> Accurate color reproduction</li>
-                        <li><span class="check">✓</span> Optional layout assistance for photos</li>
-                    </ul>
-                </div>
-                <a href="{{ url_for('order') }}" class="btn-order">Order Now &rarr;</a>
-            </div>
-             <div class="product-card">
-                <div class="card-body">
-                    <h3>ID Picture Packages</h3>
-                    <p class="desc">Fast and reliable ID photo packages (Rush ID)</p>
-                    <ul class="features">
-                        <li><span class="check">✓</span> Multiple package options and sizes</li>
-                        <li><span class="check">✓</span> Optional photo enhancement and outfit change</li>
-                        <li><span class="check">✓</span> Softcopy add-on available</li>
-                    </ul>
-                </div>
-                <a href="{{ url_for('order') }}" class="btn-order">Order Now &rarr;</a>
+                    {% endif %}
+                {% endfor %}
             </div>
         </div>
-    </div>
 
-    <div id="apparel" class="category-content" style="display: none;">
-        <div class="category-header">
-            <div class="icon-box"><img src="{{ url_for('static', filename='images/icon-shirt.png') }}" alt=""></div>
-            <h2>Printed Apparel</h2>
-        </div>
-        <div class="products-grid">
-            <div class="product-card">
-                <div class="card-body">
-                    <h3>Customized Shirts</h3>
-                    <p class="desc">Premium custom-printed apparel for any purpose</p>
-                    <ul class="features">
-                        <li><span class="check">✓</span> Multiple garment types and fabric choices</li>
-                        <li><span class="check">✓</span> Supply & print or print-only options</li>
-                        <li><span class="check">✓</span> Optional layout and placement assistance</li>
-                    </ul>
-                </div>
-                <a href="{{ url_for('order') }}" class="btn-order">Order Now &rarr;</a>
-            </div>
-        </div>
-    </div>
-
-</div>
-
-</div> <div class="process-section">
+    {% endfor %}
+    </div> <div class="process-section">
     <h2>How It Works</h2>
     <p class="process-sub">Our simple 4-step process ensures you get exactly what you need</p>
     
@@ -177,24 +93,56 @@
 </div>
 
 <script>
-function openCategory(evt, categoryName) {
-    // 1. Hide all category contents
-    var i, content, tabs;
-    content = document.getElementsByClassName("category-content");
-    for (i = 0; i < content.length; i++) {
-        content[i].style.display = "none";
+    // 1. Main Tab Switching Function
+    function openCategory(evt, categoryName) {
+        // Hide all category contents
+        var i, content, tabs;
+        content = document.getElementsByClassName("category-content");
+        for (i = 0; i < content.length; i++) {
+            content[i].style.display = "none";
+        }
+
+        // Deactivate all tabs
+        tabs = document.getElementsByClassName("cat-tab");
+        for (i = 0; i < tabs.length; i++) {
+            tabs[i].classList.remove("active");
+        }
+
+        // Show the target content
+        var targetContent = document.getElementById(categoryName);
+        if (targetContent) {
+            targetContent.style.display = "block";
+        }
+
+        // Activate the tab button
+        var targetTab = document.getElementById("tab-" + categoryName);
+        if (targetTab) {
+            targetTab.classList.add("active");
+        }
     }
 
-    // 2. Remove "active" class from all tabs
-    tabs = document.getElementsByClassName("cat-tab");
-    for (i = 0; i < tabs.length; i++) {
-        tabs[i].className = tabs[i].className.replace(" active", "");
+    // 2. Auto-Scroll & Hash Check
+    function checkHashAndOpen() {
+        if(window.location.hash) {
+            var hash = window.location.hash.substring(1);
+            var validCategories = ['signage', 'stickers', 'documents', 'apparel'];
+            
+            if (validCategories.includes(hash)) {
+                // Activate the tab
+                openCategory(null, hash);
+                
+                // Force Scroll to the Category Wrapper
+                setTimeout(function() {
+                    var element = document.querySelector('.category-wrapper');
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100); 
+            }
+        }
     }
 
-    // 3. Show the current category and add "active" class to the clicked tab
-    document.getElementById(categoryName).style.display = "block";
-    evt.currentTarget.className += " active";
-}
+    // 3. Listeners
+    document.addEventListener("DOMContentLoaded", checkHashAndOpen);
+    window.addEventListener("hashchange", checkHashAndOpen);
 </script>
 
 {% endblock %}
