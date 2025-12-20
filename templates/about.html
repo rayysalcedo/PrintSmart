@@ -1,0 +1,113 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='css/about.css') }}">
+
+{% extends "base.html" %}
+
+{% block content %}
+<section class="services-hero">
+    <div class="hero-content">
+        <div class="trusted-badge">About Us</div>
+        <h1>Bringing Your Ideas to Life Since 2019</h1>
+        <p>We're more than just a printing company - we're your partner in creating exceptional printed materials that make an impact.</p>
+    </div>
+</section>
+
+<div class="main-container">
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h2>15+</h2>
+            <p>Years in Business</p>
+        </div>
+        <div class="stat-card">
+            <h2>50K+</h2>
+            <p>Happy Customers</p>
+        </div>
+        <div class="stat-card">
+            <h2>1M+</h2>
+            <p>Orders Completed</p>
+        </div>
+        <div class="stat-card">
+            <h2>99.8%</h2>
+            <p>Customer Satisfaction</p>
+        </div>
+    </div>
+</div>
+
+<section class="story-section">
+    <div class="main-container">
+        <div class="story-content-wrapper">
+            <div class="story-text">
+                <div class="trusted-badge outline">Our Story</div>
+                <h2>From Passion to Excellence</h2>
+                
+                <p>Printagram Printing Services was founded in 2019. A tiny print shop opened its doors with the simple and clear goal of delivering high-quality printing services. A little more five years later, that humble print shop has grown into one of our town's leading corporate stationery printers.</p>
+
+                <p>It all started when Mr. Jose Raphael and Ms. Mica, inspired by their own family history in the printing industry, decided to open a boutique print shop dedicated to offering a bespoke printing experience for clients while also producing a high-quality end product. That concept became a reality in 2019, when Printagram Printing Services was established.</p>
+
+                <p>Printagram's manufacturing facility is conveniently located on National Road Panilao Pilar and uses modern technologies. Their creative arrangement of machines for printing allows them to efficiently manage their clients' printing demands, from business cards, flyers, tarpaulins, and signages to full-color marketing materials, while always focusing on quality.</p>
+
+                <p>Printagram's unwavering commitment to print quality and service has attracted exceptional customers, including many of the city's largest corporations, restaurants, universities, colleges and agencies. We look forward to meeting with you to discuss how we can effectively fulfill your printing needs.</p>
+            </div>
+            
+            <div class="story-image">
+                <img src="{{ url_for('static', filename='images/shop-photo.png') }}" alt="Printagram Shop Front">
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="values-section">
+    <div class="main-container">
+        <div class="values-header-flex">
+            <div class="title-area">
+                <span class="trusted-badge outline">Our Core Values</span>
+                <h2>What Drives Us</h2>
+            </div>
+            <div class="description-area">
+                <p>These core values guide everything we do, from how we serve customers to how we innovate. </p>
+            </div>
+        </div>
+        
+        <div class="values-grid">
+            <div class="value-card">
+                <div class="step-circle">⭐</div>
+                <h3>Excellence</h3>
+                <p>We deliver only the highest quality printing results for every project.</p>
+            </div>
+
+            <div class="value-card">
+                <div class="step-circle">🤝</div>
+                <h3>Customer First</h3>
+                <p>Your satisfaction is our priority. We listen and adapt to your needs.</p>
+            </div>
+
+            <div class="value-card">
+                <div class="step-circle">💡</div>
+                <h3>Innovation</h3>
+                <p>Using the latest printing technology to bring modern solutions.</p>
+            </div>
+
+            <div class="value-card">
+                <div class="step-circle">🛡️</div>
+                <h3>Reliability</h3>
+                <p>Dependable service and fast turnaround times you can count on.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="cta-section">
+    <div class="main-container">
+        <div class="cta-content">
+            <span class="cta-badge">Ready to Start?</span>
+            <h2>Bring Your Ideas to Life.</h2>
+            <p>We're ready to help you create exceptional printed materials.</p>
+            
+            <div class="cta-buttons">
+                <a href="{{ url_for('services') }}" class="btn-cta-white">View Services</a>
+                <a href="mailto:printagrambataan2019@gmail.com" class="btn-cta-ghost">Get a Quote</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

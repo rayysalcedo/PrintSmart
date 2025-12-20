@@ -1,0 +1,346 @@
+/* --- ABOUT PAGE SPECIFIC STYLES --- */
+
+/* 1. Hero Adjustment */
+/* We add extra top padding so the content doesn't sit behind the fixed navbar */
+.services-hero {
+    padding: 120px 20px 100px; 
+    text-align: center;
+    color: white;
+}
+
+/* --- ABOUT PAGE STATS GRID --- */
+.stats-grid {
+    display: flex !important; /* Force horizontal */
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    gap: 20px !important;
+    margin-top: -60px !important;
+    width: 100%;
+}
+
+.stat-card {
+    background: #FFFFFF;
+    border: 3px solid #FFE7DA; /* Matches your Product Cards */
+    border-radius: 20px;
+    flex: 1; /* Makes all 4 cards equal width */
+    padding: 30px 15px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(220, 85, 0, 0.08); /* Subtle orange shadow */
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-8px);
+    border-color: #DC5500;
+}
+
+.stat-card h2 {
+    font-family: 'Akatab', serif;
+    font-weight: 800;
+    font-size: 38px;
+    color: #DC5500; /* Your brand orange */
+    margin: 0 0 5px 0;
+}
+
+.stat-card p {
+    font-family: 'Alexandria', sans-serif;
+    font-size: 15px;
+    color: #9A5A00; /* Matching the description color from Services */
+    margin: 0;
+}
+
+/* Ensure it stacks on mobile */
+@media (max-width: 768px) {
+    .stats-grid {
+        flex-direction: column;
+        margin-top: 20px;
+    }
+}
+
+/* --- OUR STORY SECTION POLISH --- */
+.story-section {
+    padding: 100px 0;
+    background-color: #FFF5E6; /* Match the beige background in Figma */
+}
+
+.story-content-wrapper {
+    display: flex !important; /* Force horizontal */
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 60px !important;
+    width: 100%;
+}
+
+.story-text {
+    flex: 1.2; /* Gives the text a bit more room than the image */
+}
+
+.story-text .trusted-badge.outline {
+    background: transparent;
+    border: 1px solid #DC5500;
+    color: #DC5500;
+    margin-bottom: 20px;
+}
+
+.story-text h2 {
+    font-family: 'Akatab', serif;
+    font-size: 42px;
+    font-weight: 800;
+    margin-bottom: 30px;
+    color: #000;
+}
+
+/* --- STORY TEXT ENHANCEMENT --- */
+.story-text p {
+    font-family: 'Alexandria', sans-serif;
+    font-size: 16px;
+    line-height: 1.8; /* Increases space between lines for readability */
+    color: #555; /* Slightly softer than pure black for long reading */
+    margin-bottom: 24px; /* Adds space between the four paragraphs */
+    text-align: justify; /* Keeps the edges clean like a professional document */
+}
+
+.story-content-wrapper {
+    display: flex;
+    align-items: flex-start; /* Aligns the image to the top of the first paragraph */
+    gap: 60px;
+}
+
+.story-image img {
+    width: 100%;
+    position: sticky; /* Optional: Keeps the image in view while reading long text */
+    top: 100px;
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+}
+
+.story-image {
+    flex: 1;
+}
+
+/* Ensure it looks good on mobile */
+@media (max-width: 992px) {
+    .story-content-wrapper {
+        flex-direction: column-reverse; /* Puts image on top for mobile */
+        text-align: center;
+    }
+}
+
+/* Responsive fix for mobile */
+@media (max-width: 768px) {
+    .story-container {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .stats-grid {
+        margin-top: 20px;
+    }
+}
+
+/* --- CORE VALUES POLISH (CENTERED VERSION) --- */
+.values-section {
+    padding: 100px 0;
+    background-color: #FFFFFF;
+    text-align: center; /* This keeps everything in the middle */
+}
+
+.values-header-flex {
+    margin-bottom: 60px;
+    text-align: center; /* Ensures the title and description stay centered */
+}
+
+/* 1. Color: Brand Orange */
+.values-header-flex .trusted-badge.outline {
+    font-family: 'Alexandria', sans-serif !important;
+    color: #DC5500 !important;
+    border: 1px solid #DC5500 !important;
+    display: inline-block;
+    margin-bottom: 15px;
+}
+
+/* 2. Color: Deep Charcoal */
+.values-header-flex h2 {
+    font-family: 'Akatab', serif !important;
+    font-weight: 800 !important;
+    font-size: 48px !important;
+    color: #333333 !important;
+    margin: 10px 0;
+}
+
+/* 3. Color: Golden Brown (Centered) */
+.values-header-flex .description-area p {
+    font-family: 'Alexandria', sans-serif !important;
+    font-size: 16px !important;
+    color: #9A5A00 !important;
+    line-height: 1.6;
+    max-width: 700px;
+    margin: 0 auto; /* Centers the paragraph block */
+}
+
+.values-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 30px;
+    max-width: 1200px;
+    margin: 50px auto 0;
+    padding: 0 20px;
+}
+
+.value-card {
+    background: #FFFFFF;
+    border: 2px solid #FFE7DA;
+    border-radius: 24px;
+    padding: 45px 25px;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.value-card:hover {
+    transform: translateY(-12px);
+    border-color: #DC5500;
+    box-shadow: 0 20px 40px rgba(220, 85, 0, 0.1);
+}
+
+/* Color Update: Dark Grey */
+.value-card h3 {
+    font-family: 'Akatab', serif;
+    font-size: 24px;
+    font-weight: 800;
+    color: #333333; 
+    margin: 20px 0 10px;
+}
+
+/* Color Update: Neutral Grey for readability */
+.value-card p {
+    font-family: 'Alexandria', sans-serif;
+    font-size: 14px;
+    color: #666666; 
+    line-height: 1.6;
+    margin: 0;
+}
+
+.value-card .step-circle {
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(147deg, #FFDC58, #DC5500);
+    color: #FFFFFF; /* Ensure icon is pure white */
+    border-radius: 50%;
+    font-size: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    box-shadow: 0 8px 20px rgba(220, 85, 0, 0.2);
+}
+
+/* Ensure icons/emojis look centered and bold */
+.value-card .step-circle {
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(147deg, #FFDC58, #DC5500);
+    color: white;
+    border-radius: 50%;
+    font-size: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    box-shadow: 0 8px 20px rgba(220, 85, 0, 0.2);
+}
+
+/* --- CTA SECTION FIGMA MATCH --- */
+.cta-section {
+    padding: 100px 0;
+    /* Soft diagonal gradient matching the Figma vision */
+    background: linear-gradient(135deg, #FFB13D 0%, #DC5500 100%);
+    text-align: center;
+    color: #FFFFFF;
+}
+
+.cta-content {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+/* Rounded White Pill Badge */
+.cta-badge {
+    display: inline-block;
+    padding: 8px 24px;
+    border: 1px solid #FFFFFF;
+    border-radius: 50px; /* Force pill shape */
+    font-family: 'Alexandria', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 25px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.cta-section h2 {
+    font-family: 'Akatab', serif;
+    font-size: 56px; /* High impact size from Figma */
+    font-weight: 800;
+    margin-bottom: 20px;
+    line-height: 1.1;
+}
+
+.cta-section p {
+    font-family: 'Alexandria', sans-serif;
+    font-size: 18px;
+    margin-bottom: 40px;
+    opacity: 0.9;
+}
+
+/* Button Group with Figma Spacing */
+.cta-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+/* Primary White Button */
+.btn-cta-white {
+    background-color: #FFFFFF;
+    color: #DC5500;
+    padding: 16px 40px;
+    border-radius: 30px; /* Pill shape for buttons */
+    text-decoration: none;
+    font-family: 'Alexandria', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.btn-cta-white:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+/* Transparent Ghost Button */
+.btn-cta-ghost {
+    background-color: transparent;
+    color: #FFFFFF;
+    border: 1px solid #FFFFFF;
+    padding: 16px 40px;
+    border-radius: 30px; /* Pill shape */
+    text-decoration: none;
+    font-family: 'Alexandria', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.btn-cta-ghost:hover {
+    background-color: #FFFFFF;
+    color: #DC5500;
+}
+
+/* Responsive Scaling */
+@media (max-width: 768px) {
+    .cta-section h2 {
+        font-size: 38px;
+    }
+    .cta-buttons {
+        flex-direction: column;
+        padding: 0 40px;
+    }
+}
