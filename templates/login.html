@@ -1,30 +1,150 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | PrintSmart</title>
     <style>
-        body { font-family: 'Arial', sans-serif; background: #f4f6f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .login-card { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 350px; text-align: center; }
-        .brand { color: #ff6600; font-size: 24px; font-weight: bold; margin-bottom: 30px; display: block; }
-        input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: #ff6600; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 16px; }
-        button:hover { background: #e65c00; }
-        .footer-links { margin-top: 20px; font-size: 14px; }
-        .footer-links a { color: #666; text-decoration: none; }
+    /* 1. Use your Brand Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Akatab:wght@400;700;800&family=Alexandria:wght@300;400;600&display=swap');
+
+    body { 
+        font-family: 'Alexandria', sans-serif; 
+        background: #FFF5E6; /* Light brand beige from your About page */
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+        height: 100vh; 
+        margin: 0; 
+    }
+
+    .login-card { 
+        background: white; 
+        padding: 50px 40px; 
+        border-radius: 16px; /* Matching the rounded corners of your cards */
+        box-shadow: 0 10px 30px rgba(220, 85, 0, 0.1); /* Subtle orange tinted shadow */
+        width: 400px; 
+        text-align: center; 
+    }
+
+    .brand { 
+        color: #DC5500; /* Your exact Brand Orange */
+        font-family: 'Akatab', serif;
+        font-size: 28px; 
+        font-weight: 800; 
+        margin-bottom: 35px; 
+        display: block; 
+    }
+
+    input { 
+        width: 100%; 
+        padding: 14px; 
+        margin-bottom: 20px; 
+        border: 1px solid #E0E0E0; 
+        border-radius: 8px; 
+        box-sizing: border-box; 
+        font-family: 'Alexandria', sans-serif;
+        font-size: 15px;
+        transition: border-color 0.3s ease;
+    }
+
+    input:focus {
+        outline: none;
+        border-color: #DC5500; /* Highlights orange when typing */
+    }
+
+    button { 
+        width: 100%; 
+        padding: 14px; 
+        background: #DC5500; /* Brand Orange */
+        color: white; 
+        border: none; 
+        border-radius: 8px; 
+        font-weight: 600; 
+        cursor: pointer; 
+        font-size: 16px; 
+        font-family: 'Alexandria', sans-serif;
+        transition: transform 0.2s ease, background 0.3s ease;
+    }
+
+    button:hover { 
+        background: #B44500; /* Darker orange on hover */
+        transform: translateY(-2px);
+    }
+
+    .footer-links { 
+        margin-top: 25px; 
+        font-size: 14px; 
+    }
+
+    .footer-links a { 
+        color: #9A5A00; /* Golden Brown from your About description */
+        text-decoration: none; 
+        font-weight: 500;
+    }
+
+    .footer-links a:hover {
+        text-decoration: underline;
+    }
     </style>
 </head>
 <body>
-    <div class="login-card">
-        <span class="brand">PrintSmart Login</span>
-        <form action="/login" method="POST">
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <button type="submit">Sign In</button>
-        </form>
-        <div class="footer-links">
-            <a href="/">Back to Home</a>
+    <div class="split-container">
+    <div class="left-panel">
+        <div class="panel-content">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Printagram Logo" class="login-logo">
+            <h1>Welcome Back!</h1>
+            <p>To keep connected with us, please login with your personal info</p>
+            <a href="/register" class="btn-outline-white">SIGN UP</a>
+        </div>
+    </div>
+
+    <div class="right-panel">
+        <div class="form-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <h2 class="sign-in-header">Sign in</h2>
+    
+            <form action="/login" method="POST">
+                <div class="input-group">
+                    <label>Email Address</label>
+                    <input type="email" name="email" required placeholder="Enter your email">
+                </div>
+        
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" name="password" required placeholder="Enter your password">
+                </div>
+        
+                <div class="form-options">
+                    <a href="#" class="forgot-link">Forgot Password?</a>
+                </div>
+
+                <button type="submit" class="btn-gradient">SIGN IN</button>
+            </form>
+
+                <div class="divider">
+                    <span>Or continue with</span>
+                </div>
+
+                <div class="social-group">
+                    <button type="button" class="btn-social">
+                        <img src="{{ url_for('static', filename='images/google-icon.png') }}" alt="Google"> Google
+                    </button>
+                    <button type="button" class="btn-social">
+                        <img src="{{ url_for('static', filename='images/fb-icon.png') }}" alt="Facebook"> Facebook
+                    </button>
+                </div>
         </div>
     </div>
 </body>

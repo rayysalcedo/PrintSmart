@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, session, redirect, url_for
+from flask import Flask, render_template, request, session, redirect, url_for, flash
 import mysql.connector
 from config import Config
 import os
@@ -272,16 +272,14 @@ def place_order():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form.get('username')
+        email = request.form.get('email')
         password = request.form.get('password')
         
-        try:
-            # FIX: Use the helper function instead of the missing config variable
+        try: # <--- This starts the block
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             
-            # Using 'password_hash' as confirmed in your database
-            cursor.execute("SELECT * FROM users WHERE username = %s AND password_hash = %s", (username, password))
+            cursor.execute("SELECT * FROM users WHERE email = %s AND password_hash = %s", (email, password))
             user = cursor.fetchone()
             
             cursor.close()
@@ -290,24 +288,28 @@ def login():
             if user:
                 session['user_id'] = user['user_id']
                 session['role'] = user['role']
-                session['username'] = user['username']
+                session['username'] = user['full_name']
                 
                 if user['role'] == 'admin':
-                    return redirect('/admin')
+                    return redirect(url_for('admin_dashboard'))
                 else:
                     return redirect('/') 
             else:
-                return "Invalid Username or Password"
+                flash("Invalid Email or Password", "danger")
+                return redirect(url_for('login'))
 
-        except Exception as e:
-            return f"Login Error: {e}"
+        except Exception as e: # <--- THIS IS LIKELY WHAT IS MISSING OR MISALIGNED
+            flash(f"Database Error: {e}", "danger")
+            return redirect(url_for('login'))
 
     return render_template('login.html')
 
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect('/login')
+    # Using 'success' instead of 'danger' or 'info'
+    flash("You have been successfully logged out.", "success") 
+    return redirect(url_for('login'))
 
 @app.route('/register')
 def register():

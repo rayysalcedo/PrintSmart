@@ -1,0 +1,224 @@
+/* --- AUTHENTICATION SHARED STYLES --- */
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: 'Alexandria', sans-serif;
+}
+
+.split-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+}
+
+/* --- LEFT PANEL: BRANDING --- */
+.left-panel {
+    flex: 1;
+    background: linear-gradient(135deg, #FFB13D 0%, #DC5500 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    text-align: center;
+    padding: 60px;
+}
+
+.left-panel h1 {
+    font-family: 'Akatab', serif;
+    font-size: 52px;
+    font-weight: 800;
+    margin: 20px 0;
+}
+
+.left-panel p {
+    font-size: 18px;
+    line-height: 1.8; /* Improves readability */
+    margin-bottom: 30px;
+    max-width: 320px; /* Keeps text in a nice readable block */
+    opacity: 0.9;
+}
+
+/* Pill Button for the left side */
+.btn-outline-white {
+    margin-top: 40px;
+    padding: 15px 80px;
+    border: 2px solid white;
+    border-radius: 50px; /* Perfect Pill Shape */
+    color: white;
+    text-decoration: none;
+    font-weight: 700;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-white:hover {
+    background: white;
+    color: #DC5500;
+}
+
+/* --- RIGHT PANEL: FORM --- */
+.right-panel {
+    flex: 1.5; /* Makes the form area wider like the Figma */
+    padding: 80px 40px; /* Increased vertical padding for better breathing room */
+    background: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.form-content {
+    width: 100%;
+    max-width: 450px;
+    padding: 40px;
+}
+
+.form-content h2 {
+    font-family: 'Akatab', serif;
+    color: #DC5500; /* Matching your brand orange */
+    font-size: 48px; /* Slightly larger for impact */
+    font-weight: 800;
+    text-align: center; /* This centers the "Sign in" text */
+    margin-top: 0;      /* Removes top space since logo is gone */
+    margin-bottom: 40px; /* Space before the email field */
+    letter-spacing: -1px;
+    width: 100%;
+}
+
+/* Figma-Style Inputs */
+.input-group {
+    margin-bottom: 18px; /* Reduced from 30px to make it more compact */
+}
+
+.input-group label {
+    display: block;
+    font-family: 'Alexandria', sans-serif;
+    font-size: 14px;
+    margin-bottom: 6px; /* Reduced to pull the label closer to the box */
+    color: #444;
+    font-weight: 600;
+    color: #333;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 12px 15px;
+    background-color: #f8f9fa; /* Matches Figma's */
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-sizing: border-box;
+    font-size: 16px;
+    transition: 0.3s;
+}
+
+.input-group input:focus {
+    background: white;
+    border-color: #FFB13D;
+    outline: none;
+}
+
+/* Main Action Button */
+.btn-auth-gradient {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(90deg, #FFB13D, #DC5500);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(220, 85, 0, 0.2);
+    margin-top: 10px;
+}
+
+/* --- SOCIAL LOGIN --- */
+.divider {
+    text-align: center;
+    color: #888;
+    margin: 40px 0 25px 0; /* Clear separation between primary and social login */
+    font-weight: 500;
+    opacity: 0.6;
+}
+
+/* --- SOCIAL LOGIN BUTTONS --- */
+.social-group {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.btn-social {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px;
+
+    /* Figma Styles: White BG, Black Text */
+    background-color: #FFFFFF;
+    color: #000000;
+    border: 1px solid #E0E0E0; /* Subtle light grey border */
+    border-radius: 12px;
+    
+    border: none;
+    border-radius: 12px;
+    font-family: 'Alexandria', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 10px rgba(220, 85, 0, 0.15);
+}
+
+/* Hover Effect: Subtle grey lift */
+.btn-social:hover {
+    background-color: #F9F9F9;
+    border-color: #CCCCCC;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
+
+/* Ensure the icons inside look clean */
+.btn-social img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
+/* Align Forgot Password to the Right as per Figma */
+.form-options {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: -10px; /* Pulls the Forgot Password link closer to the password field */
+    margin-bottom: 30px; /* Keeps a healthy gap before the SIGN IN button */
+}
+
+.forgot-link {
+    color: #FFB13D;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Add this to your auth.css if not already there */
+/* Existing alert style (keep this) */
+.alert-danger {
+    background-color: #FDEDEC;
+    color: #E74C3C;
+    border: 1px solid #F5B7B1;
+}
+
+/* NEW: Green success style */
+.alert-success {
+    background-color: #E8F5E9; /* Light green background */
+    color: #2E7D32;           /* Dark green text */
+    border: 1px solid #C8E6C9;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    text-align: center;
+    font-family: 'Alexandria', sans-serif;
+}
