@@ -4,134 +4,89 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Printagram</title>
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/services.css') }}">
+    
     <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    {% block styles %}{% endblock %}
 </head>
 <body>
 
     <header class="site-header">
         <div class="header-logo">
             <a href="{{ url_for('home') }}">
-                <img src="C:\Users\rayys\PrintSmart\static\images\printagram_logo.png" alt="Printagram Logo">
+                <img src="https://raw.githubusercontent.com/rayysalcedo/PrintSmart/dev/static/images/printagram_logo.png" alt="Printagram Logo">
             </a>
         </div>
 
         <nav class="header-nav">
-            <a href="{{ url_for('home') }}" 
-               class="nav-link {{ 'active-btn' if request.endpoint == 'home' else '' }}">
-               Home
-            </a>
-            
-            <a href="{{ url_for('services') }}" 
-               class="nav-link {{ 'active-btn' if request.endpoint == 'services' else '' }}">
-               Services
-            </a>
-            
-            <a href="{{ url_for('about') }}" 
-               class="nav-link {{ 'active-btn' if request.endpoint == 'about' else '' }}">
-               About Us
-            </a>
+            <a href="{{ url_for('home') }}" class="nav-link {{ 'active-btn' if request.endpoint == 'home' else '' }}">Home</a>
+            <a href="{{ url_for('services') }}" class="nav-link {{ 'active-btn' if request.endpoint == 'services' else '' }}">Services</a>
+            <a href="{{ url_for('about') }}" class="nav-link {{ 'active-btn' if request.endpoint == 'about' else '' }}">About Us</a>
         </nav>
 
        <div class="header-icons">
             <a href="/checkout" style="text-decoration:none; color: inherit; position: relative; display: inline-block;">
-    <img src="{{ url_for('static', filename='images/Cart.png') }}" alt="Cart" style="height: 24px;">
-    
-    {% if cart_count > 0 %}
-    <span style="
-        position: absolute;
-        top: -8px;
-        right: -8px;
-        background-color: #ff6600;
-        color: white;
-        border-radius: 50%;
-        padding: 2px 6px;
-        font-size: 10px;
-        font-weight: bold;
-        border: 1px solid white;
-        min-width: 14px;
-        text-align: center;
-    ">
-        {{ cart_count }}
-    </span>
-    {% endif %}
-</a>
-
+                <img src="{{ url_for('static', filename='images/Cart.png') }}" alt="Cart" style="height: 24px;">
+                {% if cart_count > 0 %}
+                <span style="position: absolute; top: -8px; right: -8px; background-color: #ff6600; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; font-weight: bold; border: 1px solid white; min-width: 14px; text-align: center;">
+                    {{ cart_count }}
+                </span>
+                {% endif %}
+            </a>
             <a href="{{ url_for('login') }}" class="icon-link">
                 <img src="{{ url_for('static', filename='images/profile-icon.png') }}" alt="Profile">
             </a>
         </div>
     </header>
+
     {% block content %}{% endblock %}
-<footer class="site-footer">
-    <div class="footer-container">
-        
-        <div class="footer-brand">
-            <div class="footer-logo">
-                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Printagram">
-                <div class="brand-text">
-                    <h3>PRINTAGRAM</h3>
-                    <p>PRINTING SERVICES</p>
+
+    <footer class="site-footer">
+        <div class="footer-container">
+            <div class="footer-brand">
+                <div class="footer-logo">
+                    <img src="https://raw.githubusercontent.com/rayysalcedo/PrintSmart/dev/static/images/printagram_logo.png" alt="Printagram">
+                    <div class="brand-text">
+                        <h3>PRINTAGRAM</h3>
+                        <p>PRINTING SERVICES</p>
+                    </div>
                 </div>
+                <p class="brand-desc">Professional printing services for businesses and individuals.</p>
             </div>
-            <p class="brand-desc">
-                Professional printing services for businesses and individuals. Quality prints, fast turnaround.
-            </p>
+            <div class="footer-col">
+                <h4>Services</h4>
+                <ul>
+                    <li><a href="{{ url_for('services') }}">All Services</a></li>
+                    <li><a href="{{ url_for('services', _anchor='signage') }}">Large Format</a></li>
+                    <li><a href="{{ url_for('services', _anchor='stickers') }}">Stickers</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="{{ url_for('about') }}">About Us</a></li>
+                    <li><a href="{{ url_for('about') }}">Our Team</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Support</h4>
+                <ul>
+                    <li><a href="#">Help Center</a></li>
+                    <li><a href="#">Contact Us</a></li>
+                </ul>
+            </div>
         </div>
-
-        <div class="footer-col">
-            <h4>Services</h4>
-            <ul>
-                <li><a href="{{ url_for('services') }}">All Services</a></li>
-                <li><a href="{{ url_for('services', _anchor='signage') }}">Large Format & Signage</a></li>
-                <li><a href="{{ url_for('services', _anchor='stickers') }}">Sticker Labels</a></li>
-                <li><a href="{{ url_for('services', _anchor='documents') }}">Document & Photo Printing</a></li>
-                <li><a href="{{ url_for('services', _anchor='apparel') }}">Apparel</a></li>
-            </ul>
+        <div class="footer-contact-bar">
+            <div class="contact-item"><span class="icon">📍</span><div><strong>Visit Us</strong><p>National Rd. Panilao, Pilar, Bataan</p></div></div>
+            <div class="contact-item"><span class="icon">📞</span><div><strong>Call Us</strong><p>+63 956 527 3414</p></div></div>
+            <div class="contact-item"><span class="icon">✉️</span><div><strong>Email Us</strong><p>printagrambataan2019@gmail.com</p></div></div>
         </div>
-
-        <div class="footer-col">
-            <h4>Company</h4>
-            <ul>
-                <li><a href="{{ url_for('about') }}">About Us</a></li>
-                <li><a href="{{ url_for('about') }}">Our Team</a></li>
-            </ul>
+        <div class="footer-bottom">
+            <p>© 2019 Printagram Printing Services. All rights reserved.</p>
         </div>
-
-        <div class="footer-col">
-            <h4>Support</h4>
-            <ul>
-                <li><a href="#">Help Center</a></li>
-                <li><a href="#">Contact Us</a></li>
-                <li><a href="#">Shipping Info</a></li>
-            </ul>
-        </div>
-    </div>
-
-    <div class="footer-contact-bar">
-        <div class="contact-item">
-            <span class="icon">📍</span>
-            <div><strong>Visit Us</strong><p>National Rd. Panilao, Pilar, Bataan</p></div>
-        </div>
-        <div class="contact-item">
-            <span class="icon">📞</span>
-            <div><strong>Call Us</strong><p>+63 956 527 3414</p></div>
-        </div>
-        <div class="contact-item">
-            <span class="icon">✉️</span>
-            <div><strong>Email Us</strong><p>printagrambataan2019@gmail.com</p></div>
-        </div>
-    </div>
-
-    <div class="footer-bottom">
-        <p>© 2019 Printagram Printing Services. All rights reserved.</p>
-        <div class="footer-legal">
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
-            <a href="#">Cookie Policy</a>
-        </div>
-    </div>
-</footer>
+    </footer>
 </body>
 </html>

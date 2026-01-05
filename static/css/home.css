@@ -1,0 +1,52 @@
+/* static/css/home.css */
+
+/* 1. Hero Section Styling */
+.hero {
+    /* Makes the section tall and centered */
+    height: 80vh; 
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    
+    /* Background: You can add an image later. For now, we use a nice gradient */
+    background: linear-gradient(135deg, #fff5e6 0%, #ffffff 100%);
+    padding: 20px;
+}
+
+/* 2. Heading Text */
+.hero h1 {
+    font-size: 3.5rem;
+    color: #222;
+    margin-bottom: 15px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+/* 3. Paragraph Text */
+.hero p {
+    font-size: 1.2rem;
+    color: #666;
+    margin-bottom: 30px;
+    max-width: 600px;
+}
+
+/* 4. The "Order Now" Button */
+.cta-button {
+    background-color: #ff6600; /* Your Brand Orange */
+    color: white;
+    padding: 15px 40px;
+    font-size: 18px;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 50px; /* Rounded pill shape */
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 102, 0, 0.3);
+}
+
+.cta-button:hover {
+    background-color: #e65c00; /* Darker orange on hover */
+    transform: translateY(-3px); /* Slight lift effect */
+    box-shadow: 0 6px 20px rgba(255, 102, 0, 0.4);
+}
