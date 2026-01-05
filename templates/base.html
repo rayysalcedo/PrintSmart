@@ -14,10 +14,14 @@
 </head>
 <body>
 
-    <header class="site-header">
+<header class="site-header">
         <div class="header-logo">
-            <a href="{{ url_for('home') }}">
-                <img src="https://raw.githubusercontent.com/rayysalcedo/PrintSmart/dev/static/images/printagram_logo.png" alt="Printagram Logo">
+            <a href="{{ url_for('home') }}" class="brand-link">
+                <img src="https://raw.githubusercontent.com/rayysalcedo/PrintSmart/dev/static/images/logo.png" alt="Printagram Icon" class="brand-icon">
+                <div class="header-brand-text">
+                    <span class="brand-name">PRINTAGRAM</span>
+                    <span class="brand-tagline">PRINTING SERVICES</span>
+                </div>
             </a>
         </div>
 
@@ -29,7 +33,8 @@
 
        <div class="header-icons">
             <a href="/checkout" style="text-decoration:none; color: inherit; position: relative; display: inline-block;">
-                <img src="{{ url_for('static', filename='images/Cart.png') }}" alt="Cart" style="height: 24px;">
+                <img src="https://raw.githubusercontent.com/rayysalcedo/PrintSmart/dev/static/images/cart.png" title="shopping basket icons" alt="Cart" style="height: 24px;">
+                
                 {% if cart_count > 0 %}
                 <span style="position: absolute; top: -8px; right: -8px; background-color: #ff6600; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; font-weight: bold; border: 1px solid white; min-width: 14px; text-align: center;">
                     {{ cart_count }}
@@ -37,7 +42,10 @@
                 {% endif %}
             </a>
             <a href="{{ url_for('login') }}" class="icon-link">
-                <img src="{{ url_for('static', filename='images/profile-icon.png') }}" alt="Profile">
+                <img src="
+
+http://googleusercontent.com/image_collection/image_retrieval/1790733002067185170_0
+" alt="Profile" style="height: 24px; width: 24px;">
             </a>
         </div>
     </header>
@@ -48,7 +56,7 @@
         <div class="footer-container">
             <div class="footer-brand">
                 <div class="footer-logo">
-                    <img src="https://raw.githubusercontent.com/rayysalcedo/PrintSmart/dev/static/images/printagram_logo.png" alt="Printagram">
+                    <img src="https://raw.githubusercontent.com/rayysalcedo/PrintSmart/dev/static/images/logo.png" alt="Printagram">
                     <div class="brand-text">
                         <h3>PRINTAGRAM</h3>
                         <p>PRINTING SERVICES</p>
