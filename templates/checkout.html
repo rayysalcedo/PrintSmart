@@ -18,8 +18,14 @@
             
             {% for item in cart_items %}
             <div class="card item-card">
-                <div class="card-header">
-                    <i class="fas fa-shopping-cart"></i> Order Details
+                <div class="card-header" style="justify-content: space-between;">
+                    <span><i class="fas fa-shopping-cart"></i> Order Details</span>
+                    
+                    <a href="/remove_from_cart/{{ item.cart_id }}" 
+                       onclick="return confirm('Are you sure you want to remove this item?');"
+                       style="color: #dc3545; text-decoration: none; font-size: 13px; cursor: pointer;">
+                        <i class="fas fa-trash-alt"></i> Remove
+                    </a>
                 </div>
                 <div class="card-body item-row">
                     <div class="item-info">

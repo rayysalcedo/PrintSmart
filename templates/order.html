@@ -8,66 +8,209 @@
 
     <form action="/add_to_cart" method="POST" enctype="multipart/form-data" onsubmit="return validateOrder(event)">
         <input type="hidden" name="product_id" value="{{ product.product_id }}">
+        
+        <input type="hidden" name="dynamic_unit_price" id="dynamic-unit-price" value="0">
+        <input type="hidden" name="dynamic_variant_name" id="dynamic-variant-name" value="">
 
         <div class="product-top-section">
-            
             <div class="product-gallery">
                 <div class="main-image-box">
                     <img id="main-img" src="{{ url_for('static', filename=product.image_path if product.image_path else 'images/icon-signage.png') }}" alt="Product">
-                </div>
-                <div class="thumbnail-row">
-                    <img src="{{ url_for('static', filename=product.image_path if product.image_path else 'images/icon-signage.png') }}" class="thumb active" onclick="changeImage(this)">
-                    <img src="{{ url_for('static', filename='images/icon-doc.png') }}" class="thumb" onclick="changeImage(this)">
-                    <img src="{{ url_for('static', filename='images/icon-sticker.png') }}" class="thumb" onclick="changeImage(this)">
                 </div>
             </div>
 
             <div class="product-info-column">
                 
                 <h1 class="product-title">{{ product.name }}</h1>
-                
-                <div class="rating-row">
-                    <span class="stars">★★★★★</span> 
-                    <span class="rating-text">4.9 | 1.2K Ratings | 3.5K Sold</span>
-                </div>
-
-                <div class="price-display">
-                    ₱<span id="total-price">0.00</span>
-                    </div>
+                <div class="price-display">₱<span id="total-price">0.00</span></div>
 
                 {% if product.product_id == 1 %}
-                
                 <div class="config-group">
                     <label class="config-label">Material Type</label>
                     <div class="chip-row">
                         {% for variant in variants %}
                             <label class="chip-btn">
-                                <input type="radio" name="material_variant_id" value="{{ variant.price }}" 
-                                       {% if loop.first %}checked{% endif %} 
-                                       onchange="calculateTarp()">
-                                <span>{{ variant.variant_name }}</span>
+                                <input type="radio" name="material_variant_id" value="{{ variant.price }}" data-name="{{ variant.variant_name }}" {% if loop.first %}checked{% endif %} onchange="calculateTotal()">
+                                <span>{{ variant.variant_name }} (₱{{ "{:,.2f}".format(variant.price) }}/sqft)</span>
                             </label>
                         {% endfor %}
                     </div>
                 </div>
-
                 <div class="config-group">
                     <label class="config-label">Dimensions (Feet)</label>
                     <div class="input-row">
-                        <div class="input-wrap">
-                            <input type="number" name="height_ft" id="tarp-h" value="2" class="custom-input" oninput="calculateTarp()" required>
-                            <span class="unit-label">Height</span>
-                        </div>
-                        <div class="input-wrap">
-                            <input type="number" name="width_ft" id="tarp-w" value="3" class="custom-input" oninput="calculateTarp()" required>
-                            <span class="unit-label">Width</span>
-                        </div>
+                        <div class="input-wrap"><input type="number" name="height_ft" id="tarp-h" value="2" class="custom-input" oninput="calculateTotal()" required><span class="unit-label">Height</span></div>
+                        <div class="input-wrap"><input type="number" name="width_ft" id="tarp-w" value="3" class="custom-input" oninput="calculateTotal()" required><span class="unit-label">Width</span></div>
+                    </div>
+                </div>
+
+                {% elif product.product_id == 2 %}
+                
+                <div id="sintra-price-data" style="display:none;">
+                    {% for variant in variants %}
+                        <span data-name="{{ variant.variant_name }}" data-price="{{ variant.price }}"></span>
+                    {% endfor %}
+                </div>
+
+                <div class="config-group">
+                    <label class="config-label">Board Thickness</label>
+                    <select name="sintra_thickness" id="sintra-thickness" class="custom-select" onchange="calculateTotal()">
+                        <option value="3mm">3mm (Standard)</option>
+                        <option value="5mm">5mm (Thick)</option>
+                    </select>
+                </div>
+
+                <div class="config-group">
+                    <label class="config-label">Size Mode</label>
+                    <div class="chip-row">
+                        <label class="chip-btn"><input type="radio" name="sintra_mode" value="standard" checked onchange="toggleSintraMode()"><span>Standard Sizes</span></label>
+                        <label class="chip-btn"><input type="radio" name="sintra_mode" value="custom" onchange="toggleSintraMode()"><span>Custom Size</span></label>
+                    </div>
+                </div>
+
+                <div id="sintra-std-inputs">
+                    <div class="config-group">
+                        <label class="config-label">Paper Size</label>
+                        <select name="sintra_std_size" id="sintra-std-size" class="custom-select" onchange="calculateTotal()">
+                            <option value="4R">4R (4x6 in)</option>
+                            <option value="5R">5R (5x7 in)</option>
+                            <option value="A4">A4 (8.3x11.7 in)</option>
+                            <option value="A3">A3 (11.7x16.5 in)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="sintra-custom-inputs" style="display:none;">
+                    <label class="config-label">Custom Dimensions (Inches)</label>
+                    <div class="input-row">
+                        <div class="input-wrap"><input type="number" name="sintra_h" id="sintra-h" value="10" class="custom-input" oninput="calculateTotal()"><span class="unit-label">Height (in)</span></div>
+                        <div class="input-wrap"><input type="number" name="sintra_w" id="sintra-w" value="10" class="custom-input" oninput="calculateTotal()"><span class="unit-label">Width (in)</span></div>
                     </div>
                     <small style="color:#ff6600; font-size:12px; margin-top:5px; display:block;">
-                        Area: <span id="area-display">6</span> sq ft
+                        Area: <span id="sintra-area-display">100</span> sq in (Rate depends on thickness)
                     </small>
                 </div>
 
+                <div class="config-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="sintra_stand" id="sintra-stand" onchange="calculateTotal()">
+                        <span>Add Box Type or Back Stand (+₱150.00)</span>
+                    </label>
+                </div>
+
+                <div style="margin-bottom:20px; font-size:13px; color:#666;">Unit Price: ₱<span id="price-sintra-display">0.00</span></div>
+
+                {% elif product.product_id == 3 %}
+                <div class="config-group">
+                    <label class="config-label">Finish</label>
+                    <select name="finish" class="custom-select"><option value="Glossy">Glossy</option><option value="Matte">Matte</option></select>
+                </div>
+                <div class="config-group">
+                    <label class="config-label">Size Mode</label>
+                    <div class="chip-row">
+                        <label class="chip-btn"><input type="radio" name="size_mode" value="sheet" checked onchange="toggleStickerMode()"><span>Sheet Mode</span></label>
+                        <label class="chip-btn"><input type="radio" name="size_mode" value="custom" onchange="toggleStickerMode()"><span>Custom Size</span></label>
+                    </div>
+                </div>
+                <div id="sticker-sheet-inputs" class="config-group">
+                    <label class="config-label">Sheet Size</label>
+                    <select id="sheet-select" class="custom-select" onchange="calculateTotal()">
+                        {% for variant in variants %}
+                            <option value="{{ variant.price }}" data-name="{{ variant.variant_name }}">{{ variant.variant_name }} - ₱{{ "{:,.2f}".format(variant.price) }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div id="sticker-custom-inputs" class="config-group" style="display:none;">
+                    <label class="config-label">Custom Dimensions (Inches)</label>
+                    <div class="input-row">
+                        <div class="input-wrap"><input type="number" name="sticker_h" id="sticker-h" value="2" class="custom-input" oninput="calculateTotal()"><span class="unit-label">H</span></div>
+                        <div class="input-wrap"><input type="number" name="sticker_w" id="sticker-w" value="2" class="custom-input" oninput="calculateTotal()"><span class="unit-label">W</span></div>
+                    </div>
+                    <small style="color:#ff6600; font-size:12px;">Area: <span id="sticker-area-display">4</span> sq in (Rate: ₱0.50/sq in)</small>
+                </div>
+                <div class="config-group"><label class="checkbox-label"><input type="checkbox" name="pre_cut" id="pre-cut" onchange="calculateTotal()"><span>Add Pre-cut Service (+₱50.00)</span></label></div>
+
+                {% elif product.product_id == 4 %}
+                <div id="doc-price-data" style="display:none;">
+                    {% for variant in variants %}
+                        <span data-name="{{ variant.variant_name }}" data-price="{{ variant.price }}"></span>
+                    {% endfor %}
+                </div>
+                <div class="config-group">
+                    <label class="config-label">Paper Size</label>
+                    <select name="paper_size" id="doc-size" class="custom-select" onchange="calculateTotal()">
+                        <option value="Short">Short</option><option value="A4">A4</option><option value="Long">Long</option>
+                    </select>
+                </div>
+                <div class="config-group">
+                    <label class="config-label">Color Type</label>
+                    <select name="color_type" id="doc-color" class="custom-select" onchange="calculateTotal()">
+                        <option value="Black & White">Black & White</option><option value="Semi Color">Semi-Color</option><option value="Full Color">Full Color</option>
+                    </select>
+                </div>
+                <div style="margin-bottom:20px; font-size:13px; color:#666;">Price per Page: ₱<span id="price-per-page-display">0.00</span></div>
+
+                {% elif product.product_id == 5 %}
+                <div class="config-group">
+                    <label class="config-label">Photo Size</label>
+                    <select id="photo-variant-select" class="custom-select" onchange="updatePhotoLogic()">
+                        {% for variant in variants %}
+                            <option value="{{ variant.price }}" data-name="{{ variant.variant_name }}">{{ variant.variant_name }} - ₱{{ "{:,.2f}".format(variant.price) }}</option>
+                        {% endfor %}
+                    </select>
+                    <small id="min-qty-msg" style="color:#ff6600; font-size:12px; display:block; margin-top:5px;"></small>
+                </div>
+                <div style="margin-bottom:20px; font-size:13px; color:#666;">Price per Photo: ₱<span id="price-per-photo-display">0.00</span></div>
+
+                {% elif product.product_id == 6 %}
+                <div class="config-group">
+                    <label class="config-label">Select Package</label>
+                    <select id="id-package-select" class="custom-select" onchange="calculateTotal()">
+                        {% for variant in variants %}
+                            <option value="{{ variant.price }}" data-name="{{ variant.variant_name }}">{{ variant.variant_name }} - ₱{{ "{:,.2f}".format(variant.price) }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="config-group">
+                    <label class="config-label">Extras</label>
+                    <label class="checkbox-label" style="margin-bottom:10px;"><input type="checkbox" name="extra_enhance" id="extra-enhance" onchange="calculateTotal()"><span>Enhance & Change Outfit (+₱50.00)</span></label>
+                    <label class="checkbox-label"><input type="checkbox" name="extra_softcopy" id="extra-softcopy" onchange="calculateTotal()"><span>Digital Softcopy (+₱20.00)</span></label>
+                </div>
+
+                {% elif product.product_id == 7 %}
+                <div id="shirt-price-data" style="display:none;">
+                    {% for variant in variants %}
+                        <span data-name="{{ variant.variant_name }}" data-price="{{ variant.price }}"></span>
+                    {% endfor %}
+                </div>
+                <div class="config-group">
+                    <label class="config-label">Service Type</label>
+                    <div class="chip-row">
+                        <label class="chip-btn"><input type="radio" name="shirt_service_type" value="Supply" checked onchange="toggleShirtMode()"><span>Supply Shirt & Print</span></label>
+                        <label class="chip-btn"><input type="radio" name="shirt_service_type" value="Print Only" onchange="toggleShirtMode()"><span>Print Only</span></label>
+                    </div>
+                </div>
+                <div id="shirt-supply-inputs">
+                    <div class="config-group"><label class="config-label">Garment Type</label><select name="garment_type" id="shirt-garment" class="custom-select" onchange="calculateTotal()"><option value="T-Shirt">T-Shirt</option><option value="Polo Shirt">Polo Shirt</option><option value="Long Sleeve">Long Sleeve</option></select></div>
+                    <div class="config-group"><label class="config-label">Fabric</label><select name="shirt_fabric" id="shirt-fabric" class="custom-select" onchange="calculateTotal()"><option value="CVC Cotton">CVC Cotton</option><option value="Drifit">Drifit</option><option value="Honeycomb">Honeycomb</option><option value="Ordinary">Ordinary</option><option value="Premium">Premium</option></select></div>
+                    <div class="config-group">
+                        <label class="config-label">Color: <span id="selected-color-name" style="font-weight:normal; color:#666;">White</span></label>
+                        <div class="color-options">
+                            <label class="color-swatch" title="White"><input type="radio" name="shirt_color" value="White" checked onchange="updateColorName(this)"><span class="swatch-circle" style="background-color: #ffffff; border: 1px solid #ddd;"></span></label>
+                            <label class="color-swatch" title="Black"><input type="radio" name="shirt_color" value="Black" onchange="updateColorName(this)"><span class="swatch-circle" style="background-color: #222222;"></span></label>
+                            <label class="color-swatch" title="Navy Blue"><input type="radio" name="shirt_color" value="Navy Blue" onchange="updateColorName(this)"><span class="swatch-circle" style="background-color: #000080;"></span></label>
+                            <label class="color-swatch" title="Red"><input type="radio" name="shirt_color" value="Red" onchange="updateColorName(this)"><span class="swatch-circle" style="background-color: #cc0000;"></span></label>
+                            <label class="color-swatch" title="Grey"><input type="radio" name="shirt_color" value="Grey" onchange="updateColorName(this)"><span class="swatch-circle" style="background-color: #808080;"></span></label>
+                            <label class="color-swatch" title="Emerald Green"><input type="radio" name="shirt_color" value="Emerald Green" onchange="updateColorName(this)"><span class="swatch-circle" style="background-color: #00994d;"></span></label>
+                            <label class="color-swatch" title="Canary Yellow"><input type="radio" name="shirt_color" value="Canary Yellow" onchange="updateColorName(this)"><span class="swatch-circle" style="background-color: #ffe135;"></span></label>
+                        </div>
+                    </div>
+                    <div class="config-group"><label class="config-label">Size</label><select name="shirt_size" id="shirt-size" class="custom-select" onchange="calculateTotal()"><option value="XS-Small">XS - Small</option><option value="Med-Large">Medium - Large</option><option value="XL-XXL">XL - XXL</option><option value="XXXL+">XXXL+</option></select></div>
+                </div>
+                <div id="shirt-print-only-inputs" style="display:none;">
+                    <div class="config-group"><label class="config-label">Print Size Fee</label><select id="shirt-print-fee" class="custom-select" onchange="calculateTotal()">{% for variant in variants %}{% if 'Print Fee' in variant.variant_name %}<option value="{{ variant.variant_name }}">{{ variant.variant_name }} - ₱{{ "{:,.2f}".format(variant.price) }}</option>{% endif %}{% endfor %}</select></div>
+                </div>
+                <div style="margin-bottom:20px; font-size:13px; color:#666;">Unit Price: ₱<span id="price-shirt-display">0.00</span></div>
                 {% endif %}
 
                 <div class="config-group qty-group">
@@ -77,323 +220,323 @@
                         <input type="number" name="quantity" id="main-qty" value="1" min="1" readonly>
                         <button type="button" onclick="changeQty(1)">+</button>
                     </div>
-                    <span style="font-size: 13px; color: #777; margin-left: 15px;">{{ variants[0].stock_quantity if variants else 100 }} pieces available</span>
                 </div>
 
                 <div class="action-buttons">
-    <button type="submit" name="action" value="add_cart" class="btn-cart">
-        <i class="fas fa-cart-plus"></i> Add to Cart
-    </button>
-    
-    <button type="submit" name="action" value="buy_now" class="btn-buy">
-        Buy Now
-    </button>
-</div>
-
-            </div> </div>
+                    <button type="submit" name="action" value="add_cart" class="btn-cart">Add to Cart</button>
+                    <button type="submit" name="action" value="buy_now" class="btn-buy">Buy Now</button>
+                </div>
+            </div> 
+        </div>
 
         <div class="design-section">
             <div class="toggle-header">
                 <h3>Design & Layout Options</h3>
+                {% if product.product_id != 6 %}
                 <div class="toggle-wrapper">
-                    <span class="price-add">Request Layout Service (+₱150.00)</span>
+                    <span class="price-add">Request Layout (+₱150.00)</span>
                     <label class="switch">
                         <input type="checkbox" name="has_layout" id="layout-toggle" onchange="toggleLayoutAll()">
                         <span class="slider round"></span>
                     </label>
                 </div>
+                {% endif %}
             </div>
             
+            {% if product.product_id != 6 %}
             <div id="layout-inputs" class="slide-down" style="display:none;">
-                <textarea name="instructions" class="custom-textarea" placeholder="Describe your layout (e.g., 'Happy Birthday layout with Bluey theme, blue background')..."></textarea>
+                <textarea name="instructions" class="custom-textarea" placeholder="Describe your design..."></textarea>
             </div>
+            {% endif %}
 
-         <div class="upload-area" id="drop-zone">
-                <div class="upload-content" id="upload-placeholder">
-                    <span style="font-size:30px; color:#ff6600;">☁️</span>
-                    <p style="margin:5px 0; font-weight:500;">Click to Upload Design or References</p>
-                    <small style="color:#999;">Supported: PNG, JPG, PDF, PSD, AI (max 5GB)</small>
-                </div>
-                
-                <div id="file-list-display" style="display:none; text-align:center;">
-                    <span style="font-size:30px; color:#28a745;">✅</span>
-                    <p style="margin:5px 0; font-weight:bold; color:#333;">Files Selected:</p>
-                    <div id="file-names" style="color:#555; font-size:14px; margin-bottom:10px;"></div>
-                    <small style="color:#ff6600; cursor:pointer;">(Click to change files)</small>
-                </div>
-
+            <div class="upload-area" id="drop-zone">
                 <input type="file" name="design_file" class="file-input" multiple onchange="updateFileList(this)">
-            </div>
+                <div class="upload-content" id="upload-placeholder"><p>Click to Upload Design or References</p></div>
+                <div id="file-list-display" style="display:none;"><p>Files Selected</p><div id="file-names"></div></div>
             </div>
         </div>
 
     </form>
-
-    <div class="product-tabs-container">
-        <div class="tab-header">
-            <button class="tab-btn active" onclick="openTab('specs')">Product Specifications</button>
-            <button class="tab-btn" onclick="openTab('desc')">Product Description</button>
-            <button class="tab-btn" onclick="openTab('reviews')">Reviews (1.2k)</button>
-        </div>
-
-        <div id="specs" class="tab-content" style="display:block;">
-            <div class="spec-row">
-                <span class="spec-label">Category</span>
-                <span class="spec-val">Printing Services > {{ product.name }}</span>
-            </div>
-            <div class="spec-row">
-                <span class="spec-label">Stock</span>
-                <span class="spec-val">{{ variants[0].stock_quantity if variants else 100 }}</span>
-            </div>
-            <div class="spec-row">
-                <span class="spec-label">Ships From</span>
-                <span class="spec-val">Metro Manila</span>
-            </div>
-        </div>
-
-        <div id="desc" class="tab-content" style="display:none;">
-            <p style="line-height: 1.6; color: #555;">{{ product.description }}</p>
-            <p style="line-height: 1.6; color: #555; margin-top:10px;">
-                High-quality printing services tailored to your needs. We use premium materials to ensure durability and vibrant colors for all your signage and document requirements.
-            </p>
-        </div>
-
-        <div id="reviews" class="tab-content" style="display:none;">
-            <div class="review-item">
-                <div class="user-row">
-                    <div class="user-avatar">J</div>
-                    <div>
-                        <span class="user-name">Juan Dela Cruz</span>
-                        <div class="stars" style="font-size:12px;">★★★★★</div>
-                    </div>
-                    <span class="review-date">2023-12-08</span>
-                </div>
-                <p class="review-text">Excellent quality! The tarpaulin came out perfect. Colors are vibrant and the material is very thick. Fast delivery too!</p>
-            </div>
-            <div class="review-item">
-                <div class="user-row">
-                    <div class="user-avatar" style="background:#28a745;">M</div>
-                    <div>
-                        <span class="user-name">Maria Santos</span>
-                        <div class="stars" style="font-size:12px;">★★★★★</div>
-                    </div>
-                    <span class="review-date">2023-11-20</span>
-                </div>
-                <p class="review-text">Great service! Quick printing and the layout they made for my son's birthday was superb.</p>
-            </div>
-        </div>
-    </div>
-
+    
+    <div class="product-tabs-container"></div>
 </div>
 
 <style>
-    body { font-family: 'Poppins', sans-serif; background: #f5f5f5; }
-    
-    .product-page-container { max-width: 1100px; margin: 30px auto; }
-    .product-top-section { display: flex; gap: 30px; background: white; padding: 20px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-    
-    /* Left Gallery */
+    /* STYLES */
+    body { font-family: 'Poppins', sans-serif; background: #f5f5f5; margin:0; }
+    .product-page-container { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
+    .product-top-section { display: flex; gap: 30px; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
     .product-gallery { flex: 4; }
     .main-image-box { width: 100%; height: 400px; background: #f9f9f9; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-    .main-image-box img { max-width: 100%; max-height: 100%; }
-    .thumbnail-row { display: flex; gap: 10px; margin-top: 10px; }
-    .thumb { width: 60px; height: 60px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; object-fit: cover; }
-    .thumb:hover, .thumb.active { border: 2px solid #ff6600; }
-
-    /* Right Info */
+    .main-image-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
     .product-info-column { flex: 5; padding-left: 20px; }
-    .product-title { font-size: 22px; font-weight: 500; margin: 0 0 10px 0; line-height: 1.2; }
-    
-    .rating-row { font-size: 14px; color: #757575; margin-bottom: 15px; }
-    .stars { color: #ff6600; }
-    
-    .price-display { background: #fafafa; padding: 15px; margin: 15px 0; border-radius: 4px; }
-    .price-display span[id="total-price"] { font-size: 30px; color: #ff6600; font-weight: 600; }
-
-    /* Configuration Chips */
+    .product-title { font-size: 24px; font-weight: 600; margin: 0 0 10px 0; line-height: 1.2; color: #333; }
+    .price-display { background: #fffcf9; padding: 15px; margin: 20px 0; border-radius: 6px; border: 1px solid #fff0e0; }
+    .price-display span[id="total-price"] { font-size: 32px; color: #ff6600; font-weight: 700; }
     .config-group { margin-bottom: 25px; }
-    .config-label { font-size: 14px; color: #757575; margin-bottom: 10px; display: block; }
-    
+    .config-label { font-size: 14px; color: #555; margin-bottom: 8px; display: block; font-weight: 500; }
+    .custom-select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; background: white; font-size: 15px; outline: none; transition: 0.2s; }
     .chip-row { display: flex; flex-wrap: wrap; gap: 10px; }
     .chip-btn input { display: none; }
-    .chip-btn span {
-        display: inline-block; padding: 8px 20px; border: 1px solid #e0e0e0; 
-        border-radius: 2px; cursor: pointer; font-size: 14px; color: #333; transition: 0.2s;
-    }
+    .chip-btn span { display: inline-block; padding: 10px 20px; border: 1px solid #e0e0e0; border-radius: 6px; cursor: pointer; font-size: 14px; color: #333; transition: 0.2s; background: white; }
     .chip-btn:hover span { border-color: #ff6600; color: #ff6600; }
     .chip-btn input:checked + span { border: 1px solid #ff6600; color: #ff6600; background: #fff5e6; font-weight: 500; }
-
-    /* Inputs */
     .input-row { display: flex; gap: 15px; }
-    .input-wrap { flex: 1; border: 1px solid #e0e0e0; border-radius: 2px; padding: 5px 10px; display: flex; flex-direction: column; }
-    .input-wrap:focus-within { border-color: #ff6600; background: #fffbf8; }
+    .input-wrap { flex: 1; border: 1px solid #ddd; border-radius: 6px; padding: 8px 12px; display: flex; flex-direction: column; background: white; transition: 0.2s; }
+    .input-wrap:focus-within { border-color: #ff6600; box-shadow: 0 0 0 2px rgba(255,102,0,0.1); }
     .custom-input { border: none; outline: none; font-size: 16px; width: 100%; background: transparent; color: #333; }
-    .unit-label { font-size: 11px; color: #999; }
-
-    /* Buttons */
+    .unit-label { font-size: 11px; color: #999; margin-top: 2px; }
+    .checkbox-label { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 15px; color: #333; }
+    .checkbox-label input { width: 18px; height: 18px; accent-color: #ff6600; cursor: pointer; }
+    .qty-control { display: inline-flex; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
+    .qty-control button { width: 40px; height: 40px; border: none; background: #f8f8f8; cursor: pointer; font-size: 18px; transition: 0.2s; }
+    .qty-control input { width: 60px; text-align: center; border: none; border-left: 1px solid #ddd; border-right: 1px solid #ddd; outline: none; font-size: 16px; font-weight: 500; }
     .action-buttons { display: flex; gap: 15px; margin-top: 30px; }
-    .btn-cart { flex: 1; padding: 15px; border: 1px solid #ff6600; background: #fff5e6; color: #ff6600; font-weight: 500; cursor: pointer; border-radius: 4px; font-size: 16px; }
-    .btn-buy { flex: 1; padding: 15px; border: none; background: #ff6600; color: white; font-weight: 500; cursor: pointer; border-radius: 4px; font-size: 16px; }
-    .btn-buy:hover { background: #d95700; }
-
-    /* Quantity */
-    .qty-control { display: inline-flex; border: 1px solid #ddd; }
-    .qty-control button { width: 32px; height: 32px; border: none; background: #f8f8f8; cursor: pointer; font-size: 16px; }
-    .qty-control input { width: 50px; text-align: center; border: none; border-left: 1px solid #ddd; border-right: 1px solid #ddd; outline: none; }
-
-    /* Design Section */
-    .design-section { background: white; margin-top: 20px; padding: 25px; border-radius: 4px; }
+    .btn-cart { flex: 1; padding: 15px; border: 1px solid #ff6600; background: #fff5e6; color: #ff6600; font-weight: 600; cursor: pointer; border-radius: 6px; font-size: 16px; transition: 0.2s; }
+    .btn-cart:hover { background: #ffebd9; }
+    .btn-buy { flex: 1; padding: 15px; border: none; background: #ff6600; color: white; font-weight: 600; cursor: pointer; border-radius: 6px; font-size: 16px; transition: 0.2s; }
+    .btn-buy:hover { background: #e65c00; box-shadow: 0 4px 12px rgba(255, 102, 0, 0.2); }
+    .design-section { background: white; margin-top: 20px; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
     .toggle-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
-    .toggle-header h3 { margin: 0; font-size: 18px; font-weight: 500; }
-    .custom-textarea { width: 100%; padding: 15px; border: 1px solid #e0e0e0; border-radius: 4px; margin-bottom: 15px; font-family: inherit; }
-    .upload-area { border: 2px dashed #ff6600; background: #fffbf8; padding: 30px; text-align: center; border-radius: 6px; position: relative; cursor: pointer; }
+    .toggle-header h3 { margin: 0; font-size: 18px; font-weight: 600; }
+    .price-add { font-size: 14px; color: #555; margin-right: 10px; }
+    .custom-textarea { width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 20px; font-family: inherit; font-size: 14px; box-sizing: border-box; }
+    .upload-area { border: 2px dashed #ff6600; background: #fffbf8; padding: 40px; text-align: center; border-radius: 8px; position: relative; cursor: pointer; transition: 0.2s; }
+    .upload-area:hover { background: #fff5eb; }
     .file-input { position: absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor: pointer; }
-
-    /* Switch Toggle */
-    .switch { position: relative; display: inline-block; width: 44px; height: 22px; margin-left: 10px; }
+    .switch { position: relative; display: inline-block; width: 50px; height: 26px; vertical-align: middle; }
     .switch input { opacity: 0; width: 0; height: 0; }
     .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
-    .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+    .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
     input:checked + .slider { background-color: #ff6600; }
-    input:checked + .slider:before { transform: translateX(22px); }
-
-    /* --- TABS SECTION STYLES --- */
-    .product-tabs-container { background: white; margin-top: 20px; padding: 20px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-    .tab-header { border-bottom: 1px solid #eee; display: flex; gap: 30px; margin-bottom: 20px; }
-    .tab-btn { background: none; border: none; padding: 15px 0; cursor: pointer; font-size: 16px; color: #666; font-family: inherit; position: relative; }
-    .tab-btn.active { color: #ff6600; font-weight: 500; }
-    .tab-btn.active::after { content: ''; position: absolute; bottom: -1px; left: 0; width: 100%; height: 3px; background: #ff6600; }
-    
-    .tab-content { animation: fadeIn 0.3s; }
-    .spec-row { display: flex; padding: 10px 0; font-size: 14px; }
-    .spec-label { width: 150px; color: #999; }
-    .spec-val { color: #333; }
-    
-    .review-item { border-bottom: 1px solid #f0f0f0; padding-bottom: 15px; margin-bottom: 15px; }
-    .user-row { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
-    .user-avatar { width: 30px; height: 30px; background: #ccc; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; }
-    .user-name { font-size: 12px; font-weight: 500; }
-    .review-date { margin-left: auto; font-size: 12px; color: #999; }
-    .review-text { font-size: 14px; color: #555; margin: 0; }
-
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
+    input:checked + .slider:before { transform: translateX(24px); }
+    .color-options { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 5px; }
+    .color-swatch { cursor: pointer; position: relative; }
+    .color-swatch input { display: none; }
+    .swatch-circle { display: block; width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: transform 0.2s, box-shadow 0.2s; }
+    .color-swatch:hover .swatch-circle { transform: scale(1.1); }
+    .color-swatch input:checked + .swatch-circle { border-color: white; box-shadow: 0 0 0 2px #ff6600; transform: scale(1.1); }
 </style>
 
 <script>
-    // 1. CHANGE MAIN IMAGE
-    function changeImage(thumb) {
-        let mainImg = document.getElementById('main-img');
-        if(mainImg) mainImg.src = thumb.src;
-        
-        document.querySelectorAll('.thumb').forEach(t => t.classList.remove('active'));
-        thumb.classList.add('active');
+    var productId = {{ product.product_id }};
+
+    function setDynamicValues(price, name) {
+        document.getElementById('dynamic-unit-price').value = price;
+        document.getElementById('dynamic-variant-name').value = name;
     }
 
-    // 2. QUANTITY
-    function changeQty(amount) {
-        let qtyInput = document.getElementById('main-qty');
-        let current = parseInt(qtyInput.value) || 1;
-        let newVal = current + amount;
-        if(newVal < 1) newVal = 1;
-        qtyInput.value = newVal;
-        calculateTarp();
+    // --- SINTRA BOARD LOGIC ---
+    function toggleSintraMode() {
+        let mode = document.querySelector('input[name="sintra_mode"]:checked').value;
+        document.getElementById('sintra-std-inputs').style.display = (mode === 'standard') ? 'block' : 'none';
+        document.getElementById('sintra-custom-inputs').style.display = (mode === 'custom') ? 'block' : 'none';
+        calculateTotal();
     }
 
-    // 3. TOGGLE LAYOUT
-    function toggleLayoutAll() {
-        let toggle = document.getElementById('layout-toggle');
-        let inputs = document.getElementById('layout-inputs');
-        if(toggle && inputs) {
-            inputs.style.display = toggle.checked ? 'block' : 'none';
-            calculateTarp();
-        }
+    // --- SHIRT LOGIC ---
+    function updateColorName(radio) { document.getElementById('selected-color-name').innerText = radio.value; }
+    function toggleShirtMode() {
+        let mode = document.querySelector('input[name="shirt_service_type"]:checked').value;
+        document.getElementById('shirt-supply-inputs').style.display = (mode === 'Supply') ? 'block' : 'none';
+        document.getElementById('shirt-print-only-inputs').style.display = (mode === 'Supply') ? 'none' : 'block';
+        calculateTotal();
     }
 
-    // 4. TARP MATH (With Safety Checks)
-    function calculateTarp() {
-        // SAFETY CHECK: If we are not on the Tarp page (ID 1), stop here so we don't crash.
-        let heightInput = document.getElementById('tarp-h');
-        if (!heightInput) return; 
+    // --- STICKER LOGIC ---
+    function toggleStickerMode() {
+        let mode = document.querySelector('input[name="size_mode"]:checked').value;
+        document.getElementById('sticker-sheet-inputs').style.display = (mode === 'sheet') ? 'block' : 'none';
+        document.getElementById('sticker-custom-inputs').style.display = (mode === 'custom') ? 'block' : 'none';
+        calculateTotal();
+    }
 
-        let selectedChip = document.querySelector('input[name="material_variant_id"]:checked');
-        let pricePerSqFt = selectedChip ? parseFloat(selectedChip.value) : 0;
-        
-        let h = parseFloat(document.getElementById('tarp-h').value) || 0;
-        let w = parseFloat(document.getElementById('tarp-w').value) || 0;
+    // --- PHOTO LOGIC ---
+    function updatePhotoLogic() {
+        calculateTotal();
+        let select = document.getElementById('photo-variant-select');
+        if(!select) return;
+        let name = select.options[select.selectedIndex].getAttribute('data-name');
+        let input = document.getElementById('main-qty');
+        let msg = document.getElementById('min-qty-msg');
+        let min = 1;
+        if (name.includes('2R')) { min = 10; msg.innerText="Min 10pcs"; }
+        else if (name.includes('3R')) { min = 2; msg.innerText="Min 2pcs"; }
+        else { min = 1; msg.innerText=""; }
+        input.min = min;
+        if(parseInt(input.value) < min) input.value = min;
+    }
+
+    // --- MAIN CALCULATOR ---
+    function calculateTotal() {
         let qty = parseInt(document.getElementById('main-qty').value) || 1;
         
-        let layoutToggle = document.getElementById('layout-toggle');
-        let hasLayout = layoutToggle ? layoutToggle.checked : false;
-
-        let area = h * w;
-        let areaDisplay = document.getElementById('area-display');
-        if(areaDisplay) areaDisplay.innerText = area;
-
-        let productCost = (area * pricePerSqFt) * qty;
-        let layoutCost = hasLayout ? 150 : 0;
-        let total = productCost + layoutCost;
-
-        let totalPriceDisplay = document.getElementById('total-price');
-        if(totalPriceDisplay) {
-            totalPriceDisplay.innerText = total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        }
-    }
-
-    // 5. FILE UPLOAD UI (Fixed Scope)
-    function updateFileList(input) {
-        let placeholder = document.getElementById('upload-placeholder');
-        let display = document.getElementById('file-list-display');
-        let nameList = document.getElementById('file-names');
+        let layoutEl = document.getElementById('layout-toggle');
+        let hasLayout = layoutEl ? layoutEl.checked : false;
         
-        if (input.files.length > 0) {
-            // Hide the "Cloud" icon
-            if(placeholder) placeholder.style.display = 'none';
-            // Show the "Checkmark" section
-            if(display) display.style.display = 'block';
-            
-            // List all files
-            let names = [];
-            for (let i = 0; i < input.files.length; i++) {
-                names.push(input.files[i].name);
+        let total = 0;
+
+        if (productId == 1) { // TARP
+            let selectedChip = document.querySelector('input[name="material_variant_id"]:checked');
+            let price = selectedChip ? parseFloat(selectedChip.value) : 0;
+            let name = selectedChip ? selectedChip.getAttribute('data-name') : "";
+            let h = parseFloat(document.getElementById('tarp-h').value) || 0;
+            let w = parseFloat(document.getElementById('tarp-w').value) || 0;
+            setDynamicValues(price, name); 
+            total = ((h * w * price) * qty) + (hasLayout ? 150 : 0);
+        }
+        else if (productId == 2) { // SINTRA
+            let thickness = document.getElementById('sintra-thickness').value;
+            let mode = document.querySelector('input[name="sintra_mode"]:checked').value;
+            let unitPrice = 0;
+            let variantName = "";
+
+            if(mode === 'standard') {
+                let size = document.getElementById('sintra-std-size').value;
+                let searchKey = thickness + " - " + size; 
+                // DB Lookup
+                let spans = document.querySelectorAll('#sintra-price-data span');
+                spans.forEach(span => {
+                    if (span.getAttribute('data-name') === searchKey) unitPrice = parseFloat(span.getAttribute('data-price'));
+                });
+                variantName = searchKey;
+            } else {
+                let h = parseFloat(document.getElementById('sintra-h').value) || 0;
+                let w = parseFloat(document.getElementById('sintra-w').value) || 0;
+                let area = h * w;
+                document.getElementById('sintra-area-display').innerText = area.toFixed(2);
+                
+                let searchKey = thickness + " - Custom Rate";
+                let rate = 0;
+                let spans = document.querySelectorAll('#sintra-price-data span');
+                spans.forEach(span => {
+                    if (span.getAttribute('data-name') === searchKey) rate = parseFloat(span.getAttribute('data-price'));
+                });
+                unitPrice = area * rate;
+                variantName = thickness + " Custom (" + h + "x" + w + ")";
             }
-            if(nameList) nameList.innerHTML = names.join('<br>'); 
-        } else {
-            // Reset if they cancel
-            if(placeholder) placeholder.style.display = 'block';
-            if(display) display.style.display = 'none';
+            
+            let addStand = document.getElementById('sintra-stand').checked ? 150 : 0;
+            
+            document.getElementById('price-sintra-display').innerText = unitPrice.toFixed(2);
+            setDynamicValues(unitPrice, variantName);
+            total = ((unitPrice + addStand) * qty) + (hasLayout ? 150 : 0);
+        }
+        else if (productId == 3) { // STICKER
+            let mode = document.querySelector('input[name="size_mode"]:checked').value;
+            let unitPrice = 0;
+            let variantName = "";
+            if (mode === 'sheet') {
+                let select = document.getElementById('sheet-select');
+                unitPrice = parseFloat(select.value);
+                variantName = select.options[select.selectedIndex].getAttribute('data-name');
+            } else {
+                let h = parseFloat(document.getElementById('sticker-h').value) || 0;
+                let w = parseFloat(document.getElementById('sticker-w').value) || 0;
+                unitPrice = (h * w) * 0.50; 
+                variantName = "Custom Size (" + h + "x" + w + ")";
+                document.getElementById('sticker-area-display').innerText = (h*w).toFixed(2);
+            }
+            let preCut = document.getElementById('pre-cut').checked ? 50 : 0;
+            setDynamicValues(unitPrice, variantName);
+            total = ((unitPrice + preCut) * qty) + (hasLayout ? 300 : 0);
+        }
+        else if (productId == 4) { // DOCS
+            let size = document.getElementById('doc-size').value;
+            let color = document.getElementById('doc-color').value;
+            let searchKey = size + " - " + color;
+            let unitPrice = 5.00;
+            let spans = document.querySelectorAll('#doc-price-data span');
+            spans.forEach(span => {
+                if (span.getAttribute('data-name') === searchKey) unitPrice = parseFloat(span.getAttribute('data-price'));
+            });
+            document.getElementById('price-per-page-display').innerText = unitPrice.toFixed(2);
+            setDynamicValues(unitPrice, searchKey);
+            total = (unitPrice * qty) + (hasLayout ? 150 : 0);
+        }
+        else if (productId == 5) { // PHOTO
+            let select = document.getElementById('photo-variant-select');
+            let unitPrice = parseFloat(select.value);
+            let name = select.options[select.selectedIndex].getAttribute('data-name');
+            document.getElementById('price-per-photo-display').innerText = unitPrice.toFixed(2);
+            setDynamicValues(unitPrice, name);
+            total = (unitPrice * qty) + (hasLayout ? 150 : 0);
+        }
+        else if (productId == 6) { // ID PACKAGE
+            let select = document.getElementById('id-package-select');
+            let unitPrice = parseFloat(select.value);
+            let name = select.options[select.selectedIndex].getAttribute('data-name');
+            let enhance = document.getElementById('extra-enhance').checked ? 50 : 0;
+            let softcopy = document.getElementById('extra-softcopy').checked ? 20 : 0;
+            setDynamicValues(unitPrice, name);
+            total = ((unitPrice + enhance + softcopy) * qty);
+        }
+        else if (productId == 7) { // SHIRTS
+            let mode = document.querySelector('input[name="shirt_service_type"]:checked').value;
+            let unitPrice = 0;
+            let variantName = "";
+
+            if (mode === 'Supply') {
+                let garment = document.getElementById('shirt-garment').value;
+                let fabric = document.getElementById('shirt-fabric').value;
+                let size = document.getElementById('shirt-size').value;
+                let searchKey = garment + " - " + fabric + " - " + size;
+                
+                let spans = document.querySelectorAll('#shirt-price-data span');
+                spans.forEach(span => {
+                    if (span.getAttribute('data-name') === searchKey) unitPrice = parseFloat(span.getAttribute('data-price'));
+                });
+                if(unitPrice === 0) unitPrice = 200; 
+                variantName = searchKey;
+            } else {
+                let feeSelect = document.getElementById('shirt-print-fee');
+                let key = feeSelect.value;
+                let spans = document.querySelectorAll('#shirt-price-data span');
+                spans.forEach(span => {
+                    if (span.getAttribute('data-name') === key) unitPrice = parseFloat(span.getAttribute('data-price'));
+                });
+                if(unitPrice === 0) unitPrice = 100;
+                variantName = key;
+            }
+
+            document.getElementById('price-shirt-display').innerText = unitPrice.toFixed(2);
+            setDynamicValues(unitPrice, variantName);
+            total = (unitPrice * qty) + (hasLayout ? 150 : 0);
+        }
+
+        document.getElementById('total-price').innerText = total.toLocaleString('en-US', {minimumFractionDigits: 2});
+    }
+
+    // Toggle logic for boilerplate functions
+    function toggleLayoutAll() {
+        let l = document.getElementById('layout-inputs');
+        if(l) l.style.display = document.getElementById('layout-toggle').checked ? 'block' : 'none';
+        calculateTotal();
+    }
+    function changeQty(n) {
+        let i = document.getElementById('main-qty');
+        let v = parseInt(i.value) || 1;
+        let m = parseInt(i.min) || 1;
+        if (v + n >= m) { i.value = v + n; calculateTotal(); }
+    }
+    function updateFileList(i) {
+        if(i.files.length > 0) {
+            document.getElementById('upload-placeholder').style.display = 'none';
+            document.getElementById('file-list-display').style.display = 'block';
+            let n = []; for(let f of i.files) n.push(f.name);
+            document.getElementById('file-names').innerHTML = n.join('<br>');
+        }
+    }
+    function validateOrder(e) {
+        if(document.querySelector('input[name="design_file"]').files.length === 0) {
+            alert("Please upload a file"); e.preventDefault(); return false;
         }
     }
 
-    // 6. TABS LOGIC
-    function openTab(tabName) {
-        document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-        
-        let target = document.getElementById(tabName);
-        if(target) target.style.display = 'block';
-        
-        // Simple active state loop
-        let buttons = document.querySelectorAll('.tab-btn');
-        if(tabName === 'specs' && buttons[0]) buttons[0].classList.add('active');
-        if(tabName === 'desc' && buttons[1]) buttons[1].classList.add('active');
-        if(tabName === 'reviews' && buttons[2]) buttons[2].classList.add('active');
-    }
-
-    // Initialize logic safely
     window.onload = function() {
-        calculateTarp();
+        if(productId == 5) updatePhotoLogic();
+        calculateTotal();
     };
-    // VALIDATION: Prevent submit if no files
-function validateOrder(event) {
-    let fileInput = document.querySelector('input[name="design_file"]');
-    // Check if files are selected
-    if (fileInput.files.length === 0) {
-        alert("⚠️ Please upload a design file or reference to continue.");
-        event.preventDefault(); // Stop the form from submitting
-        return false;
-    }
-    return true;
-}
 </script>
+
 {% endblock %}
