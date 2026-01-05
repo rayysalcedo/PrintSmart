@@ -64,6 +64,10 @@
         <div class="nav-item active" onclick="switchTab('dashboard', this)">
             <i class="fas fa-th-large"></i> Dashboard
         </div>
+
+        <div class="nav-item" onclick="switchTab('customers', this)">
+            <i class="fas fa-users"></i> Customers
+        </div>
         
         <div class="nav-item" onclick="switchTab('orders', this)">
             <i class="fas fa-shopping-cart"></i> Orders
@@ -83,6 +87,17 @@
     </div>
 
     <div class="main-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div style="padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 14px;
+                        background: {{ '#d4edda' if category == 'success' else '#f8d7da' }}; 
+                        color: {{ '#155724' if category == 'success' else '#721c24' }}; border: 1px solid {{ '#c3e6cb' if category == 'success' else '#f5c6cb' }};">
+                        <i class="fas {{ 'fa-check-circle' if category == 'success' else 'fa-exclamation-circle' }}"></i> {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
         
         <div class="header">
             <h2 id="page-title">Dashboard Overview</h2>
@@ -168,16 +183,142 @@
         </div>
         
         <div id="orders" class="view-section">
-            <div style="text-align:center; padding:50px; color:#999;">
-                <i class="fas fa-tools" style="font-size:40px; margin-bottom:20px;"></i>
-                <h3>Order Management System Coming Soon</h3>
-                <p>This is where you will update order status (Pending -> Completed).</p>
+            <h3 style="margin-bottom: 20px; color: #333;">Order Management</h3>
+
+            {% if orders %}
+            <div style="background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+                    <thead style="background-color: #f8f9fa; border-bottom: 2px solid #eee;">
+                        <tr>
+                            <th style="padding: 15px; color: #555; font-weight: 600;">Order ID</th>
+                            <th style="padding: 15px; color: #555; font-weight: 600;">Customer</th>
+                            <th style="padding: 15px; color: #555; font-weight: 600;">Items Ordered</th>
+                            <th style="padding: 15px; color: #555; font-weight: 600;">Design Files</th>
+                            <th style="padding: 15px; color: #555; font-weight: 600;">Total</th>
+                            <th style="padding: 15px; color: #555; font-weight: 600;">Status</th>
+                            <th style="padding: 15px; color: #555; font-weight: 600;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr style="border-bottom: 1px solid #eee; hover:background: #f9f9f9;">
+                            <td style="padding: 15px;"><strong>#{{ order.order_id }}</strong></td>
+                            
+                            <td style="padding: 15px;">
+                                <div style="font-weight: 500;">{{ order.full_name }}</div>
+                                <div style="font-size: 12px; color: #888;">{{ order.created_at.strftime('%b %d, %Y') }}</div>
+                            </td>
+
+                            <td style="padding: 15px;">
+                                {% for item in order.safe_items %}
+                                <div style="margin-bottom: 6px;">
+                                    <strong>{{ item.quantity }}x</strong> {{ item.product_name }}
+                                    <div style="font-size: 11px; color: #888;">{{ item.item_details }}</div>
+                                </div>
+                                {% endfor %}
+                            </td>
+
+                            <td style="padding: 15px;">
+                                {% for item in order.safe_items %}
+                                    {% if item.file_path %}
+                                        {% set files = item.file_path.split(',') %}
+                                        {% for f in files %}
+                                            <a href="{{ url_for('static', filename=f) }}" target="_blank" 
+                                               style="display: inline-block; background: #fff0e6; color: #ff6600; padding: 5px 10px; border-radius: 4px; font-size: 11px; text-decoration: none; margin-bottom: 4px; border: 1px solid #ffccaa;">
+                                                <i class="fas fa-download"></i> Download
+                                            </a><br>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span style="color:#ccc; font-size: 11px;">No File</span>
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+
+                            <td style="padding: 15px; font-weight: bold; color: #333;">
+                                ₱{{ "{:,.2f}".format(order.total_amount) }}
+                            </td>
+
+                            <td style="padding: 15px;">
+                                <span style="
+                                    padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase;
+                                    background-color: {{ '#d4edda' if order.order_status == 'Completed' else '#cce5ff' if order.order_status == 'Ready for Pickup' else '#fff3cd' if order.order_status == 'Processing' else '#f8d7da' }};
+                                    color: {{ '#155724' if order.order_status == 'Completed' else '#004085' if order.order_status == 'Ready for Pickup' else '#856404' if order.order_status == 'Processing' else '#721c24' }};
+                                ">
+                                    {{ order.order_status }}
+                                </span>
+                            </td>
+
+                            <td style="padding: 15px;">
+                                <form action="/admin/update_order_status" method="POST">
+                                    <input type="hidden" name="order_id" value="{{ order.order_id }}">
+                                    <select name="status" onchange="this.form.submit()" 
+                                            style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; font-size: 12px; cursor: pointer; background: white;">
+                                        <option value="Pending" {{ 'selected' if order.order_status == 'Pending' }}>Pending</option>
+                                        <option value="Processing" {{ 'selected' if order.order_status == 'Processing' }}>Processing</option>
+                                        <option value="Ready for Pickup" {{ 'selected' if order.order_status == 'Ready for Pickup' }}>Ready for Pickup</option>
+                                        <option value="Completed" {{ 'selected' if order.order_status == 'Completed' }}>Completed</option>
+                                        <option value="Cancelled" {{ 'selected' if order.order_status == 'Cancelled' }}>Cancelled</option>
+                                    </select>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align:center; padding: 60px; color: #999; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+                <i class="fas fa-clipboard-list" style="font-size: 40px; margin-bottom: 15px; opacity: 0.5;"></i>
+                <p>No orders found in the system yet.</p>
+            </div>
+            {% endif %}
+        </div>
+
+<div id="customers" class="view-section">
+            <h3 style="margin-bottom: 20px; color: #333;">Customer Management</h3>
+
+            <div style="background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+                    <thead style="background-color: #f8f9fa; border-bottom: 2px solid #eee;">
+                        <tr>
+                            <th style="padding: 15px; color: #555;">ID</th>
+                            <th style="padding: 15px; color: #555;">Name</th>
+                            <th style="padding: 15px; color: #555;">Contact Info</th>
+                            <th style="padding: 15px; color: #555;">Joined</th>
+                            <th style="padding: 15px; color: #555;">Admin Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cust in customers %}
+                        <tr style="border-bottom: 1px solid #eee;">
+                            <td style="padding: 15px;">#{{ cust.user_id }}</td>
+                            <td style="padding: 15px;">
+                                <strong>{{ cust.full_name }}</strong>
+                            </td>
+                            <td style="padding: 15px;">
+                                <div style="margin-bottom: 4px;"><i class="fas fa-envelope" style="color:#888; width:20px;"></i> {{ cust.email }}</div>
+                                <div><i class="fas fa-phone" style="color:#888; width:20px;"></i> {{ cust.phone_number if cust.phone_number else 'No Phone' }}</div>
+                            </td>
+                            <td style="padding: 15px; color: #666;">
+                                {{ cust.created_at.strftime('%Y-%m-%d') if cust.created_at else 'N/A' }}
+                            </td>
+                            <td style="padding: 15px;">
+                                <form action="/admin/reset_user_password" method="POST" style="display:flex; gap:5px; align-items:center;">
+                                    <input type="hidden" name="user_id" value="{{ cust.user_id }}">
+                                    <input type="text" name="new_password" placeholder="New Password" style="padding:5px; border:1px solid #ddd; border-radius:4px; font-size:12px; width:120px;" required>
+                                    <button type="submit" style="background:#ff4444; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:12px;">
+                                        Reset
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
 
-    </div>
-
-    <script>
+    </div> <script>
         // 1. Tab Switching Logic
         function switchTab(tabId, navItem) {
             // Hide all sections

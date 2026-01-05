@@ -1,151 +1,244 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | PrintSmart</title>
+    <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-    /* 1. Use your Brand Fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Akatab:wght@400;700;800&family=Alexandria:wght@300;400;600&display=swap');
+        body {
+            background: #f6f5f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Alexandria', sans-serif;
+            height: 100vh;
+            margin: 0;
+        }
 
-    body { 
-        font-family: 'Alexandria', sans-serif; 
-        background: #FFF5E6; /* Light brand beige from your About page */
-        display: flex; 
-        justify-content: center; 
-        align-items: center; 
-        height: 100vh; 
-        margin: 0; 
-    }
+        /* INCREASED SIZE HERE */
+        .container {
+            background-color: #fff;
+            border-radius: 20px;
+            box-shadow: 0 14px 28px rgba(0,0,0,0.1), 0 10px 10px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+            width: 1200px; /* Bigger Width */
+            max-width: 95%;
+            min-height: 750px; /* Bigger Height */
+            display: flex;
+        }
 
-    .login-card { 
-        background: white; 
-        padding: 50px 40px; 
-        border-radius: 16px; /* Matching the rounded corners of your cards */
-        box-shadow: 0 10px 30px rgba(220, 85, 0, 0.1); /* Subtle orange tinted shadow */
-        width: 400px; 
-        text-align: center; 
-    }
+        /* --- LEFT PANEL (Orange) --- */
+        .overlay-container {
+            flex: 1; 
+            background: linear-gradient(135deg, #FF8C42 0%, #DC5500 100%);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            padding: 50px;
+            text-align: center;
+            position: relative;
+        }
 
-    .brand { 
-        color: #DC5500; /* Your exact Brand Orange */
-        font-family: 'Akatab', serif;
-        font-size: 28px; 
-        font-weight: 800; 
-        margin-bottom: 35px; 
-        display: block; 
-    }
+        .logo-area {
+            position: absolute;
+            top: 40px;
+            left: 40px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .logo-area img { height: 45px; filter: brightness(0) invert(1); }
+        .logo-text { font-weight: 700; font-size: 22px; letter-spacing: 1px; }
 
-    input { 
-        width: 100%; 
-        padding: 14px; 
-        margin-bottom: 20px; 
-        border: 1px solid #E0E0E0; 
-        border-radius: 8px; 
-        box-sizing: border-box; 
-        font-family: 'Alexandria', sans-serif;
-        font-size: 15px;
-        transition: border-color 0.3s ease;
-    }
+        .overlay-panel h1 { font-weight: 700; margin: 0 0 15px 0; font-size: 42px; }
+        .overlay-panel p { font-size: 18px; line-height: 1.6; margin: 0 0 40px 0; opacity: 0.9; }
 
-    input:focus {
-        outline: none;
-        border-color: #DC5500; /* Highlights orange when typing */
-    }
+        button.ghost {
+            background-color: transparent;
+            border: 2px solid white;
+            color: white;
+            padding: 15px 55px;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button.ghost:hover { background-color: rgba(255,255,255,0.2); }
 
-    button { 
-        width: 100%; 
-        padding: 14px; 
-        background: #DC5500; /* Brand Orange */
-        color: white; 
-        border: none; 
-        border-radius: 8px; 
-        font-weight: 600; 
-        cursor: pointer; 
-        font-size: 16px; 
-        font-family: 'Alexandria', sans-serif;
-        transition: transform 0.2s ease, background 0.3s ease;
-    }
+        /* --- RIGHT PANEL (Form) --- */
+        .form-container {
+            flex: 1.5;
+            padding: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
 
-    button:hover { 
-        background: #B44500; /* Darker orange on hover */
-        transform: translateY(-2px);
-    }
+        .form-container h1 { font-weight: 700; margin: 0 0 25px 0; color: #DC5500; font-size: 36px; }
 
-    .footer-links { 
-        margin-top: 25px; 
-        font-size: 14px; 
-    }
+        .input-group { width: 100%; margin: 15px 0; text-align: left; }
+        .input-group label { font-size: 14px; font-weight: 600; color: #666; margin-left: 5px; display:block; margin-bottom: 5px; }
+        
+        input {
+            background-color: #f0f0f0;
+            border: none;
+            padding: 18px;
+            width: 100%;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 16px;
+        }
+        input:focus { outline: 1px solid #DC5500; background: #fff; }
 
-    .footer-links a { 
-        color: #9A5A00; /* Golden Brown from your About description */
-        text-decoration: none; 
-        font-weight: 500;
-    }
+        /* Password Field Styling */
+        .password-container { position: relative; width: 100%; }
+        .toggle-password {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #888;
+            font-size: 18px;
+        }
+        .toggle-password:hover { color: #DC5500; }
 
-    .footer-links a:hover {
-        text-decoration: underline;
-    }
+        button.primary {
+            border-radius: 50px;
+            border: none;
+            background-color: #DC5500;
+            color: #FFFFFF;
+            font-size: 16px;
+            font-weight: 700;
+            padding: 18px 50px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: 0.3s;
+            cursor: pointer;
+            margin-top: 25px;
+            width: 100%;
+        }
+        button.primary:hover { background-color: #b84700; }
+        
+        .forgot-pass { color: #888; font-size: 14px; text-decoration: none; margin: 15px 0; display: block; }
+        .forgot-pass:hover { text-decoration: underline; color: #DC5500; }
+
+        .divider { margin: 25px 0; font-size: 14px; color: #aaa; width: 100%; border-bottom: 1px solid #eee; line-height: 0.1em; }
+        .divider span { background:#fff; padding:0 10px; }
+
+        .social-container a {
+            border: 1px solid #ddd;
+            border-radius: 50%;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 8px;
+            height: 50px;
+            width: 50px;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+        .social-container a:hover { border-color: #DC5500; background: #fff5e6; }
+
+        @media (max-width: 768px) {
+            .container { flex-direction: column; height: auto; width: 95%; }
+            .overlay-container { padding: 40px 20px; }
+            .form-container { padding: 40px 20px; }
+        }
     </style>
 </head>
 <body>
-    <div class="split-container">
-    <div class="left-panel">
-        <div class="panel-content">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Printagram Logo" class="login-logo">
-            <h1>Welcome Back!</h1>
-            <p>To keep connected with us, please login with your personal info</p>
-            <a href="/register" class="btn-outline-white">SIGN UP</a>
+
+<div class="container">
+    
+    <div class="overlay-container">
+        <div class="logo-area">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo">
+            <span class="logo-text">PRINTAGRAM</span>
+        </div>
+        <div class="overlay-panel">
+            <h1>Hello, Friend!</h1>
+            <p>Enter your personal details and start your journey with us</p>
+            <a href="{{ url_for('register') }}">
+                <button class="ghost">Sign Up</button>
+            </a>
         </div>
     </div>
 
-    <div class="right-panel">
-        <div class="form-content">
+    <div class="form-container">
+        <form action="/login" method="POST" style="width: 100%; max-width: 450px;">
+            <h1>Sign In</h1>
+            
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">
+                        <div style="padding: 15px; border-radius: 8px; font-size: 14px; margin-bottom: 20px; 
+                                    background: {{ '#e8f5e9' if category == 'success' else '#ffebee' }}; 
+                                    color: {{ '#2e7d32' if category == 'success' else '#c62828' }};">
                             {{ message }}
                         </div>
                     {% endfor %}
                 {% endif %}
             {% endwith %}
 
-            <h2 class="sign-in-header">Sign in</h2>
-    
-            <form action="/login" method="POST">
-                <div class="input-group">
-                    <label>Email Address</label>
-                    <input type="email" name="email" required placeholder="Enter your email">
+            <div class="input-group">
+                <label>Email</label>
+                <input type="email" name="email" placeholder="Email Address" required>
+            </div>
+            
+            <div class="input-group">
+                <label>Password</label>
+                <div class="password-container">
+                    <input type="password" id="loginPass" name="password" placeholder="Password" required>
+                    <i class="fa-solid fa-eye toggle-password" onclick="togglePassword('loginPass', this)"></i>
                 </div>
-        
-                <div class="input-group">
-                    <label>Password</label>
-                    <input type="password" name="password" required placeholder="Enter your password">
-                </div>
-        
-                <div class="form-options">
-                    <a href="#" class="forgot-link">Forgot Password?</a>
-                </div>
+            </div>
+            
+            <a href="#" class="forgot-pass">Forgot your password?</a>
+            
+            <button type="submit" class="primary">Sign In</button>
 
-                <button type="submit" class="btn-gradient">SIGN IN</button>
-            </form>
+            <div class="divider"><span>or continue with</span></div>
 
-                <div class="divider">
-                    <span>Or continue with</span>
-                </div>
-
-                <div class="social-group">
-                    <button type="button" class="btn-social">
-                        <img src="{{ url_for('static', filename='images/google-icon.png') }}" alt="Google"> Google
-                    </button>
-                    <button type="button" class="btn-social">
-                        <img src="{{ url_for('static', filename='images/fb-icon.png') }}" alt="Facebook"> Facebook
-                    </button>
-                </div>
-        </div>
+            <div class="social-container">
+                <a href="{{ url_for('google_login') }}">
+                    <img src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png" width="24" alt="Google">
+                </a>
+                <a href="{{ url_for('facebook_login') }}">
+                    <img src="https://cdn-icons-png.flaticon.com/512/5968/5968764.png" width="24" alt="Facebook">
+                </a>
+            </div>
+        </form>
     </div>
+
+</div>
+
+<script>
+    function togglePassword(inputId, icon) {
+        const input = document.getElementById(inputId);
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.remove("fa-eye");
+            icon.classList.add("fa-eye-slash");
+        } else {
+            input.type = "password";
+            icon.classList.remove("fa-eye-slash");
+            icon.classList.add("fa-eye");
+        }
+    }
+</script>
+
 </body>
 </html>

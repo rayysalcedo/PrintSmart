@@ -96,24 +96,49 @@ body {
     background-color: #fff5e6; /* Light orange tint on hover */
 }
 
-/* --- Header Icons --- */
+/* --- Header Icons (UPDATED) --- */
 .header-icons {
     display: flex;
-    gap: 25px;
+    gap: 15px; /* Slightly tighter gap since buttons have padding now */
     align-items: center;
     flex: 1;
     justify-content: flex-end; /* Pushes icons to the right */
 }
 
-.header-icons img {
-    height: 24px;
-    width: 24px;
-    cursor: pointer;
-    transition: transform 0.2s;
+/* Base style for the icon container links */
+.icon-btn {
+    position: relative; /* Needed for the cart badge positioning */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px; /* Space around icon for the background color */
+    border-radius: 50%; /* Makes the background circular */
+    transition: all 0.3s ease;
+    text-decoration: none;
+    color: inherit;
 }
 
-.header-icons img:hover {
-    transform: scale(1.1);
+.icon-btn img {
+    height: 24px;
+    width: 24px;
+    transition: transform 0.2s, filter 0.3s ease;
+}
+
+/* Hover effect for inactive icons */
+.icon-btn:not(.active-icon-btn):hover {
+    background-color: #fff5e6; /* Light orange tint on hover */
+    transform: translateY(-2px);
+}
+
+/* --- ACTIVE STATE (When on that page) --- */
+.active-icon-btn {
+    background-color: #DC5601; /* Brand Orange background */
+    box-shadow: 0 4px 8px rgba(220, 86, 1, 0.3); /* Orange shadow */
+}
+
+/* This CSS trick turns the black PNG icons WHITE when active */
+.active-icon-btn img {
+    filter: brightness(0) invert(1); 
 }
 
 /* ===========================
@@ -260,4 +285,247 @@ body {
 
 .footer-legal a:hover {
     color: #FF6B1A;
+}
+/* ===========================
+   PROFILE DROPDOWN STYLES
+   =========================== */
+.profile-container {
+    position: relative;
+}
+
+.profile-dropdown {
+    display: none; 
+    position: absolute;
+    right: 0;
+    top: 60px; /* Pushed down slightly */
+    background-color: #ffffff;
+    width: 260px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15); /* Softer, deeper shadow */
+    border-radius: 16px;
+    z-index: 1000;
+    border: 1px solid rgba(0,0,0,0.05);
+    overflow: hidden;
+    transform-origin: top right;
+    animation: scaleIn 0.2s ease-out forwards;
+}
+
+.profile-dropdown.show {
+    display: block;
+}
+
+/* Header with Gradient */
+.dropdown-header {
+    background: linear-gradient(135deg, #FF8C42 0%, #DC5500 100%);
+    padding: 20px;
+    color: white;
+}
+
+.dropdown-header strong {
+    display: block;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.dropdown-header span {
+    font-size: 12px;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Links */
+.dropdown-item {
+    padding: 15px 20px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #555;
+    font-size: 15px;
+    font-weight: 500;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+}
+
+.dropdown-item i {
+    color: #999;
+    width: 20px;
+    text-align: center;
+    transition: color 0.2s;
+}
+
+.dropdown-item:hover {
+    background-color: #fff8f2;
+    color: #DC5601;
+    border-left-color: #DC5601;
+}
+
+.dropdown-item:hover i {
+    color: #DC5601;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background-color: #f0f0f0;
+    margin: 5px 0;
+}
+
+.logout-item:hover {
+    background-color: #fff0f0;
+    color: #d32f2f;
+    border-left-color: #d32f2f;
+}
+.logout-item:hover i { color: #d32f2f; }
+
+@keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.95) translateY(-10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ===========================
+   NEW PROFILE PAGE STYLES
+   =========================== */
+.profile-wrapper {
+    background-color: #f6f5f7;
+    min-height: 90vh;
+    padding: 60px 20px;
+    font-family: 'Alexandria', sans-serif;
+}
+
+.profile-card {
+    max-width: 900px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.profile-header-banner {
+    background: linear-gradient(135deg, #FF8C42 0%, #DC5500 100%);
+    padding: 40px;
+    color: white;
+    text-align: center;
+    position: relative;
+}
+
+.profile-avatar-circle {
+    width: 80px;
+    height: 80px;
+    background: white;
+    border-radius: 50%;
+    margin: 0 auto 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #DC5500;
+    font-size: 32px;
+    font-weight: 700;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.profile-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+}
+
+.profile-section {
+    padding: 50px;
+}
+
+.profile-section.border-right {
+    border-right: 1px solid #eee;
+}
+
+.section-title {
+    color: #DC5601;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 25px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #666;
+    margin-bottom: 8px;
+    margin-left: 5px;
+}
+
+.form-input {
+    width: 100%;
+    background-color: #f4f4f4;
+    border: none;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-family: inherit;
+    font-size: 14px;
+    transition: 0.3s;
+    box-sizing: border-box;
+}
+
+.form-input:focus {
+    background-color: #fff;
+    outline: 2px solid #DC5601;
+    box-shadow: 0 0 10px rgba(220, 86, 1, 0.1);
+}
+
+.btn-update {
+    background: #333;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 50px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-update:hover { background: #000; transform: translateY(-2px); }
+
+.btn-password {
+    background: white;
+    color: #DC5601;
+    border: 2px solid #DC5601;
+    padding: 12px 30px;
+    border-radius: 50px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-password:hover {
+    background: #DC5601;
+    color: white;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .profile-content { grid-template-columns: 1fr; }
+    .profile-section.border-right { border-right: none; border-bottom: 1px solid #eee; }
+    .profile-section { padding: 30px; }
+}
+
+/* Cart Badge Style (Restored) */
+.cart-badge {
+    position: absolute; 
+    top: -5px; 
+    right: -5px; 
+    background-color: #ff6600; 
+    color: white; 
+    border-radius: 50%; 
+    padding: 2px 5px; 
+    font-size: 9px; 
+    font-weight: bold; 
+    border: 2px solid white; 
+    min-width: 14px; 
+    text-align: center;
 }

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* Page Specific Styles */
+    .orders-container { 
+        width: 900px; 
+        background: white; 
+        padding: 40px; 
+        border-radius: 20px; 
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05); 
+        margin: 50px auto; /* Centered with margin */
+    }
+    .header-area { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 20px; }
+    .back-btn { text-decoration: none; color: #666; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .back-btn:hover { color: #DC5500; }
+    
+    /* Order Card Style */
+    .order-card { 
+        display: flex; justify-content: space-between; align-items: center; 
+        padding: 20px; border: 1px solid #eee; border-radius: 12px; margin-bottom: 15px; 
+        transition: 0.2s; cursor: pointer; text-decoration: none; color: inherit;
+    }
+    .order-card:hover { border-color: #DC5500; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(220, 85, 0, 0.1); }
+    
+    .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; text-transform: uppercase; }
+    .status-Pending { background: #ffebee; color: #c62828; }
+    .status-Processing { background: #fff3e0; color: #ef6c00; }
+    .status-Completed { background: #e8f5e9; color: #2e7d32; }
+</style>
+
+<div class="orders-container">
+    <div class="header-area">
+        <h1 style="margin:0; color:#333;">My Orders</h1>
+        <a href="/" class="back-btn"><i class="fas fa-home"></i> Go Home</a>
+    </div>
+
+    {% if orders %}
+        {% for order in orders %}
+        <a href="/my_order_details/{{ order.order_id }}" class="order-card">
+            <div>
+                <h3 style="margin: 0 0 5px 0;">Order #{{ order.order_id }}</h3>
+                <div style="font-size: 13px; color: #888;">Placed on {{ order.created_at.strftime('%B %d, %Y') }}</div>
+            </div>
+            
+            <div style="text-align: right;">
+                <div style="font-size: 18px; font-weight: bold; color: #333; margin-bottom: 5px;">
+                    ₱{{ "{:,.2f}".format(order.total_amount) }}
+                </div>
+                <span class="status-badge status-{{ order.order_status }}">{{ order.order_status }}</span>
+            </div>
+            
+            <div style="margin-left: 20px; color: #DC5500;">
+                <i class="fas fa-chevron-right"></i>
+            </div>
+        </a>
+        {% endfor %}
+    {% else %}
+        <div style="text-align: center; padding: 50px; color: #aaa;">
+            <i class="fas fa-box-open" style="font-size: 40px; margin-bottom: 15px;"></i>
+            <p>No orders found.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

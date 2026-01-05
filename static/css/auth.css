@@ -1,224 +1,153 @@
-/* --- AUTHENTICATION SHARED STYLES --- */
-body, html {
+/* static/css/auth.css */
+
+@import url('https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;600;700&display=swap');
+
+/* 1. Center the Card on the Screen */
+body {
+    background-color: #f0f2f5; /* Light gray background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
     margin: 0;
-    padding: 0;
-    height: 100%;
     font-family: 'Alexandria', sans-serif;
 }
 
-.split-container {
+/* 2. The Main Card Container */
+.container {
+    background-color: #fff;
+    border-radius: 15px; /* Rounded corners */
+    box-shadow: 0 14px 28px rgba(0,0,0,0.1), 
+                0 10px 10px rgba(0,0,0,0.08); /* Soft shadow */
+    position: relative;
+    overflow: hidden;
+    width: 850px; /* Fixed width */
+    max-width: 100%;
+    min-height: 550px; /* Fixed height */
     display: flex;
-    height: 100vh;
-    width: 100vw;
 }
 
-/* --- LEFT PANEL: BRANDING --- */
-.left-panel {
-    flex: 1;
-    background: linear-gradient(135deg, #FFB13D 0%, #DC5500 100%);
+/* 3. The Left Side (Orange Gradient) */
+.overlay-container {
+    width: 40%;
+    background: linear-gradient(to right, #FF8C42, #DC5500); /* Printagram Orange */
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: 0 0;
+    color: #FFFFFF;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 40px;
+}
+
+.overlay-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+/* Logo Sizing (Fixes the zoomed-in issue) */
+.brand-logo {
+    width: 60px; /* Keeps logo small */
+    height: auto;
+    margin-bottom: 20px;
+    filter: brightness(0) invert(1); /* Turns logo white */
+}
+
+/* 4. The Right Side (White Form) */
+.form-container {
+    width: 60%;
+    padding: 0 50px;
+    height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    color: white;
     text-align: center;
-    padding: 60px;
 }
 
-.left-panel h1 {
-    font-family: 'Akatab', serif;
-    font-size: 52px;
-    font-weight: 800;
+/* Typography */
+h1 {
+    font-weight: 700;
+    margin: 0 0 10px;
+}
+
+h2 {
+    color: #DC5500;
+    margin-bottom: 20px;
+}
+
+p {
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 20px;
+    letter-spacing: 0.5px;
+    margin: 20px 0 30px;
+}
+
+/* Form Elements */
+input {
+    background-color: #eee;
+    border: none;
+    padding: 12px 15px;
+    margin: 8px 0;
+    width: 100%;
+    border-radius: 8px; /* Rounded inputs */
+    outline: none;
+    font-family: inherit;
+}
+
+/* Buttons */
+button {
+    border-radius: 20px;
+    border: 1px solid #DC5500;
+    background-color: #DC5500;
+    color: #FFFFFF;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 12px 45px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: transform 80ms ease-in;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+button:active {
+    transform: scale(0.95);
+}
+
+/* Ghost Button (On the orange side) */
+button.ghost {
+    background-color: transparent;
+    border-color: #FFFFFF;
+    margin-top: 10px;
+}
+
+/* Social Buttons */
+.social-container {
     margin: 20px 0;
 }
 
-.left-panel p {
-    font-size: 18px;
-    line-height: 1.8; /* Improves readability */
-    margin-bottom: 30px;
-    max-width: 320px; /* Keeps text in a nice readable block */
-    opacity: 0.9;
-}
-
-/* Pill Button for the left side */
-.btn-outline-white {
-    margin-top: 40px;
-    padding: 15px 80px;
-    border: 2px solid white;
-    border-radius: 50px; /* Perfect Pill Shape */
-    color: white;
-    text-decoration: none;
-    font-weight: 700;
-    letter-spacing: 1px;
-    transition: all 0.3s ease;
-}
-
-.btn-outline-white:hover {
-    background: white;
-    color: #DC5500;
-}
-
-/* --- RIGHT PANEL: FORM --- */
-.right-panel {
-    flex: 1.5; /* Makes the form area wider like the Figma */
-    padding: 80px 40px; /* Increased vertical padding for better breathing room */
-    background: white;
-    display: flex;
+.social-container a {
+    border: 1px solid #DDDDDD;
+    border-radius: 50%;
+    display: inline-flex;
     justify-content: center;
     align-items: center;
-}
-
-.form-content {
-    width: 100%;
-    max-width: 450px;
-    padding: 40px;
-}
-
-.form-content h2 {
-    font-family: 'Akatab', serif;
-    color: #DC5500; /* Matching your brand orange */
-    font-size: 48px; /* Slightly larger for impact */
-    font-weight: 800;
-    text-align: center; /* This centers the "Sign in" text */
-    margin-top: 0;      /* Removes top space since logo is gone */
-    margin-bottom: 40px; /* Space before the email field */
-    letter-spacing: -1px;
-    width: 100%;
-}
-
-/* Figma-Style Inputs */
-.input-group {
-    margin-bottom: 18px; /* Reduced from 30px to make it more compact */
-}
-
-.input-group label {
-    display: block;
-    font-family: 'Alexandria', sans-serif;
-    font-size: 14px;
-    margin-bottom: 6px; /* Reduced to pull the label closer to the box */
-    color: #444;
-    font-weight: 600;
+    margin: 0 5px;
+    height: 40px;
+    width: 40px;
+    text-decoration: none;
     color: #333;
-}
-
-.input-group input {
-    width: 100%;
-    padding: 12px 15px;
-    background-color: #f8f9fa; /* Matches Figma's */
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-sizing: border-box;
-    font-size: 16px;
-    transition: 0.3s;
-}
-
-.input-group input:focus {
     background: white;
-    border-color: #FFB13D;
-    outline: none;
 }
 
-/* Main Action Button */
-.btn-auth-gradient {
-    width: 100%;
-    padding: 16px;
-    background: linear-gradient(90deg, #FFB13D, #DC5500);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-weight: 700;
-    font-size: 16px;
-    cursor: pointer;
-    box-shadow: 0 8px 20px rgba(220, 85, 0, 0.2);
-    margin-top: 10px;
-}
-
-/* --- SOCIAL LOGIN --- */
-.divider {
-    text-align: center;
-    color: #888;
-    margin: 40px 0 25px 0; /* Clear separation between primary and social login */
-    font-weight: 500;
-    opacity: 0.6;
-}
-
-/* --- SOCIAL LOGIN BUTTONS --- */
-.social-group {
-    display: flex;
-    gap: 15px;
-    margin-top: 10px;
-}
-
-.btn-social {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 12px;
-
-    /* Figma Styles: White BG, Black Text */
-    background-color: #FFFFFF;
-    color: #000000;
-    border: 1px solid #E0E0E0; /* Subtle light grey border */
-    border-radius: 12px;
-    
-    border: none;
-    border-radius: 12px;
-    font-family: 'Alexandria', sans-serif;
-    font-weight: 500;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 10px rgba(220, 85, 0, 0.15);
-}
-
-/* Hover Effect: Subtle grey lift */
-.btn-social:hover {
-    background-color: #F9F9F9;
-    border-color: #CCCCCC;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-}
-
-/* Ensure the icons inside look clean */
-.btn-social img {
+.social-container img {
     width: 20px;
-    height: 20px;
-    object-fit: contain;
-}
-
-/* Align Forgot Password to the Right as per Figma */
-.form-options {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: -10px; /* Pulls the Forgot Password link closer to the password field */
-    margin-bottom: 30px; /* Keeps a healthy gap before the SIGN IN button */
-}
-
-.forgot-link {
-    color: #FFB13D;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-/* Add this to your auth.css if not already there */
-/* Existing alert style (keep this) */
-.alert-danger {
-    background-color: #FDEDEC;
-    color: #E74C3C;
-    border: 1px solid #F5B7B1;
-}
-
-/* NEW: Green success style */
-.alert-success {
-    background-color: #E8F5E9; /* Light green background */
-    color: #2E7D32;           /* Dark green text */
-    border: 1px solid #C8E6C9;
-    padding: 10px;
-    border-radius: 5px;
-    margin-bottom: 15px;
-    text-align: center;
-    font-family: 'Alexandria', sans-serif;
 }

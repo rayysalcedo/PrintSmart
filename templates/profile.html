@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css">
+
+<style>
+    /* Page Layout */
+    .profile-wrapper {
+        display: flex;
+        justify-content: center;
+        padding: 50px 20px;
+        background: #f4f7fa;
+        min-height: 80vh;
+    }
+    .profile-card {
+        width: 100%;
+        max-width: 900px;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        overflow: hidden;
+    }
+
+    /* Orange Header Section */
+    .profile-header {
+        background: linear-gradient(135deg, #ff6600, #ff8533);
+        padding: 40px;
+        text-align: center;
+        color: white;
+    }
+    .avatar-circle {
+        width: 80px;
+        height: 80px;
+        background: white;
+        color: #ff6600;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        font-weight: bold;
+        margin: 0 auto 15px auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    .profile-header h1 { margin: 0; font-size: 28px; font-weight: 700; }
+    .profile-header p { margin: 5px 0 0 0; opacity: 0.9; font-size: 14px; }
+
+    /* Forms Section */
+    .profile-body {
+        padding: 40px;
+        display: flex;
+        gap: 40px;
+    }
+    .form-section { flex: 1; }
+    
+    .section-title {
+        font-size: 18px;
+        color: #ff6600;
+        font-weight: 700;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* UNIFIED INPUT STYLING */
+    .form-group { margin-bottom: 20px; }
+    .form-group label {
+        display: block;
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 8px;
+        font-weight: 600;
+    }
+    .styled-input {
+        width: 100%;
+        padding: 12px 15px;
+        background-color: #f8f9fa; /* The light gray background */
+        border: 1px solid #eee;
+        border-radius: 8px;
+        font-size: 14px;
+        color: #333;
+        outline: none;
+        transition: 0.3s;
+        box-sizing: border-box; /* Ensures padding doesn't break width */
+    }
+    .styled-input:focus {
+        background-color: white;
+        border-color: #ff6600;
+        box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.1);
+    }
+
+    /* 2. ADDED: Fix for Phone Input width to match other fields */
+    .iti { width: 100%; }
+
+    /* Buttons */
+    .btn-save {
+        background: #333;
+        color: white;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 50px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 14px;
+        transition: 0.3s;
+    }
+    .btn-save:hover { background: #000; transform: translateY(-2px); }
+
+    .btn-outline {
+        background: white;
+        color: #ff6600;
+        border: 2px solid #ff6600;
+        padding: 10px 25px;
+        border-radius: 50px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 14px;
+        transition: 0.3s;
+    }
+    .btn-outline:hover { background: #fff5eb; }
+
+    /* Flash Messages */
+    .flash-msg {
+        padding: 15px;
+        margin: 20px 40px 0 40px;
+        border-radius: 8px;
+        font-size: 14px;
+        text-align: center;
+    }
+    .flash-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .flash-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .profile-body { flex-direction: column; gap: 40px; }
+    }
+</style>
+
+<div class="profile-wrapper">
+    <div class="profile-card">
+        
+        <div class="profile-header">
+            <div class="avatar-circle">
+                {{ user.full_name[0].upper() if user.full_name else 'U' }}
+            </div>
+            <h1>{{ user.full_name }}</h1>
+            <p>{{ session['role'].title() }} Account</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-msg flash-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="profile-body">
+            
+            <div class="form-section">
+                <div class="section-title"><i class="fas fa-user-edit"></i> Personal Details</div>
+                
+                <form action="/profile" method="POST">
+                    <input type="hidden" name="action" value="update_info">
+                    
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" name="name" class="styled-input" value="{{ user.full_name }}" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" name="email" class="styled-input" value="{{ user.email }}" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Phone Number</label>
+                        <input type="tel" id="phone_profile" name="phone" class="styled-input" value="{{ user.phone_number if user.phone_number else '' }}">
+                    </div>
+
+                    <button type="submit" class="btn-save">Save Changes</button>
+                </form>
+            </div>
+
+            <div class="form-section" style="border-left: 1px solid #eee; padding-left: 40px;">
+                <div class="section-title"><i class="fas fa-shield-alt"></i> Security</div>
+                
+                <form action="/profile" method="POST">
+                    <input type="hidden" name="action" value="change_password">
+                    
+                    <div class="form-group">
+                        <label>Current Password</label>
+                        <input type="password" name="current_password" class="styled-input" placeholder="••••••••" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>New Password</label>
+                        <input type="password" name="new_password" class="styled-input" placeholder="••••••••" required>
+                    </div>
+
+                    <button type="submit" class="btn-outline">Update Password</button>
+                </form>
+            </div>
+
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
+            <a href="/my_orders" style="text-decoration: none; color: #ff6600; font-weight: 600; font-size: 14px;">
+                <i class="fas fa-box-open"></i> View My Order History
+            </a>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/intlTelInput.min.js"></script>
+<script>
+    // Initialize Plugin for Profile Page
+    const inputProfile = document.querySelector("#phone_profile");
+    if (inputProfile) {
+        window.intlTelInput(inputProfile, {
+            initialCountry: "ph",
+            separateDialCode: true,
+            utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js",
+        });
+    }
+</script>
+{% endblock %}

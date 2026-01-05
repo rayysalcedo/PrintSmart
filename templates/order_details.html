@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* Specific Styles for Receipt */
+    .receipt-wrapper {
+        padding: 50px 20px;
+        display: flex;
+        justify-content: center;
+    }
+    .receipt-container { 
+        width: 100%;
+        max-width: 700px; 
+        background: white; 
+        padding: 40px; 
+        border-radius: 12px; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
+    }
+    .top-info { display: flex; justify-content: space-between; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 20px; }
+    .item-row { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px dashed #eee; }
+    .total-row { display: flex; justify-content: space-between; padding-top: 20px; font-size: 20px; font-weight: bold; color: #DC5500; }
+    
+    .btn-back { display: inline-block; padding: 10px 20px; background: #333; color: white; text-decoration: none; border-radius: 6px; font-size: 14px; margin-top: 20px; }
+    .btn-back:hover { background: #555; }
+</style>
+
+<div class="receipt-wrapper">
+    <div class="receipt-container">
+        <div class="top-info">
+            <div>
+                <h2 style="margin:0;">Order #{{ order.order_id }}</h2>
+                <div style="color:#888; font-size: 14px; margin-top: 5px;">{{ order.created_at }}</div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-weight: bold; text-transform: uppercase; color: #DC5500;">{{ order.order_status }}</div>
+                <div style="font-size: 13px; color: #888;">{{ order.payment_method }}</div>
+            </div>
+        </div>
+
+        <h3 style="border-bottom: 1px solid #eee; padding-bottom: 10px;">Items Ordered</h3>
+        
+        {% for item in items %}
+        <div class="item-row">
+            <div style="flex: 1;">
+                <strong>{{ item.quantity }}x {{ item.product_name }}</strong>
+                <div style="font-size: 12px; color: #666; margin-top: 4px;">{{ item.item_details }}</div>
+                {% if item.file_path %}
+                    <div style="font-size: 11px; color: #888; margin-top: 2px;">Files uploaded</div>
+                {% endif %}
+            </div>
+            <div style="font-weight: 600;">
+                ₱{{ "{:,.2f}".format(item.price_at_time) }}
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="total-row">
+            <span>Grand Total</span>
+            <span>₱{{ "{:,.2f}".format(order.total_amount) }}</span>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="/my_orders" class="btn-back">Back to Orders</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
