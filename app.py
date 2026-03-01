@@ -10,9 +10,13 @@ from config import Config
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# --- NEW IMPORTS FOR SOCIAL LOGIN ---
+# --- IMPORTS FOR SOCIAL LOGIN ---
 from authlib.integrations.flask_client import OAuth
 import secrets 
+
+# --- NEW IMPORTS FOR cloudinary ---
+import cloudinary
+import cloudinary.uploader
 
 # 1. SETUP UPLOAD FOLDER
 UPLOAD_FOLDER = 'static/uploads'
@@ -606,6 +610,63 @@ def my_order_details(order_id):
     order_items = cursor.fetchall()
     conn.close()
     return render_template('order_details.html', order=order, items=order_items)
+
+# Configuration
+cloudinary.config( 
+  cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME'), 
+  api_key = os.environ.get('CLOUDINARY_API_KEY'), 
+  api_secret = os.environ.get('CLOUDINARY_API_SECRET') 
+)
+
+@app.route('/admin/upload_product_image', methods=['POST'])
+def upload_product_image():
+    if 'role' not in session or session['role'] != 'admin':
+        return redirect('/login')
+
+    product_id = request.form.get('product_id')
+    file = request.files.get('product_image')
+
+    if file:
+        try:
+            # 1. Upload to Cloudinary
+            upload_result = cloudinary.uploader.upload(file)
+            # 2. Get the permanent URL
+            image_url = upload_result['secure_url']
+
+            # 3. Save URL to Database
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE products SET image_path = %s WHERE product_id = %s", 
+                           (image_url, product_id))
+            conn.commit()
+            conn.close()
+            flash("Cloud image updated successfully!", "success")
+        except Exception as e:
+            flash(f"Cloudinary Error: {e}", "error")
+
+    return redirect('/admin')
+
+@app.route('/admin/update_variant', methods=['POST'])
+def update_variant():
+    if 'role' not in session or session['role'] != 'admin':
+        return redirect('/login')
+
+    variant_id = request.form.get('variant_id')
+    new_price = request.form.get('price')
+    new_stock = request.form.get('stock')
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE product_variants SET price = %s, stock_quantity = %s WHERE variant_id = %s", 
+                       (new_price, new_stock, variant_id))
+        conn.commit()
+        conn.close()
+        flash("Price and Stock updated!", "success")
+    except Exception as e:
+        flash(f"Database Error: {e}", "error")
+
+    return redirect('/admin')
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5001))
