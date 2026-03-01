@@ -36,7 +36,8 @@ def get_db_connection():
         user=app.config['MYSQL_USER'],
         password=app.config['MYSQL_PASSWORD'],
         database=app.config['MYSQL_DB'],
-        port=app.config.get('MYSQL_PORT', 27072)
+        port=app.config.get('MYSQL_PORT', 27072),
+        connection_timeout=5  
     )
 
 # --- OAUTH CONFIGURATION (SOCIAL LOGIN) ---
