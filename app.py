@@ -9,6 +9,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from authlib.integrations.flask_client import OAuth
 import secrets 
 
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
 # 1. SETUP UPLOAD FOLDER
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf', 'docx', 'psd', 'ai'}
@@ -36,7 +39,7 @@ oauth = OAuth(app)
 # 1. GOOGLE SETUP
 google = oauth.register(
     name='google',
-    client_id='370896002580-hqntv6uk4teq3isr8iappbkb fkh0rl85.apps.googleusercontent.com',
+    client_id='370896002580-hqntv6uk4teq3isr8iappbkbfkh0rl85.apps.googleusercontent.com',
     client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
     access_token_url='https://accounts.google.com/o/oauth2/token',
     access_token_params=None,
