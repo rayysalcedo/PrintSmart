@@ -36,7 +36,7 @@ oauth = OAuth(app)
 # 1. GOOGLE SETUP
 google = oauth.register(
     name='google',
-    client_id='762998226504-doat9bprt7gflg1rbodh2he2t9un7lkp.apps.googleusercontent.com',
+    client_id='370896002580-hqntv6uk4teq3isr8iappbkb fkh0rl85.apps.googleusercontent.com',
     client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
     access_token_url='https://accounts.google.com/o/oauth2/token',
     access_token_params=None,
