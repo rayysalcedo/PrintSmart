@@ -145,7 +145,7 @@
             {% for product in products %}
             <div class="product-manager-card">
                 <div style="text-align:center;">
-                    <img src="{{ url_for('static', filename=product.image_path if product.image_path else 'images/icon-signage.png') }}" class="img-preview">
+                    <img src="{{ product.image_path if product.image_path and 'http' in product.image_path else url_for('static', filename=product.image_path if product.image_path else 'images/icon-signage.png') }}" class="img-preview">
                     <form action="/admin/upload_product_image" method="POST" enctype="multipart/form-data" style="margin-top:10px;">
                         <input type="hidden" name="product_id" value="{{ product.product_id }}">
                         <input type="file" name="product_image" id="file-{{product.product_id}}" style="display:none;" onchange="this.form.submit()">
@@ -219,20 +219,23 @@
                             </td>
 
                             <td style="padding: 15px;">
-                                {% for item in order.safe_items %}
-                                    {% if item.file_path %}
-                                        {% set files = item.file_path.split(',') %}
-                                        {% for f in files %}
-                                            <a href="{{ url_for('static', filename=f) }}" target="_blank" 
-                                               style="display: inline-block; background: #fff0e6; color: #ff6600; padding: 5px 10px; border-radius: 4px; font-size: 11px; text-decoration: none; margin-bottom: 4px; border: 1px solid #ffccaa;">
-                                                <i class="fas fa-download"></i> Download
-                                            </a><br>
-                                        {% endfor %}
-                                    {% else %}
-                                        <span style="color:#ccc; font-size: 11px;">No File</span>
-                                    {% endif %}
-                                {% endfor %}
-                            </td>
+    {% for item in order.safe_items %}
+        {% if item.file_path %}
+            {% set files = item.file_path.split(',') %}
+            {% for f in files %}
+                {# If the path contains 'http', it's a Cloudinary link. Otherwise, it's a local static file. #}
+                <a href="{{ f if 'http' in f else url_for('static', filename=f) }}" 
+                   target="_blank" 
+                   style="display: inline-block; background: #fff0e6; color: #ff6600; padding: 5px 10px; border-radius: 4px; font-size: 11px; text-decoration: none; margin-bottom: 4px; border: 1px solid #ffccaa;">
+                    <i class="fas {{ 'fa-external-link-alt' if 'http' in f else 'fa-download' }}"></i> 
+                    {{ 'View Design' if 'http' in f else 'Download' }}
+                </a><br>
+            {% endfor %}
+        {% else %}
+            <span style="color:#ccc; font-size: 11px;">No File</span>
+        {% endif %}
+    {% endfor %}
+</td>
 
                             <td style="padding: 15px; font-weight: bold; color: #333;">
                                 ₱{{ "{:,.2f}".format(order.total_amount) }}

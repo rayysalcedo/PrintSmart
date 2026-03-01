@@ -5,17 +5,124 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Printagram</title>
     
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/services.css') }}">
     
     <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;600&display=swap" rel="stylesheet">
 
     {% block styles %}{% endblock %}
+
+<style>
+    .site-header { 
+    font-family: 'Alexandria', sans-serif !important; 
+}
+    /* --- FLASH POP-UP UI --- */
+    .flash-container {
+        position: fixed;
+        top: 100px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .flash-message {
+        min-width: 280px;
+        padding: 16px 24px;
+        border-radius: 8px;
+        background: white;
+        color: #333;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center; gap: 12px;
+        font-family: 'Alexandria', sans-serif;
+        font-size: 14px;
+        border-left: 5px solid #DC5500;
+        animation: slideIn 0.4s ease forwards;
+    }
+
+    /* --- HEADER LOGO FIX --- */
+    .header-logo .brand-link { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .header-brand-text { display: flex; flex-direction: column; justify-content: center; }
+    
+    /* Forces the header text to be dark and visible */
+    .header-brand-text .brand-name { 
+        font-weight: 800; 
+        color: #222222; /* Dark grey for the white header */
+        font-size: 22px;
+        line-height: 1;
+        margin-bottom: 2px;
+    }
+    .header-brand-text .brand-tagline { 
+        color: #DC5500; 
+        font-size: 10px; 
+        letter-spacing: 2px; 
+        font-weight: 600;
+    }
+
+    /* --- FOOTER UI ENHANCEMENTS --- */
+    .site-footer {
+        background-color: #1a1a1a;
+        color: #ffffff;
+        padding-top: 60px;
+        margin-top: 50px;
+    }
+    /* Forces the footer text to remain white */
+    .footer-brand .brand-text h3 { 
+        font-weight: 700; 
+        color: #ffffff; 
+        margin: 0;
+    }
+    .footer-brand .brand-text p {
+        color: #DC5500; 
+        font-size: 10px; 
+        letter-spacing: 2px; 
+        margin: 5px 0 0 0;
+    }
+
+    .footer-col h4 {
+        color: #DC5500;
+        margin-bottom: 20px;
+        font-size: 18px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .footer-col ul { list-style: none; padding: 0; }
+    .footer-col ul li { margin-bottom: 12px; }
+    .footer-col ul li a {
+        color: #bbb;
+        text-decoration: none;
+        transition: 0.3s;
+        font-size: 14px;
+    }
+    .footer-col ul li a:hover {
+        color: #DC5500;
+        padding-left: 5px;
+    }
+    .contact-item strong { color: #DC5500; }
+
+    @keyframes slideIn { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
+</style>
+
 </head>
 <body>
 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-container">
+          {% for category, message in messages %}
+            <div class="flash-message {{ category }}">
+                <i class="fas {{ 'fa-check-circle' if category == 'success' else 'fa-exclamation-circle' }}"></i>
+                {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
     <header class="site-header">
-        
         <div class="header-logo">
             <a href="{{ url_for('home') }}" class="brand-link">
                 <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Printagram Icon" class="brand-icon">
@@ -41,52 +148,25 @@
             </a>
 
             {% if session.get('loggedin') %}
-                <div class="profile-container" style="position: relative;">
+                <div class="profile-container">
                     <a href="#" class="icon-btn" onclick="toggleProfileMenu(event)">
                         <img src="https://cdn-icons-png.flaticon.com/512/1077/1077114.png" alt="Profile">
                     </a>
-
                     <div id="profileDropdown" class="profile-dropdown">
                         <div class="dropdown-header">
                             <strong>{{ session.get('name') }}</strong>
                             <span>{{ session.get('role', 'Customer') }}</span>
                         </div>
-                        <a href="{{ url_for('profile') }}" class="dropdown-item">
-                            <i class="fa-solid fa-user-gear"></i> Manage Account
-                        </a>
-                        <a href="/my_orders" class="dropdown-item">
-                         <i class="fas fa-box-open"></i> My Orders
-                        </a>
+                        <a href="{{ url_for('profile') }}" class="dropdown-item"><i class="fa-solid fa-user-gear"></i> Manage Account</a>
+                        <a href="/my_orders" class="dropdown-item"><i class="fas fa-box-open"></i> My Orders</a>
                         <div class="dropdown-divider"></div>
-                        <a href="{{ url_for('logout') }}" class="dropdown-item logout-item">
-                            <i class="fa-solid fa-right-from-bracket"></i> Logout
-                        </a>
+                        <a href="{{ url_for('logout') }}" class="dropdown-item logout-item"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
                     </div>
                 </div>
             {% else %}
-                <a href="{{ url_for('login') }}" class="icon-btn {{ 'active-icon-btn' if request.endpoint == 'login' else '' }}">
-                    <img src="https://cdn-icons-png.flaticon.com/512/1077/1077114.png" alt="Profile">
-                </a>
+                <a href="{{ url_for('login') }}" class="icon-btn"><img src="https://cdn-icons-png.flaticon.com/512/1077/1077114.png" alt="Profile"></a>
             {% endif %}
         </div>
-
-<script>
-    function toggleProfileMenu(e) {
-        e.preventDefault(); // Stop link from jumping
-        const menu = document.getElementById('profileDropdown');
-        menu.classList.toggle('show');
-    }
-
-    // Close menu if clicking outside
-    window.onclick = function(event) {
-        if (!event.target.closest('.profile-container')) {
-            const dropdowns = document.getElementsByClassName("profile-dropdown");
-            for (let i = 0; i < dropdowns.length; i++) {
-                dropdowns[i].classList.remove('show');
-            }
-        }
-    }
-</script>
     </header>
 
     {% block content %}{% endblock %}
@@ -103,37 +183,64 @@
                 </div>
                 <p class="brand-desc">Professional printing services for businesses and individuals.</p>
             </div>
+            
             <div class="footer-col">
-                <h4>Services</h4>
+                <h4>Our Services</h4>
                 <ul>
-                    <li><a href="{{ url_for('services') }}">All Services</a></li>
-                    <li><a href="{{ url_for('services', _anchor='signage') }}">Large Format</a></li>
-                    <li><a href="{{ url_for('services', _anchor='stickers') }}">Stickers</a></li>
+                    <li><a href="{{ url_for('services') }}">View All Services</a></li>
+                    <li><a href="{{ url_for('services', _anchor='category-1') }}">Tarpaulin Printing</a></li>
+                    <li><a href="{{ url_for('services', _anchor='category-2') }}">Sintra Boards</a></li>
+                    <li><a href="{{ url_for('services', _anchor='category-3') }}">Sticker Labels</a></li>
+                    <li><a href="{{ url_for('services', _anchor='category-4') }}">Document Printing</a></li>
+                    <li><a href="{{ url_for('services', _anchor='category-5') }}">Photo Printing</a></li>
+                    <li><a href="{{ url_for('services', _anchor='category-6') }}">ID Packages</a></li>
+                    <li><a href="{{ url_for('services', _anchor='category-7') }}">Custom T-Shirts</a></li>
                 </ul>
             </div>
+
             <div class="footer-col">
                 <h4>Company</h4>
                 <ul>
                     <li><a href="{{ url_for('about') }}">About Us</a></li>
-                    <li><a href="{{ url_for('about') }}">Our Team</a></li>
+                    <li><a href="{{ url_for('about') }}">Our History</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Terms of Service</a></li>
                 </ul>
             </div>
             <div class="footer-col">
                 <h4>Support</h4>
                 <ul>
                     <li><a href="#">Help Center</a></li>
-                    <li><a href="#">Contact Us</a></li>
+                    <li><a href="#">Tracking Orders</a></li>
+                    <li><a href="#">Contact Support</a></li>
+                    <li><a href="/login">Customer Login</a></li>
                 </ul>
             </div>
         </div>
+
         <div class="footer-contact-bar">
             <div class="contact-item"><span class="icon">📍</span><div><strong>Visit Us</strong><p>National Rd. Panilao, Pilar, Bataan</p></div></div>
             <div class="contact-item"><span class="icon">📞</span><div><strong>Call Us</strong><p>+63 956 527 3414</p></div></div>
             <div class="contact-item"><span class="icon">✉️</span><div><strong>Email Us</strong><p>printagrambataan2019@gmail.com</p></div></div>
         </div>
         <div class="footer-bottom">
-            <p>© 2019 Printagram Printing Services. All rights reserved.</p>
+            <p>© 2026 Printagram Printing Services. All rights reserved.</p>
         </div>
     </footer>
+
+    <script>
+        function toggleProfileMenu(e) { e.preventDefault(); document.getElementById('profileDropdown').classList.toggle('show'); }
+        window.onclick = function(event) {
+            if (!event.target.closest('.profile-container')) {
+                const dropdowns = document.getElementsByClassName("profile-dropdown");
+                for (let i = 0; i < dropdowns.length; i++) { dropdowns[i].classList.remove('show'); }
+            }
+        }
+        // Auto-hide flash messages
+        setTimeout(() => {
+            const msgs = document.querySelectorAll('.flash-message');
+            msgs.forEach(m => m.style.display = 'none');
+        }, 4000);
+    </script>
 </body>
 </html>

@@ -2,240 +2,289 @@
 
 {% block content %}
 <style>
-    body { background-color: #f9f9f9; font-family: 'Poppins', sans-serif; }
+    body { background-color: #f9f9f9; font-family: 'Alexandria', sans-serif; }
     
-    .checkout-wrapper {
-        max-width: 1100px;
-        margin: 40px auto;
-        padding: 0 20px;
-        min-height: 60vh;
-    }
-
+    .checkout-wrapper { max-width: 1100px; margin: 40px auto; padding: 0 20px; min-height: 60vh; }
     .page-title { font-size: 28px; font-weight: 700; color: #333; margin-bottom: 5px; }
-    .page-subtitle { color: #666; margin-bottom: 40px; font-size: 15px; }
+    .page-subtitle { color: #666; margin-bottom: 30px; font-size: 15px; }
 
-    /* --- EMPTY STATE --- */
-    .empty-state {
-        text-align: center;
-        padding: 100px 20px;
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.05);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
+    /* EMPTY STATE */
+    .empty-state { text-align: center; padding: 80px 20px; background: white; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
     .empty-icon { font-size: 80px; color: #eee; margin-bottom: 25px; }
-    .btn-browse {
-        display: inline-block; background: #DC5500; color: white; padding: 15px 40px;
-        border-radius: 50px; text-decoration: none; font-weight: 600; margin-top: 25px;
-        transition: 0.3s; box-shadow: 0 4px 15px rgba(220, 85, 0, 0.2);
-    }
-    .btn-browse:hover { background: #b84700; transform: translateY(-2px); }
-
-    /* --- CHECKOUT GRID --- */
-    .checkout-form {
-        display: grid;
-        grid-template-columns: 1.8fr 1fr;
-        gap: 30px;
-    }
-    .left-section { display: flex; flex-direction: column; gap: 30px; }
+    .btn-browse { display: inline-block; background: #DC5500; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 20px; transition: 0.3s; }
     
-    .card-box {
-        background: white;
-        padding: 30px;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-        border: 1px solid #eee;
-    }
-
-    .section-head { color: #DC5500; font-size: 18px; font-weight: 600; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
-
-    /* --- ITEM REVIEW STYLES --- */
-    .review-item { display: flex; gap: 20px; border-bottom: 1px solid #f0f0f0; padding-bottom: 20px; margin-bottom: 20px; }
+    /* GRID LAYOUT */
+    .checkout-grid { display: grid; grid-template-columns: 1.8fr 1fr; gap: 30px; }
+    .left-section { display: flex; flex-direction: column; gap: 30px; }
+    .card-box { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid #eee; }
+    
+    /* ITEMS LIST */
+    .review-item { display: flex; gap: 20px; border-bottom: 1px solid #f0f0f0; padding-bottom: 20px; margin-bottom: 20px; align-items: flex-start; }
     .review-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
     
-    .item-icon {
-        width: 60px; height: 60px; background: #fff5eb; color: #DC5500;
-        border-radius: 8px; display: flex; align-items: center; justify-content: center;
-        font-size: 24px; flex-shrink: 0;
-    }
-    
-    .item-info h4 { margin: 0 0 5px 0; font-size: 16px; color: #333; }
-    .item-meta { font-size: 13px; color: #666; line-height: 1.6; }
-    .meta-line { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 2px; }
-    .meta-line i { color: #DC5500; font-size: 10px; margin-top: 5px; }
-    
-    .file-badge {
-        display: inline-block; background: #eef2ff; color: #4f46e5; 
-        font-size: 11px; padding: 4px 8px; border-radius: 4px; margin-top: 8px; font-weight: 600;
-    }
+    /* BULK SELECT STYLES */
+    .item-checkbox-container { padding-top: 10px; }
+    .item-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: #DC5500; }
+    .btn-bulk-delete { background: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: 0.2s; font-weight: 600; }
+    .btn-bulk-delete:hover { background: #c82333; }
 
-    .item-price { text-align: right; margin-left: auto; }
-    .price-tag { font-weight: 700; font-size: 16px; color: #333; }
-    .remove-link { color: #dc3545; font-size: 12px; text-decoration: none; display: inline-block; margin-top: 5px; }
+    .item-img { width: 90px; height: 90px; object-fit: cover; border-radius: 8px; border: 1px solid #eee; }
+    .item-info { flex: 1; }
+    .item-info h4 { margin: 0 0 4px 0; font-size: 18px; color: #333; text-transform: uppercase; font-weight: 700; }
+    .item-qty-badge { font-size: 12px; background: #eee; padding: 2px 8px; border-radius: 12px; color: #555; font-weight: 600; display: inline-block; margin-bottom: 10px; }
+    
+    .item-meta { font-size: 13px; color: #555; line-height: 1.6; margin-bottom: 12px; }
+    .meta-specs { font-weight: 600; color: #222; margin-bottom: 6px; font-size: 14px; }
+    .meta-design { color: #4f46e5; margin-bottom: 4px; }
+    .meta-special { color: #DC5500; margin-bottom: 4px; }
+    .meta-label { font-weight: 700; color: #333; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;}
+
+    .design-links { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+    .design-badge { background: #fff5eb; color: #DC5500; font-size: 11px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ffd8bf; text-decoration: none; font-weight: 600;}
+    .design-badge:hover { background: #ffe1cc; }
+
+    /* EDIT FORM UI */
+    .btn-edit-toggle { background: transparent; border: none; color: #4f46e5; font-size: 12px; cursor: pointer; padding: 0; font-weight: 600; margin-right: 15px;}
+    .btn-edit-toggle:hover { text-decoration: underline; }
+    .remove-link { color: #dc3545; font-size: 12px; text-decoration: none; font-weight: 600;}
     .remove-link:hover { text-decoration: underline; }
 
-    /* --- PAYMENT TABS --- */
+    .edit-item-form { background: #f8f9fb; padding: 15px; border: 1px solid #e0e7ff; border-radius: 8px; margin-top: 10px; }
+    .form-group-sm { margin-bottom: 12px; }
+    .form-group-sm label { display: block; font-size: 11px; color: #555; margin-bottom: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;}
+    .form-control-sm { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; box-sizing: border-box; font-family: inherit;}
+    .btn-save { background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600; }
+    .btn-cancel { background: #eee; color: #555; border: none; padding: 8px 16px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600; }
+
+    .item-price-block { text-align: right; min-width: 100px; }
+    .price-tag { font-weight: 700; font-size: 18px; color: #333; margin-bottom: 8px; }
+
+    /* PAYMENT TABS */
+    .section-head { color: #DC5500; font-size: 18px; font-weight: 600; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
     .payment-tabs { display: flex; gap: 15px; margin-bottom: 25px; }
-    .p-tab {
-        flex: 1; padding: 12px; text-align: center; border: 1px solid #ddd;
-        border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: 0.2s;
-    }
+    .p-tab { flex: 1; padding: 12px; text-align: center; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; transition: 0.2s; color: #555;}
     .p-tab.active { background: #DC5500; color: white; border-color: #DC5500; }
-    
-    /* INPUTS */
-    .form-group { margin-bottom: 20px; }
-    .form-label { display: block; font-size: 13px; color: #555; margin-bottom: 8px; }
-    .form-control { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; background: #fcfcfc; font-size: 14px; box-sizing: border-box; }
+    .form-group { margin-bottom: 15px; }
+    .form-label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; font-weight: 600;}
+    .form-control { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; background: #fcfcfc; font-size: 14px; box-sizing: border-box; font-family: inherit;}
     .row-inputs { display: flex; gap: 15px; }
 
-    /* --- SUMMARY BOX --- */
-    .summary-row { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 14px; color: #555; }
-    .total-row { display: flex; justify-content: space-between; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; font-size: 18px; font-weight: 700; color: #333; }
-    .btn-complete { width: 100%; padding: 15px; background: #DC5500; color: white; border: none; border-radius: 6px; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 20px; transition: 0.3s; }
+    /* SUMMARY BOX */
+    .summary-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; color: #555; }
+    .total-row { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; font-size: 20px; font-weight: 700; color: #DC5500; }
+    .btn-complete { width: 100%; padding: 15px; background: #DC5500; color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 20px; transition: 0.3s; }
     .btn-complete:hover { background: #b84700; }
-    .secure-text { text-align: center; font-size: 12px; color: #888; margin-top: 15px; background: #fff5eb; padding: 10px; border-radius: 4px; }
+    .secure-text { text-align: center; font-size: 11px; color: #888; margin-top: 15px; background: #f9f9f9; padding: 10px; border-radius: 4px; border: 1px dashed #ddd; }
 
-    @media(max-width: 768px) { .checkout-form { grid-template-columns: 1fr; } }
+    @media(max-width: 768px) { .checkout-grid { grid-template-columns: 1fr; } }
 </style>
 
 <div class="checkout-wrapper">
     <div class="header-section">
         <h1 class="page-title">Checkout</h1>
-        <p class="page-subtitle">Complete your order and review details</p>
+        <p class="page-subtitle">Review your items and complete your payment</p>
     </div>
 
     {% if not cart_items %}
         <div class="empty-state">
-            <i class="fas fa-shopping-basket empty-icon"></i>
+            <i class="fas fa-shopping-cart empty-icon"></i>
             <h2>Your Cart is Empty</h2>
-            <p style="color: #666;">It looks like you haven't added any printing services yet.</p>
-            <a href="/services" class="btn-browse"><i class="fas fa-search"></i> Browse Services</a>
+            <p style="color: #666;">You haven't added any printing services to your cart yet.</p>
+            <a href="/services" class="btn-browse">Browse Services</a>
         </div>
     {% else %}
 
-    <form action="/place_order" method="POST" class="checkout-form">
-        <input type="hidden" name="grand_total" value="{{ grand_total }}">
-        
+    <form id="bulk-delete-form" action="/bulk_remove_from_cart" method="POST"></form>
+
+    <div class="checkout-grid">
         <div class="left-section">
             
             <div class="card-box">
-                <div class="section-head"><i class="fas fa-list-ul"></i> Review Your Items</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
+                    <div class="section-head" style="border: none; padding: 0; margin: 0;"><i class="fas fa-list-ul"></i> Review Your Items</div>
+                    
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <label style="font-size: 13px; color: #555; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 600;">
+                            <input type="checkbox" id="select-all" class="item-checkbox" onclick="toggleSelectAll(this)"> Select All
+                        </label>
+                        <button type="submit" form="bulk-delete-form" id="bulk-delete-btn" class="btn-bulk-delete" style="display: none;" disabled>
+                            <i class="fas fa-trash-alt"></i> Delete Selected
+                        </button>
+                    </div>
+                </div>
                 
                 {% for item in cart_items %}
                 <div class="review-item">
-                    <div class="item-icon">
-                        <i class="fas fa-box"></i>
+                    
+                    <div class="item-checkbox-container">
+                        <input type="checkbox" name="cart_ids" value="{{ item.cart_id }}" form="bulk-delete-form" class="item-checkbox single-checkbox" onclick="updateBulkDeleteBtn()">
                     </div>
+
+                    <img src="{{ item.image_path if item.image_path and 'http' in item.image_path else url_for('static', filename=item.image_path if item.image_path else 'images/icon-signage.png') }}" class="item-img">
+                    
                     <div class="item-info">
                         <h4>{{ item.product_name }}</h4>
+                        <div class="item-qty-badge">Qty: {{ item.quantity }}</div>
                         
-                        <div class="item-meta">
-                            <div><strong>Quantity:</strong> {{ item.quantity }}</div>
-                            {% for detail in item.item_details.split(' | ') %}
-                                <div class="meta-line">
-                                    <i class="fas fa-circle" style="font-size: 6px; align-self: center;"></i> 
-                                    {{ detail }}
+                        <div id="view-mode-{{ item.cart_id }}">
+                            <div class="item-meta">
+                                <div class="meta-specs">{{ item.specs }}</div>
+                                {% if item.design_note %}
+                                    <div class="meta-design"><span class="meta-label">Design Details:</span><br>{{ item.design_note }}</div>
+                                {% endif %}
+                                {% if item.special_note %}
+                                    <div class="meta-special"><span class="meta-label">Special Instructions:</span><br>{{ item.special_note }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            {% if item.file_list %}
+                                <div class="design-links">
+                                    {% for link in item.file_list %}
+                                        <a href="{{ link }}" target="_blank" class="design-badge"><i class="fas fa-image"></i> View Design {{ loop.index }}</a>
+                                    {% endfor %}
                                 </div>
-                            {% endfor %}
+                            {% endif %}
+                            
+                            <div style="margin-top: 15px;">
+                                <button type="button" onclick="toggleEditMode('{{ item.cart_id }}')" class="btn-edit-toggle"><i class="fas fa-edit"></i> Edit Details</button>
+                                <a href="/remove_from_cart/{{ item.cart_id }}" class="remove-link"><i class="fas fa-trash-alt"></i> Remove</a>
+                            </div>
                         </div>
 
-                        {% if item.file_list %}
-                            <div class="file-badge">
-                                <i class="fas fa-paperclip"></i> Files Attached
+                        <form action="/update_cart_item" method="POST" enctype="multipart/form-data" id="edit-mode-{{ item.cart_id }}" class="edit-item-form" style="display:none;">
+                            <input type="hidden" name="cart_id" value="{{ item.cart_id }}">
+                            <input type="hidden" name="base_specs" value="{{ item.specs }}">
+                            
+                            <div class="form-group-sm" style="width: 100px;">
+                                <label>Quantity</label>
+                                <input type="number" name="quantity" value="{{ item.quantity }}" min="1" class="form-control-sm">
                             </div>
-                        {% endif %}
+                            
+                            <div class="form-group-sm">
+                                <label>Design & Layout Details</label>
+                                <textarea name="design_note" class="form-control-sm" rows="2" placeholder="Describe how you want your design to look...">{{ item.design_note }}</textarea>
+                            </div>
+
+                            <div class="form-group-sm">
+                                <label>Special Instructions</label>
+                                <textarea name="special_note" class="form-control-sm" rows="2" placeholder="Any specific requests?">{{ item.special_note }}</textarea>
+                            </div>
+
+                            <div class="form-group-sm">
+                                <label>Replace Design File <span style="color:#888; font-weight:normal; text-transform: none;">(Leave blank to keep current)</span></label>
+                                <input type="file" name="design_file" multiple class="form-control-sm" style="background: white;">
+                            </div>
+                            
+                            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                                <button type="submit" class="btn-save"><i class="fas fa-check"></i> Save Changes</button>
+                                <button type="button" onclick="toggleEditMode('{{ item.cart_id }}')" class="btn-cancel">Cancel</button>
+                            </div>
+                        </form>
                     </div>
 
-                    <div class="item-price">
+                    <div class="item-price-block">
                         <div class="price-tag">₱{{ "{:,.2f}".format(item.total_price) }}</div>
-                        <a href="/remove_from_cart/{{ item.cart_id }}" class="remove-link">
-                            <i class="fas fa-trash-alt"></i> Remove
-                        </a>
                     </div>
                 </div>
                 {% endfor %}
             </div>
 
-            <div class="card-box">
-                <div class="section-head"><i class="fas fa-credit-card"></i> Payment Method</div>
-                
-                <div class="payment-tabs">
-                    <input type="hidden" name="payment_method" id="payment_method" value="Credit Card">
-                    <div class="p-tab active" onclick="selectPayment('Credit Card', this)">Credit/Debit Card</div>
-                    <div class="p-tab" onclick="selectPayment('GCash', this)">GCash</div>
-                </div>
-
-                <div id="credit-card-fields">
-                    <div class="form-group">
-                        <label class="form-label">Cardholder Name</label>
-                        <input type="text" name="card_name" class="form-control" placeholder="John Doe">
+            <form action="/place_order" method="POST" id="main-checkout-form">
+                <input type="hidden" name="grand_total" value="{{ grand_total }}">
+                <div class="card-box">
+                    <div class="section-head"><i class="fas fa-credit-card"></i> Payment Method</div>
+                    <div class="payment-tabs">
+                        <input type="hidden" name="payment_method" id="payment_method" value="Credit Card">
+                        <div class="p-tab active" onclick="selectPayment('Credit Card', this)">Credit/Debit Card</div>
+                        <div class="p-tab" onclick="selectPayment('GCash', this)">GCash</div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Card Number</label>
-                        <input type="text" name="card_number" class="form-control" placeholder="1234 5678 9012 3456">
-                    </div>
-                    <div class="row-inputs">
-                        <div class="form-group" style="flex:1;">
-                            <label class="form-label">Expiry</label>
-                            <input type="text" name="expiry" class="form-control" placeholder="MM/YY">
-                        </div>
-                        <div class="form-group" style="flex:1;">
-                            <label class="form-label">CVV</label>
-                            <input type="text" name="cvv" class="form-control" placeholder="123">
+                    <div id="credit-card-fields">
+                        <div class="form-group"><label class="form-label">Cardholder Name</label><input type="text" name="card_name" class="form-control" placeholder="John Doe"></div>
+                        <div class="form-group"><label class="form-label">Card Number</label><input type="text" name="card_number" class="form-control" placeholder="1234 5678 9012 3456"></div>
+                        <div class="row-inputs">
+                            <div class="form-group" style="flex:1;"><label class="form-label">Expiry</label><input type="text" name="expiry" class="form-control" placeholder="MM/YY"></div>
+                            <div class="form-group" style="flex:1;"><label class="form-label">CVV</label><input type="text" name="cvv" class="form-control" placeholder="123"></div>
                         </div>
                     </div>
+                    <div id="gcash-fields" style="display:none; text-align:center; padding: 20px;">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/GCash_Logo.svg/1200px-GCash_Logo.svg.png" style="width:100px; margin-bottom:15px;">
+                        <p style="color:#666; font-size:14px;">Please scan the QR code on the next step to complete your payment.</p>
+                    </div>
                 </div>
-                
-                <div id="gcash-fields" style="display:none; text-align:center; padding: 20px;">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/GCash_Logo.svg/1200px-GCash_Logo.svg.png" style="width:100px; margin-bottom:15px;">
-                    <p style="color:#666; font-size:14px;">Please scan the QR code on the next step.</p>
-                </div>
-            </div>
+            </form>
         </div>
 
         <div class="right-section">
             <div class="card-box" style="position: sticky; top: 20px;">
                 <div class="section-head">Order Summary</div>
-                
-                <div class="summary-row">
-                    <span>Subtotal</span>
-                    <span>₱{{ "{:,.2f}".format(subtotal) }}</span>
-                </div>
-                <div class="summary-row">
-                    <span>Processing Fee</span>
-                    <span>₱{{ "{:,.2f}".format(processing_fee) }}</span>
-                </div>
-                
-                <div class="total-row">
-                    <span>Total</span>
-                    <span>₱{{ "{:,.2f}".format(grand_total) }}</span>
-                </div>
-
-                <button type="submit" class="btn-complete">Complete Order</button>
-                
-                <div class="secure-text">
-                    <i class="fas fa-lock"></i> Secure checkout with 256-bit SSL encryption
-                </div>
+                <div class="summary-row"><span>Subtotal</span><span>₱{{ "{:,.2f}".format(subtotal) }}</span></div>
+                <div class="summary-row"><span>Processing Fee</span><span>₱{{ "{:,.2f}".format(processing_fee) }}</span></div>
+                <div class="total-row"><span>Total</span><span>₱{{ "{:,.2f}".format(grand_total) }}</span></div>
+                <button type="submit" form="main-checkout-form" class="btn-complete">Complete Order <i class="fas fa-arrow-right" style="margin-left: 8px;"></i></button>
+                <div class="secure-text"><i class="fas fa-lock" style="color: #28a745;"></i> Secure checkout with 256-bit SSL encryption</div>
             </div>
         </div>
-    </form>
+    </div>
     {% endif %}
 </div>
 
 <script>
+    // Payment Toggle
     function selectPayment(method, element) {
         document.getElementById('payment_method').value = method;
         document.querySelectorAll('.p-tab').forEach(el => el.classList.remove('active'));
         element.classList.add('active');
-        
         if(method === 'GCash') {
             document.getElementById('credit-card-fields').style.display = 'none';
             document.getElementById('gcash-fields').style.display = 'block';
         } else {
             document.getElementById('credit-card-fields').style.display = 'block';
             document.getElementById('gcash-fields').style.display = 'none';
+        }
+    }
+
+    // Inline Edit Toggle
+    function toggleEditMode(cartId) {
+        const viewDiv = document.getElementById('view-mode-' + cartId);
+        const editDiv = document.getElementById('edit-mode-' + cartId);
+        
+        if (editDiv.style.display === 'none') {
+            editDiv.style.display = 'block';
+            viewDiv.style.display = 'none';
+        } else {
+            editDiv.style.display = 'none';
+            viewDiv.style.display = 'block';
+        }
+    }
+
+    // BULK DELETE JAVASCRIPT
+    function toggleSelectAll(source) {
+        const checkboxes = document.querySelectorAll('.single-checkbox');
+        checkboxes.forEach(cb => cb.checked = source.checked);
+        updateBulkDeleteBtn();
+    }
+
+    function updateBulkDeleteBtn() {
+        const checkboxes = document.querySelectorAll('.single-checkbox');
+        const btn = document.getElementById('bulk-delete-btn');
+        const selectAllCb = document.getElementById('select-all');
+        
+        const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+        
+        if (checkedCount > 0) {
+            btn.style.display = 'inline-block';
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fas fa-trash-alt"></i> Delete Selected (${checkedCount})`;
+        } else {
+            btn.style.display = 'none';
+            btn.disabled = true;
+        }
+        
+        // Auto-check or uncheck "Select All" based on individual clicks
+        if(checkedCount === checkboxes.length && checkboxes.length > 0) {
+            selectAllCb.checked = true;
+        } else {
+            selectAllCb.checked = false;
         }
     }
 </script>
