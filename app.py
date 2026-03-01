@@ -22,7 +22,10 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 app.config.from_object(Config)
 
 app.secret_key = 'super_secret_key_for_session'
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024 * 1024
@@ -145,9 +148,15 @@ def google_login():
 
 @app.route('/authorize/google')
 def google_authorize():
-    token = google.authorize_access_token()
-    user_info = google.get('https://www.googleapis.com/oauth2/v3/userinfo').json()
-    return social_auth_logic(user_info['email'], user_info['name'], 'google')
+    try:
+        token = google.authorize_access_token()
+        user_info = google.get('https://www.googleapis.com/oauth2/v3/userinfo').json()
+        return social_auth_logic(user_info['email'], user_info['name'], 'google')
+    except MismatchingStateError:
+        flash("Security token expired. Please click the login button again.", "error")
+        return redirect(url_for('login'))
+    except Exception as e:
+        return f"Google Login Error: {e}"
 
 @app.route('/login/facebook')
 def facebook_login():
@@ -156,12 +165,18 @@ def facebook_login():
 
 @app.route('/authorize/facebook')
 def facebook_authorize():
-    token = facebook.authorize_access_token()
-    user_info = facebook.get('me?fields=id,name,email').json()
-    email = user_info.get('email')
-    name = user_info.get('name')
-    if not email: return "Facebook did not provide an email."
-    return social_auth_logic(email, name, 'facebook')
+    try:
+        token = facebook.authorize_access_token()
+        user_info = facebook.get('me?fields=id,name,email').json()
+        email = user_info.get('email')
+        name = user_info.get('name')
+        if not email: return "Facebook did not provide an email."
+        return social_auth_logic(email, name, 'facebook')
+    except MismatchingStateError:
+        flash("Security token expired. Please click the login button again.", "error")
+        return redirect(url_for('login'))
+    except Exception as e:
+        return f"Facebook Login Error: {e}"
 
 @app.route('/services')
 def services():
