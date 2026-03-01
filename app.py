@@ -21,6 +21,8 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 app.config.from_object(Config)
 
+app.secret_key = 'super_secret_key_for_session'
+
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024 * 1024
