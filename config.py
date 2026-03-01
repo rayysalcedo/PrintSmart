@@ -1,14 +1,12 @@
 import os
 
 class Config:
-    # Database connection for XAMPP (user is 'root', password is blank)
-    MYSQL_HOST = 'localhost'
-    MYSQL_USER = 'root'
-    MYSQL_PASSWORD = ''
-    MYSQL_DB = 'printsmart_db'
-    
-    # Secret key for sessions (keeps users logged in)
+    # Live Aiven Database Connection
+    MYSQL_HOST = 'mysql-printsmart-printsmart.j.aivencloud.com'
+    MYSQL_USER = 'avnadmin'
+    # This line pulls the password from the server's hidden settings
+    MYSQL_PASSWORD = os.environ.get('DB_PASSWORD') 
+    MYSQL_DB = 'defaultdb'
+    MYSQL_PORT = 27072
+
     SECRET_KEY = 'printsmart_secret_key_123'
-    
-    # Where to save uploaded files
-    UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')

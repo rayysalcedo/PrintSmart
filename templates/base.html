@@ -18,7 +18,7 @@
         
         <div class="header-logo">
             <a href="{{ url_for('home') }}" class="brand-link">
-                <img src="https://raw.githubusercontent.com/rayysalcedo/PrintSmart/dev/static/images/logo.png" alt="Printagram Icon" class="brand-icon">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Printagram Icon" class="brand-icon">
                 <div class="header-brand-text">
                     <span class="brand-name">PRINTAGRAM</span>
                     <span class="brand-tagline">PRINTING SERVICES</span>
@@ -95,7 +95,7 @@
         <div class="footer-container">
             <div class="footer-brand">
                 <div class="footer-logo">
-                    <img src="https://raw.githubusercontent.com/rayysalcedo/PrintSmart/dev/static/images/logo.png" alt="Printagram">
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Printagram Icon" class="brand-icon">
                     <div class="brand-text">
                         <h3>PRINTAGRAM</h3>
                         <p>PRINTING SERVICES</p>
