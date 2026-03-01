@@ -1,12 +1,12 @@
 import os
+from dotenv import dotenv_values
+
+# This reads the .env file directly as a dictionary
+secrets = dotenv_values(".env")
 
 class Config:
-    # Live Aiven Database Connection
-    MYSQL_HOST = 'mysql-printsmart-printsmart.j.aivencloud.com'
-    MYSQL_USER = 'avnadmin'
-    # This line pulls the password from the server's hidden settings
-    MYSQL_PASSWORD = os.environ.get('DB_PASSWORD') 
-    MYSQL_DB = 'defaultdb'
-    MYSQL_PORT = 27072
-
-    SECRET_KEY = 'printsmart_secret_key_123'
+    MYSQL_HOST = secrets.get('MYSQL_HOST') or os.environ.get('MYSQL_HOST')
+    MYSQL_USER = secrets.get('MYSQL_USER') or os.environ.get('MYSQL_USER')
+    MYSQL_PASSWORD = secrets.get('DB_PASSWORD') or os.environ.get('DB_PASSWORD')
+    MYSQL_DB = secrets.get('MYSQL_DB') or os.environ.get('MYSQL_DB')
+    MYSQL_PORT = int(secrets.get('MYSQL_PORT') or os.environ.get('MYSQL_PORT', 27072))

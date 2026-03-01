@@ -1,7 +1,12 @@
+import os
+from dotenv import load_dotenv
+
+# 1. LOAD THE SECRETS BEFORE ANYTHING ELSE!
+load_dotenv()
+
 from flask import Flask, render_template, request, session, redirect, url_for, flash
 import mysql.connector 
 from config import Config
-import os
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 
