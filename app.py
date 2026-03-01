@@ -16,11 +16,14 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf', 'docx', 'psd', 'ai'}
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# --- DATABASE CONFIGURATION ---
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = ''
-app.config['MYSQL_DB'] = 'printsmart_db'
+def get_db_connection():
+    return mysql.connector.connect(
+        host=app.config['MYSQL_HOST'],
+        user=app.config['MYSQL_USER'],
+        password=app.config['MYSQL_PASSWORD'],
+        database=app.config['MYSQL_DB'],
+        port=app.config.get('MYSQL_PORT', 27072) # Add this!
+    )
 
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024 * 1024
 app.secret_key = 'super_secret_key_for_session' 
@@ -34,8 +37,8 @@ oauth = OAuth(app)
 # REPLACE THESE WITH YOUR REAL KEYS FROM GOOGLE CLOUD
 google = oauth.register(
     name='google',
-    client_id='762998226504-doat9bprt7gflg1rbodh2he2t9un7lkp.apps.googleusercontent.com',         # <--- PASTE CLIENT ID
-    client_secret='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', # <--- PASTE CLIENT SECRET
+    client_id='762998226504-doat9bprt7gflg1rbodh2he2t9un7lkp.apps.googleusercontent.com',
+    client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
     access_token_url='https://accounts.google.com/o/oauth2/token',
     access_token_params=None,
     authorize_url='https://accounts.google.com/o/oauth2/auth',
@@ -50,7 +53,7 @@ google = oauth.register(
 facebook = oauth.register(
     name='facebook',
     client_id='1869215153960592',
-    client_secret='79b1af78c61a54bdfdbf10d9e08290e2',
+    client_secret=os.environ.get('FB_CLIENT_SECRET'),
     access_token_url='https://graph.facebook.com/oauth/access_token',
     access_token_params=None,
     authorize_url='https://www.facebook.com/dialog/oauth',
