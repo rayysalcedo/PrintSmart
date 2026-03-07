@@ -1,5 +1,6 @@
 /* static/css/home.css */
 
+
 /* 1. Hero Section Styling */
 .hero {
     height: 80vh; 
@@ -9,14 +10,20 @@
     align-items: center;
     text-align: center;
     
-    background: linear-gradient(135deg, #fff5e6 0%, #ffffff 100%);
+    /* Background Image */
+    background: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)),
+    url("../images/PrintagramBackground.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+
     padding: 20px;
 }
 
 /* 2. Heading Text */
 .hero h1 {
     font-size: 3.5rem;
-    color: #222;
+    color: #ffffff;
     margin-bottom: 15px;
     font-weight: 700;
     line-height: 1.2;
@@ -25,7 +32,7 @@
 /* 3. Paragraph Text */
 .hero p {
     font-size: 1.2rem;
-    color: #666;
+    color: #f0f0f0;
     margin-bottom: 30px;
     max-width: 600px;
 }
