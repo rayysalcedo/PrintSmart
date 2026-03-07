@@ -102,12 +102,16 @@
 
 .story-content-wrapper {
     display: flex;
-    align-items: flex-start; /* Aligns the image to the top of the first paragraph */
+    flex-direction: row;
+    align-items: center; /* This centers the image vertically against the text wall */
     gap: 60px;
+    width: 100%;
 }
 
 .story-image img {
     width: 100%;
+    height: 550px;
+    object-fit: cover;
     position: sticky; /* Optional: Keeps the image in view while reading long text */
     top: 100px;
     border-radius: 20px;
@@ -116,6 +120,7 @@
 
 .story-image {
     flex: 1;
+    max-width: 450px;
 }
 
 /* Ensure it looks good on mobile */

@@ -1,6 +1,8 @@
-<link rel="stylesheet" href="{{ url_for('static', filename='css/about.css') }}">
-
 {% extends "base.html" %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/about.css') }}">
+{% endblock %}
 
 {% block content %}
 <section class="services-hero">
@@ -49,7 +51,7 @@
             </div>
             
             <div class="story-image">
-                <img src="{{ url_for('static', filename='images/shop-photo.png') }}" alt="Printagram Shop Front">
+                <img src="{{ url_for('static', filename='images/printagram_shop.jpg') }}" alt="Printagram Shop Front">
             </div>
         </div>
     </div>
