@@ -1,6 +1,7 @@
 import os
 import secrets
 from dotenv import load_dotenv
+import re
 
 # 1. LOAD THE SECRETS BEFORE ANYTHING ELSE!
 load_dotenv()
@@ -515,11 +516,26 @@ def logout():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        name = request.form.get('name')
-        email = request.form.get('email')
-        phone = request.form.get('phone')
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip()
+        phone = request.form.get('phone', '').strip()
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
+
+        # 1. Full Name Validation (Letters and spaces only, min 2 chars)
+        if not name or not re.match(r'^[A-Za-z\s]{2,}$', name):
+            flash("Invalid name. Please use only letters (minimum 2 characters).", "error")
+            return redirect(url_for('register'))
+
+        # 2. Phone Validation (10 to 15 digits, allows optional + for international)
+        if not phone or not re.match(r'^\+?[0-9]{10,15}$', phone):
+            flash("Invalid phone number. Please enter 10 to 15 digits without spaces or letters.", "error")
+            return redirect(url_for('register'))
+
+        # 3. Email Structure Validation
+        if not email or not re.match(r'^[\w\.-]+@[\w\.-]+\.\w{2,}$', email):
+            flash("Invalid email format.", "error")
+            return redirect(url_for('register'))
 
         if password != confirm_password:
             flash("Passwords do not match!", "error")
@@ -530,8 +546,9 @@ def register():
         cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
         if cursor.fetchone():
             conn.close()
-            flash("Email already registered. Please login.", "error")
-            return redirect(url_for('register'))
+            # QA FIX: Redirect to login with specific instruction message
+            flash("This email address is already linked to an existing account. Please sign in instead.", "error")
+            return redirect(url_for('login'))
 
         hashed_password = generate_password_hash(password)
         try:
@@ -545,7 +562,14 @@ def register():
             conn.close()
             flash(f"An error occurred: {e}", "error")
             return redirect(url_for('register'))
+            
     return render_template('register.html')
+
+# --- Add this placeholder route for the Forgot Password button ---
+@app.route('/forgot_password')
+def forgot_password():
+    flash("Password reset instructions have been sent to your email. (Feature in development)", "success")
+    return redirect(url_for('login'))
 
 # --- ADMIN AND PROFILE MANAGEMENT ---
 @app.route('/admin')

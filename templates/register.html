@@ -6,58 +6,135 @@
     <title>Register | PrintSmart</title>
     <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css">
     
     <style>
-        /* Your Original CSS (Unchanged) */
-        body { background: #f6f5f7; display: flex; justify-content: center; align-items: center; font-family: 'Alexandria', sans-serif; height: 100vh; margin: 0; }
+        body { 
+            background: #f6f5f7; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            font-family: 'Alexandria', sans-serif; 
+            height: 100vh; 
+            margin: 0; 
+        }
         
+        /* FIXED: Reduced width/height to fit 100% zoom on laptops */
         .container {
             background-color: #fff;
             border-radius: 20px;
             box-shadow: 0 14px 28px rgba(0,0,0,0.1), 0 10px 10px rgba(0,0,0,0.1);
             position: relative;
             overflow: hidden;
-            width: 1200px;
+            width: 900px; /* Reduced from 1200px */
             max-width: 95%;
-            min-height: 750px;
+            min-height: 550px; /* Reduced from 750px */
+            max-height: 90vh; /* Prevents overflow on small screens */
             display: flex;
         }
         
         /* LEFT PANEL (Orange) */
-        .overlay-container { flex: 1; background: linear-gradient(135deg, #FF8C42 0%, #DC5500 100%); color: #ffffff; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 50px; text-align: center; position: relative; }
-        .logo-area { position: absolute; top: 40px; left: 40px; display: flex; align-items: center; gap: 15px; }
-        .logo-area img { height: 45px; filter: brightness(0) invert(1); }
-        .logo-text { font-weight: 700; font-size: 22px; letter-spacing: 1px; }
-        .overlay-panel h1 { font-weight: 700; margin: 0 0 15px 0; font-size: 42px; }
-        .overlay-panel p { font-size: 18px; line-height: 1.6; margin: 0 0 40px 0; opacity: 0.9; }
-        button.ghost { background-color: transparent; border: 2px solid white; color: white; padding: 15px 55px; font-size: 16px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; border-radius: 50px; cursor: pointer; transition: 0.3s; }
+        .overlay-container { 
+            flex: 1; 
+            background: linear-gradient(135deg, #FF8C42 0%, #DC5500 100%); 
+            color: #ffffff; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            flex-direction: column; 
+            padding: 40px; 
+            text-align: center; 
+            position: relative; 
+        }
+        .logo-area { 
+            position: absolute; 
+            top: 30px; 
+            left: 30px; 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+        }
+        /* FIXED: Added a white background to the logo to make it clear */
+        .logo-area img { 
+            height: 40px; 
+            background: white; 
+            padding: 5px; 
+            border-radius: 8px;
+        }
+        .logo-text { font-weight: 700; font-size: 20px; letter-spacing: 1px; }
+        .overlay-panel h1 { font-weight: 700; margin: 0 0 15px 0; font-size: 32px; }
+        .overlay-panel p { font-size: 16px; line-height: 1.6; margin: 0 0 30px 0; opacity: 0.9; }
+        button.ghost { 
+            background-color: transparent; 
+            border: 2px solid white; 
+            color: white; 
+            padding: 12px 45px; 
+            font-size: 14px; 
+            font-weight: 600; 
+            letter-spacing: 1px; 
+            text-transform: uppercase; 
+            border-radius: 50px; 
+            cursor: pointer; 
+            transition: 0.3s; 
+        }
         button.ghost:hover { background-color: rgba(255,255,255,0.2); }
 
         /* RIGHT PANEL (Form) */
-        .form-container { flex: 1.5; padding: 60px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; overflow-y: auto; }
-        .form-container h1 { font-weight: 700; margin: 0 0 25px 0; color: #DC5500; font-size: 36px; }
-        .input-group { width: 100%; margin: 10px 0; text-align: left; }
-        .input-group label { font-size: 14px; font-weight: 600; color: #666; margin-left: 5px; display:block; margin-bottom: 5px; }
-        input { background-color: #f0f0f0; border: none; padding: 18px; width: 100%; border-radius: 8px; box-sizing: border-box; font-family: inherit; font-size: 16px; }
+        /* FIXED: Added overflow-y so text doesn't squish if the screen is too small */
+        .form-container { 
+            flex: 1.5; 
+            padding: 30px 50px; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            text-align: center; 
+            overflow-y: auto; 
+        }
+        .form-container h1 { font-weight: 700; margin: 0 0 20px 0; color: #DC5500; font-size: 28px; }
+        .input-group { width: 100%; margin: 8px 0; text-align: left; }
+        .input-group label { font-size: 13px; font-weight: 600; color: #666; margin-left: 5px; display:block; margin-bottom: 4px; }
+        input { 
+            background-color: #f0f0f0; 
+            border: none; 
+            padding: 14px; /* Reduced from 18px */
+            width: 100%; 
+            border-radius: 8px; 
+            box-sizing: border-box; 
+            font-family: inherit; 
+            font-size: 14px; 
+        }
         input:focus { outline: 1px solid #DC5500; background: #fff; }
         
         .password-container { position: relative; width: 100%; }
-        .toggle-password { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888; font-size: 18px; }
+        .toggle-password { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888; font-size: 16px; }
         .toggle-password:hover { color: #DC5500; }
 
-        button.primary { border-radius: 50px; border: none; background-color: #DC5500; color: #FFFFFF; font-size: 16px; font-weight: 700; padding: 18px 50px; letter-spacing: 1px; text-transform: uppercase; transition: 0.3s; cursor: pointer; margin-top: 25px; width: 100%; }
+        button.primary { 
+            border-radius: 50px; 
+            border: none; 
+            background-color: #DC5500; 
+            color: #FFFFFF; 
+            font-size: 14px; 
+            font-weight: 700; 
+            padding: 15px 50px; 
+            letter-spacing: 1px; 
+            text-transform: uppercase; 
+            transition: 0.3s; 
+            cursor: pointer; 
+            margin-top: 20px; 
+            width: 100%; 
+        }
         button.primary:hover { background-color: #b84700; }
-        .divider { margin: 25px 0; font-size: 14px; color: #aaa; width: 100%; border-bottom: 1px solid #eee; line-height: 0.1em; }
+        .divider { margin: 20px 0; font-size: 13px; color: #aaa; width: 100%; border-bottom: 1px solid #eee; line-height: 0.1em; }
         .divider span { background:#fff; padding:0 10px; }
-        .social-container a { border: 1px solid #ddd; border-radius: 50%; display: inline-flex; justify-content: center; align-items: center; margin: 0 8px; height: 50px; width: 50px; text-decoration: none; transition: 0.3s; }
+        .social-container a { border: 1px solid #ddd; border-radius: 50%; display: inline-flex; justify-content: center; align-items: center; margin: 0 8px; height: 45px; width: 45px; text-decoration: none; transition: 0.3s; }
         .social-container a:hover { border-color: #DC5500; background: #fff5e6; }
 
         @media (max-width: 768px) {
-            .container { flex-direction: column; height: auto; width: 95%; }
-            .overlay-container { padding: 40px 20px; }
-            .form-container { padding: 40px 20px; }
+            .container { flex-direction: column; height: auto; width: 95%; max-height: 95vh;}
+            .overlay-container { padding: 30px 20px; display: none; } /* Hides orange panel on phones to save space */
+            .form-container { padding: 30px 20px; }
         }
 
         /* VALIDATION RULES CSS */
@@ -68,7 +145,6 @@
         .validation-item.valid i { color: #2e7d32; }
         #match-error { color: #c62828; font-size: 12px; margin-top: 5px; display: none; margin-left: 5px; font-weight: 600; }
 
-        /* 2. ADDED: Fix for Phone Input width */
         .iti { width: 100%; }
     </style>
 </head>
@@ -85,34 +161,43 @@
             <h1>Welcome Back!</h1>
             <p>To keep connected with us please login with your personal info</p>
             <a href="{{ url_for('login') }}">
-                <button class="ghost">Sign In</button>
+                <button class="ghost" type="button">Sign In</button>
             </a>
         </div>
     </div>
 
     <div class="form-container">
-        <form action="/register" method="POST" style="width: 100%; max-width: 450px;" onsubmit="return validateForm()">
+        <form action="/register" method="POST" style="width: 100%; max-width: 400px;">
             <h1>Create Account</h1>
             
             <div class="input-group">
                 <label>Full Name</label>
-                <input type="text" name="name" placeholder="John Doe" required>
+                <input type="text" name="name" placeholder="John Doe" 
+                       pattern="^[A-Za-z\s]{2,}$" 
+                       title="Must be at least 2 characters long and contain ONLY letters." required>
             </div>
 
             <div class="input-group">
                 <label>Email</label>
-                <input type="email" name="email" placeholder="Email Address" required>
+                <input type="email" name="email" placeholder="Email Address" 
+                       pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" 
+                       title="Please enter a valid email address." required>
             </div>
 
             <div class="input-group">
                 <label>Phone Number</label>
-                <input type="tel" id="phone_register" name="phone" required>
+                <input type="tel" id="phone_register" name="phone" 
+                       pattern="^\+?[0-9]{10,15}$" 
+                       title="Enter a valid phone number (10 to 15 digits). No spaces or letters allowed." required>
             </div>
 
             <div class="input-group">
                 <label>Password</label>
                 <div class="password-container">
-                    <input type="password" id="regPass" name="password" placeholder="Password" required onkeyup="checkPassword()" onfocus="showValidation()">
+                    <input type="password" id="regPass" name="password" placeholder="Password" 
+                           pattern="^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$" 
+                           title="Must be at least 8 characters, contain 1 uppercase, 1 number, and 1 special character." 
+                           required onkeyup="checkPassword()" onfocus="showValidation()">
                     <i class="fa-solid fa-eye toggle-password" onclick="togglePassword('regPass', this)"></i>
                 </div>
                 
@@ -156,12 +241,12 @@
     // Initialize the phone input
     const phoneInput = document.querySelector("#phone_register");
     window.intlTelInput(phoneInput, {
-        initialCountry: "ph", // Default to Philippines
+        initialCountry: "ph", 
         separateDialCode: true,
         utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js",
     });
 
-    // 1. Toggle Password Visibility (Your Original Logic)
+    // Toggle Password Visibility
     function togglePassword(inputId, icon) {
         const input = document.getElementById(inputId);
         if (input.type === "password") {
@@ -175,12 +260,12 @@
         }
     }
 
-    // 2. Show Validation Box on Focus
+    // Show Validation Box on Focus
     function showValidation() {
         document.getElementById("validationBox").style.display = "block";
     }
 
-    // 3. Password Strength & Match Checker
+    // Password Strength & Match Checker
     function checkPassword() {
         const password = document.getElementById("regPass").value;
         const confirm = document.getElementById("confirmPass").value;
@@ -209,6 +294,8 @@
                 matchError.style.display = "none";
                 isMatch = true;
             }
+        } else {
+            isMatch = false;
         }
 
         // Enable Submit Button only if ALL valid
@@ -228,10 +315,10 @@
         const icon = item.querySelector("i");
         if (isValid) {
             item.classList.add("valid");
-            icon.style.color = "#2e7d32"; // Green
+            icon.style.color = "#2e7d32"; 
         } else {
             item.classList.remove("valid");
-            icon.style.color = "#ccc"; // Grey
+            icon.style.color = "#ccc"; 
         }
     }
 </script>
