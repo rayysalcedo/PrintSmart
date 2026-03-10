@@ -1,11 +1,16 @@
 import os
 import secrets
+import re
+import random
+from datetime import datetime, timedelta
+from itsdangerous import URLSafeTimedSerializer
+from flask_mail import Mail, Message
+from flask import Flask, render_template, request, session, redirect, url_for, flash, make_response
 from dotenv import load_dotenv
 
 # 1. LOAD THE SECRETS BEFORE ANYTHING ELSE!
 load_dotenv()
 
-from flask import Flask, render_template, request, session, redirect, url_for, flash
 import mysql.connector 
 from config import Config
 from werkzeug.utils import secure_filename
@@ -26,11 +31,27 @@ cloudinary.config(
 # CREATE THE APP
 app = Flask(__name__)
 
+# --- EMAIL CONFIGURATION FOR PASSWORD RESET & OTP ---
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+# Fallback to empty string so app doesn't crash if env variables aren't set yet
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', '') 
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', '') 
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME', '')
+mail = Mail(app)
+
 # Proxy fix for Render HTTPS compatibility
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 app.config.from_object(Config)
-app.secret_key = 'super_secret_key_for_session'
+
+# 1. First, define the secret key
+app.secret_key = os.environ.get('SECRET_KEY', 'super_secret_key_for_session')
+
+# 2. THEN, initialize the serializer using that secret key
+s = URLSafeTimedSerializer(app.secret_key)
+
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
@@ -85,6 +106,7 @@ def social_auth_logic(email, name, provider):
     user = cursor.fetchone()
     
     if user:
+        # For social auth, we auto-trust the login and bypass OTP
         session['loggedin'] = True
         session['user_id'] = user[0]
         session['name'] = user[2] 
@@ -95,7 +117,8 @@ def social_auth_logic(email, name, provider):
         random_pw = secrets.token_hex(16)
         hashed_password = generate_password_hash(random_pw)
         
-        cursor.execute("INSERT INTO users (full_name, email, password_hash, role) VALUES (%s, %s, %s, %s)", 
+        # Social auth bypasses OTP activation (is_active = TRUE)
+        cursor.execute("INSERT INTO users (full_name, email, password_hash, role, is_active) VALUES (%s, %s, %s, %s, TRUE)", 
                        (name, email, hashed_password, assigned_role))
         conn.commit()
         
@@ -375,7 +398,6 @@ def remove_from_cart(cart_id):
         print(f"Error removing item: {e}")
     return redirect('/checkout')
 
-# --- NEW: BULK REMOVE ROUTE ---
 @app.route('/bulk_remove_from_cart', methods=['POST'])
 def bulk_remove_from_cart():
     user_id = session.get('user_id', 1)
@@ -389,11 +411,8 @@ def bulk_remove_from_cart():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Dynamically build the SQL IN clause depending on how many items are selected
         format_strings = ','.join(['%s'] * len(cart_ids))
         query = f"DELETE FROM cart WHERE cart_id IN ({format_strings}) AND user_id = %s"
-        
-        # Tuple containing all selected cart IDs plus the user ID at the end
         params = tuple(cart_ids) + (user_id,)
         
         cursor.execute(query, params)
@@ -483,43 +502,28 @@ def place_order():
     except Exception as e:
         return f"Order Error: {e}"
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
-        user = cursor.fetchone()
-        conn.close()
-
-        if user and check_password_hash(user['password_hash'], password):
-            session['loggedin'] = True
-            session['user_id'] = user['user_id']
-            session['name'] = user['full_name']
-            session['role'] = user.get('role', 'customer')
-
-            flash("Logged in successfully!", "success")
-            return redirect('/admin') if session['role'] == 'admin' else redirect(url_for('home'))
-        else:
-            flash("Incorrect email or password.", "error")
-            return redirect(url_for('login'))
-    return render_template('login.html')
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect('/login')
+# --- AUTHENTICATION & OTP ---
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        name = request.form.get('name')
-        email = request.form.get('email')
-        phone = request.form.get('phone')
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip()
+        phone = request.form.get('phone', '').strip()
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
+
+        if not name or not re.match(r'^[A-Za-z\s]{2,}$', name):
+            flash("Invalid name. Please use only letters (minimum 2 characters).", "error")
+            return redirect(url_for('register'))
+
+        if not phone or not re.match(r'^\+?[0-9]{10,15}$', phone):
+            flash("Invalid phone number. Please enter 10 to 15 digits without spaces or letters.", "error")
+            return redirect(url_for('register'))
+
+        if not email or not re.match(r'^[\w\.-]+@[\w\.-]+\.\w{2,}$', email):
+            flash("Invalid email format.", "error")
+            return redirect(url_for('register'))
 
         if password != confirm_password:
             flash("Passwords do not match!", "error")
@@ -530,22 +534,220 @@ def register():
         cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
         if cursor.fetchone():
             conn.close()
-            flash("Email already registered. Please login.", "error")
-            return redirect(url_for('register'))
+            flash("This email address is already linked to an existing account. Please sign in instead.", "error")
+            return redirect(url_for('login'))
 
         hashed_password = generate_password_hash(password)
         try:
-            cursor.execute("INSERT INTO users (full_name, email, phone_number, password_hash, role) VALUES (%s, %s, %s, %s, 'customer')", 
-                           (name, email, phone, hashed_password))
+            # Generate OTP and Expiry
+            otp = str(random.randint(100000, 999999))
+            expiry = datetime.now() + timedelta(minutes=10)
+
+            # Insert with OTP and is_active = FALSE
+            cursor.execute("""
+                INSERT INTO users (full_name, email, phone_number, password_hash, role, is_active, otp_code, otp_expiry) 
+                VALUES (%s, %s, %s, %s, 'customer', FALSE, %s, %s)
+            """, (name, email, phone, hashed_password, otp, expiry))
             conn.commit()
             conn.close()
-            flash("Account created successfully! You can now login.", "success")
-            return redirect(url_for('login'))
+
+            # Send Email
+            try:
+                msg = Message('Your PrintSmart Verification Code', recipients=[email])
+                msg.body = f"Hello {name},\n\nWelcome to Printagram!\n\nYour 6-digit verification code is: {otp}\n\nThis code will expire in 10 minutes."
+                mail.send(msg)
+            except Exception as e:
+                print(f"EMAIL ERROR: {e}")
+                print(f"YOUR OTP IS: {otp}")
+            
+            session['verify_email'] = email
+            return redirect(url_for('verify_otp'))
+
         except Exception as e:
             conn.close()
             flash(f"An error occurred: {e}", "error")
             return redirect(url_for('register'))
+            
     return render_template('register.html')
+
+@app.route('/verify_otp', methods=['GET', 'POST'])
+def verify_otp():
+    email = session.get('verify_email')
+    if not email:
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        user_otp = request.form.get('otp')
+        remember_device = request.form.get('remember_device')
+
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+        user = cursor.fetchone()
+
+        if user:
+            if user['otp_code'] == user_otp:
+                if datetime.now() <= user['otp_expiry']:
+                    cursor.execute("UPDATE users SET is_active = TRUE, otp_code = NULL, otp_expiry = NULL WHERE email = %s", (email,))
+                    conn.commit()
+                    
+                    session['loggedin'] = True
+                    session['user_id'] = user['user_id']
+                    session['name'] = user['full_name']
+                    session['role'] = user['role']
+                    session.pop('verify_email', None)
+                    
+                    redirect_target = '/admin' if user['role'] == 'admin' else url_for('home')
+                    resp = make_response(redirect(redirect_target))
+                    
+                    if remember_device == 'on':
+                        device_token = s.dumps(email, salt='trusted-device-salt')
+                        resp.set_cookie('trusted_device', device_token, max_age=30*24*60*60)
+                        flash("Verified! We will remember this device for 30 days.", "success")
+                    else:
+                        flash("Verified and logged in securely!", "success")
+                        
+                    conn.close()
+                    return resp
+                else:
+                    flash("This OTP has expired. Please log in again to get a new one.", "error")
+            else:
+                flash("Invalid OTP code. Please try again.", "error")
+        
+        conn.close()
+
+    return render_template('verify_otp.html', email=email)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+        user = cursor.fetchone()
+        conn.close()
+
+        if user and check_password_hash(user['password_hash'], password):
+            
+            # 1. Check if the user's browser has a valid 30-Day Trusted Device cookie
+            trusted_cookie = request.cookies.get('trusted_device')
+            is_trusted = False
+            
+            if trusted_cookie:
+                try:
+                    cookie_email = s.loads(trusted_cookie, salt='trusted-device-salt', max_age=30*24*60*60)
+                    if cookie_email == user['email']:
+                        is_trusted = True
+                except Exception:
+                    pass 
+
+            # 2. If device is NOT trusted (or account isn't activated yet), trigger OTP
+            if not is_trusted or not user.get('is_active'):
+                otp = str(random.randint(100000, 999999))
+                expiry = datetime.now() + timedelta(minutes=10)
+                
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("UPDATE users SET otp_code = %s, otp_expiry = %s WHERE email = %s", (otp, expiry, email))
+                conn.commit()
+                conn.close()
+
+                try:
+                    msg = Message('Your PrintSmart Security Code', recipients=[email])
+                    msg.body = f"Hello {user['full_name']},\n\nYour login security code is: {otp}\n\nThis code will expire in 10 minutes."
+                    mail.send(msg)
+                except Exception as e:
+                    print(f"EMAIL ERROR: {e}")
+                    print(f"NEW OTP: {otp}")
+
+                session['verify_email'] = email
+                return redirect(url_for('verify_otp'))
+
+            # 3. If device IS trusted AND active, skip OTP
+            session['loggedin'] = True
+            session['user_id'] = user['user_id']
+            session['name'] = user['full_name']
+            session['role'] = user.get('role', 'customer')
+
+            flash("Logged in successfully!", "success")
+            return redirect('/admin') if session['role'] == 'admin' else redirect(url_for('home'))
+        else:
+            flash("Incorrect email or password.", "error")
+            return redirect(url_for('login'))
+            
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    # 1. Clear the server session
+    session.clear()
+    
+    # 2. Delete the 30-Day Trusted Device cookie for security!
+    resp = make_response(redirect(url_for('login')))
+    resp.set_cookie('trusted_device', '', expires=0) 
+    
+    flash("You have been logged out securely.", "success")
+    return resp
+
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+        user = cursor.fetchone()
+        conn.close()
+
+        if user:
+            token = s.dumps(email, salt='password-reset-salt')
+            reset_url = url_for('reset_password', token=token, _external=True)
+            
+            try:
+                msg = Message('Password Reset Request - PrintSmart', recipients=[email])
+                msg.body = f"Hello {user['full_name']},\n\nClick the link below to securely reset your Printagram password:\n{reset_url}\n\nIf you did not request this, please ignore this email. This link will expire in 1 hour."
+                mail.send(msg)
+                flash("A password reset link has been sent to your email.", "success")
+            except Exception as e:
+                print(f"EMAIL ERROR: {e}")
+                print(f"YOUR RESET LINK: {reset_url}")
+                flash(f"System Email is disabled. Testing Link Generated: {reset_url}", "success")
+        else:
+            flash("If that email exists in our system, a reset link has been sent.", "success")
+        
+        return redirect(url_for('login'))
+    return render_template('forgot_password.html')
+
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    try:
+        email = s.loads(token, salt='password-reset-salt', max_age=3600)
+    except Exception:
+        flash("The reset link is invalid or has expired.", "error")
+        return redirect(url_for('forgot_password'))
+
+    if request.method == 'POST':
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+
+        if password != confirm_password:
+            flash("Passwords do not match.", "error")
+            return redirect(url_for('reset_password', token=token))
+        
+        hashed_password = generate_password_hash(password)
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET password_hash = %s WHERE email = %s", (hashed_password, email))
+        conn.commit()
+        conn.close()
+        
+        flash("Your password has been successfully updated! You can now log in.", "success")
+        return redirect(url_for('login'))
+
+    return render_template('reset_password.html', token=token)
 
 # --- ADMIN AND PROFILE MANAGEMENT ---
 @app.route('/admin')
