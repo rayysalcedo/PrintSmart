@@ -90,12 +90,15 @@ facebook = oauth.register(
 def send_system_email(to_email, subject, body_text):
     api_key = os.environ.get('BREVO_API_KEY')
     if not api_key:
-        print("BREVO_API_KEY is missing!")
+        print("ERROR: BREVO_API_KEY is missing from environment variables!")
         return False
+
+    # IMPORTANT: This MUST match the email you used to sign up for Brevo!
+    sender_email = "system.printsmart@gmail.com" 
 
     url = "https://api.brevo.com/v3/smtp/email"
     payload = {
-        "sender": {"name": "PrintSmart Security", "email": "system.printsmart@gmail.com"},
+        "sender": {"name": "PrintSmart Security", "email": sender_email},
         "to": [{"email": to_email}],
         "subject": subject,
         "textContent": body_text
@@ -108,9 +111,12 @@ def send_system_email(to_email, subject, body_text):
 
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=10)
+        # If Brevo rejects it, this will print the EXACT reason to your Render Logs
+        if response.status_code not in [200, 201, 202]:
+            print(f"BREVO API ERROR {response.status_code}: {response.text}")
         return response.status_code in [200, 201, 202]
     except Exception as e:
-        print(f"API ERROR: {e}")
+        print(f"REQUEST CRASHED: {e}")
         return False
 
 def allowed_file(filename):
