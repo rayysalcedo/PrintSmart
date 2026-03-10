@@ -753,9 +753,20 @@ def reset_password(token):
             flash("Passwords do not match.", "error")
             return redirect(url_for('reset_password', token=token))
         
-        hashed_password = generate_password_hash(password)
+        # 1. Open database connection to check the old password first
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT password_hash FROM users WHERE email = %s", (email,))
+        user = cursor.fetchone()
+
+        # 2. Check if the new password matches the current one in the database
+        if user and check_password_hash(user['password_hash'], password):
+            conn.close()
+            flash("Your new password cannot be the same as your current password.", "error")
+            return redirect(url_for('reset_password', token=token))
+        
+        # 3. If it's a completely new password, hash it and save it!
+        hashed_password = generate_password_hash(password)
         cursor.execute("UPDATE users SET password_hash = %s WHERE email = %s", (hashed_password, email))
         conn.commit()
         conn.close()
