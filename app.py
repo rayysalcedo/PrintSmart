@@ -33,9 +33,9 @@ app = Flask(__name__)
 
 # --- EMAIL CONFIGURATION FOR PASSWORD RESET & OTP ---
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-# Fallback to empty string so app doesn't crash if env variables aren't set yet
+app.config['MAIL_PORT'] = 465                 # CHANGE THIS to 465
+app.config['MAIL_USE_TLS'] = False            # CHANGE THIS to False
+app.config['MAIL_USE_SSL'] = True             # ADD THIS line
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', '') 
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', '') 
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME', '')
