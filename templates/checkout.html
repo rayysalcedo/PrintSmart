@@ -59,15 +59,7 @@
     .item-price-block { text-align: right; min-width: 100px; }
     .price-tag { font-weight: 700; font-size: 18px; color: #333; margin-bottom: 8px; }
 
-    /* PAYMENT TABS */
     .section-head { color: #DC5500; font-size: 18px; font-weight: 600; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
-    .payment-tabs { display: flex; gap: 15px; margin-bottom: 25px; }
-    .p-tab { flex: 1; padding: 12px; text-align: center; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; transition: 0.2s; color: #555;}
-    .p-tab.active { background: #DC5500; color: white; border-color: #DC5500; }
-    .form-group { margin-bottom: 15px; }
-    .form-label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; font-weight: 600;}
-    .form-control { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; background: #fcfcfc; font-size: 14px; box-sizing: border-box; font-family: inherit;}
-    .row-inputs { display: flex; gap: 15px; }
 
     /* SUMMARY BOX */
     .summary-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; color: #555; }
@@ -191,26 +183,27 @@
 
             <form action="/place_order" method="POST" id="main-checkout-form">
                 <input type="hidden" name="grand_total" value="{{ grand_total }}">
-                <div class="card-box">
-                    <div class="section-head"><i class="fas fa-credit-card"></i> Payment Method</div>
-                    <div class="payment-tabs">
-                        <input type="hidden" name="payment_method" id="payment_method" value="Credit Card">
-                        <div class="p-tab active" onclick="selectPayment('Credit Card', this)">Credit/Debit Card</div>
-                        <div class="p-tab" onclick="selectPayment('GCash', this)">GCash</div>
-                    </div>
-                    <div id="credit-card-fields">
-                        <div class="form-group"><label class="form-label">Cardholder Name</label><input type="text" name="card_name" class="form-control" placeholder="John Doe"></div>
-                        <div class="form-group"><label class="form-label">Card Number</label><input type="text" name="card_number" class="form-control" placeholder="1234 5678 9012 3456"></div>
-                        <div class="row-inputs">
-                            <div class="form-group" style="flex:1;"><label class="form-label">Expiry</label><input type="text" name="expiry" class="form-control" placeholder="MM/YY"></div>
-                            <div class="form-group" style="flex:1;"><label class="form-label">CVV</label><input type="text" name="cvv" class="form-control" placeholder="123"></div>
+                <input type="hidden" name="payment_method" value="PayMongo">
+                
+                <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-top: 20px;">
+                    <h3 style="margin-top: 0; margin-bottom: 20px; color: #333; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
+                        <i class="fas fa-shield-alt" style="color: #28a745;"></i> Secure Payment
+                    </h3>
+                    
+                    <div style="text-align: center; padding: 20px 10px;">
+                        <p style="font-size: 14px; color: #555; margin-bottom: 20px;">
+                            You will be redirected to <strong>PayMongo's secure payment gateway</strong> to complete your purchase safely.
+                        </p>
+                        
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 15px; flex-wrap: wrap;">
+                            <span style="background: #007DFE; color: white; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 14px; letter-spacing: 0.5px;">GCash</span>
+                            <span style="background: #111; color: white; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 14px; letter-spacing: 0.5px;">Maya</span>
+                            <i class="fab fa-cc-visa" style="font-size: 32px; color: #1a1f71;"></i>
+                            <i class="fab fa-cc-mastercard" style="font-size: 32px; color: #eb001b;"></i>
                         </div>
                     </div>
-                    <div id="gcash-fields" style="display:none; text-align:center; padding: 20px;">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/GCash_Logo.svg/1200px-GCash_Logo.svg.png" style="width:100px; margin-bottom:15px;">
-                        <p style="color:#666; font-size:14px;">Please scan the QR code on the next step to complete your payment.</p>
-                    </div>
                 </div>
+
             </form>
         </div>
 
@@ -220,8 +213,9 @@
                 <div class="summary-row"><span>Subtotal</span><span>₱{{ "{:,.2f}".format(subtotal) }}</span></div>
                 <div class="summary-row"><span>Processing Fee</span><span>₱{{ "{:,.2f}".format(processing_fee) }}</span></div>
                 <div class="total-row"><span>Total</span><span>₱{{ "{:,.2f}".format(grand_total) }}</span></div>
+                
                 <button type="submit" form="main-checkout-form" class="btn-complete">Complete Order <i class="fas fa-arrow-right" style="margin-left: 8px;"></i></button>
-                <div class="secure-text"><i class="fas fa-lock" style="color: #28a745;"></i> Secure checkout with 256-bit SSL encryption</div>
+                <div class="secure-text"><i class="fas fa-lock" style="color: #28a745;"></i> Secure checkout with PayMongo</div>
             </div>
         </div>
     </div>
@@ -229,20 +223,6 @@
 </div>
 
 <script>
-    // Payment Toggle
-    function selectPayment(method, element) {
-        document.getElementById('payment_method').value = method;
-        document.querySelectorAll('.p-tab').forEach(el => el.classList.remove('active'));
-        element.classList.add('active');
-        if(method === 'GCash') {
-            document.getElementById('credit-card-fields').style.display = 'none';
-            document.getElementById('gcash-fields').style.display = 'block';
-        } else {
-            document.getElementById('credit-card-fields').style.display = 'block';
-            document.getElementById('gcash-fields').style.display = 'none';
-        }
-    }
-
     // Inline Edit Toggle
     function toggleEditMode(cartId) {
         const viewDiv = document.getElementById('view-mode-' + cartId);

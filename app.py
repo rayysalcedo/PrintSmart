@@ -15,6 +15,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from authlib.integrations.flask_client import OAuth
 import cloudinary
 import cloudinary.uploader
+import base64
 
 # 1. LOAD THE SECRETS
 load_dotenv()
@@ -552,33 +553,113 @@ def checkout():
 def place_order():
     if not session.get('loggedin'):
         return redirect(url_for('login'))
+        
     user_id = session['user_id']
-    payment_method = request.form.get('payment_method')
+    
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM cart WHERE user_id = %s", (user_id,))
         cart_items = cursor.fetchall()
+        
         if not cart_items: 
             conn.close()
             return "Cart is empty!"
+
         total_amount = float(request.form.get('grand_total'))
-        cursor.execute("INSERT INTO orders (user_id, total_amount, payment_status, payment_method, order_status, created_at) VALUES (%s, %s, 'Paid', %s, 'Pending', NOW())", (user_id, total_amount, payment_method))
+        
+        # 1. Create the order in the DB as 'Pending'
+        cursor.execute("INSERT INTO orders (user_id, total_amount, payment_status, payment_method, order_status, created_at) VALUES (%s, %s, 'Pending', 'PayMongo', 'Pending', NOW())", (user_id, total_amount))
         conn.commit() 
         new_order_id = cursor.lastrowid
+
         for item in cart_items:
             safe_file_path = item['file_path'] if item['file_path'] else ""
             cursor.execute("""
                 INSERT INTO order_items (order_id, product_id, quantity, price_at_time, item_details, file_path) 
                 VALUES (%s, %s, %s, %s, %s, %s)
             """, (new_order_id, item['product_id'], item['quantity'], item['total_price'], item['item_details'], safe_file_path))
+            
         cursor.execute("DELETE FROM cart WHERE user_id = %s", (user_id,))
         conn.commit()
         conn.close()
-        return render_template('order_success.html', order_id=new_order_id)
+
+        # 2. GENERATE PAYMONGO CHECKOUT LINK
+        paymongo_key = os.environ.get('PAYMONGO_SECRET_KEY')
+        
+        # Failsafe: If no API key is set, bypass to success (so your app doesn't break if env vars are missing)
+        if not paymongo_key:
+            return redirect(url_for('payment_success', order_id=new_order_id))
+
+        # PayMongo expects amounts in cents (e.g., Php 100.00 = 10000 cents)
+        amount_in_cents = int(total_amount * 100)
+
+        url = "https://api.paymongo.com/v1/checkout_sessions"
+        payload = {
+            "data": {
+                "attributes": {
+                    "billing": {"name": session.get('name', 'Printagram Customer')},
+                    "send_email_receipt": False,
+                    "show_description": True,
+                    "show_line_items": True,
+                    "line_items": [{
+                        "currency": "PHP",
+                        "amount": amount_in_cents,
+                        "name": f"Printagram Order #{new_order_id}",
+                        "quantity": 1
+                    }],
+                    "payment_method_types": ["card", "gcash", "paymaya"],
+                    "success_url": url_for('payment_success', order_id=new_order_id, _external=True),
+                    "cancel_url": url_for('checkout', _external=True),
+                    "description": "Professional Printing Services"
+                }
+            }
+        }
+        
+        # PayMongo uses Basic Auth. We encode the secret key to Base64.
+        auth_str = f"{paymongo_key}:"
+        b64_auth = base64.b64encode(auth_str.encode()).decode()
+        
+        headers = {
+            "accept": "application/json",
+            "content-type": "application/json",
+            "authorization": f"Basic {b64_auth}"
+        }
+
+        response = requests.post(url, json=payload, headers=headers)
+        api_data = response.json()
+
+        if response.status_code == 200:
+            # 3. Redirect the user to the official PayMongo Hosted Checkout Page!
+            checkout_url = api_data['data']['attributes']['checkout_url']
+            return redirect(checkout_url)
+        else:
+            flash(f"Payment API Error. Please try again.", "error")
+            print(f"PAYMONGO ERROR: {api_data}")
+            return redirect('/checkout')
+
     except Exception as e:
         return f"Order Error: {e}"
-
+    
+# --- NEW: PAYMENT SUCCESS CALLBACK ROUTE ---
+@app.route('/payment_success/<int:order_id>')
+def payment_success(order_id):
+    if not session.get('loggedin'):
+        return redirect(url_for('login'))
+        
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Update the order status to Paid!
+        cursor.execute("UPDATE orders SET payment_status = 'Paid' WHERE order_id = %s AND user_id = %s", (order_id, session['user_id']))
+        conn.commit()
+        conn.close()
+        
+        return render_template('order_success.html', order_id=order_id)
+    except Exception as e:
+        return f"Error finalizing payment: {e}"
+    
 # --- AUTHENTICATION & OTP ---
 
 @app.route('/register', methods=['GET', 'POST'])
