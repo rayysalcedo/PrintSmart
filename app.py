@@ -2,9 +2,9 @@ import os
 import secrets
 import re
 import random
+import requests
 from datetime import datetime, timedelta
 from itsdangerous import URLSafeTimedSerializer
-from flask_mail import Mail, Message
 from flask import Flask, render_template, request, session, redirect, url_for, flash, make_response
 from dotenv import load_dotenv
 
@@ -30,16 +30,6 @@ cloudinary.config(
 
 # CREATE THE APP
 app = Flask(__name__)
-
-# --- EMAIL CONFIGURATION FOR PASSWORD RESET & OTP ---
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 465                 # CHANGE THIS to 465
-app.config['MAIL_USE_TLS'] = False            # CHANGE THIS to False
-app.config['MAIL_USE_SSL'] = True             # ADD THIS line
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', '') 
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', '') 
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME', '')
-mail = Mail(app)
 
 # Proxy fix for Render HTTPS compatibility
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
@@ -95,6 +85,33 @@ facebook = oauth.register(
     api_base_url='https://graph.facebook.com/',
     client_kwargs={'scope': 'email public_profile'},
 )
+
+# --- BREVO EMAIL API HELPER ---
+def send_system_email(to_email, subject, body_text):
+    api_key = os.environ.get('BREVO_API_KEY')
+    if not api_key:
+        print("BREVO_API_KEY is missing!")
+        return False
+
+    url = "https://api.brevo.com/v3/smtp/email"
+    payload = {
+        "sender": {"name": "PrintSmart Security", "email": "system.printsmart@gmail.com"},
+        "to": [{"email": to_email}],
+        "subject": subject,
+        "textContent": body_text
+    }
+    headers = {
+        "accept": "application/json",
+        "api-key": api_key,
+        "content-type": "application/json"
+    }
+
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        return response.status_code in [200, 201, 202]
+    except Exception as e:
+        print(f"API ERROR: {e}")
+        return False
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -551,13 +568,10 @@ def register():
             conn.commit()
             conn.close()
 
-            # Send Email
-            try:
-                msg = Message('Your PrintSmart Verification Code', recipients=[email])
-                msg.body = f"Hello {name},\n\nWelcome to Printagram!\n\nYour 6-digit verification code is: {otp}\n\nThis code will expire in 10 minutes."
-                mail.send(msg)
-            except Exception as e:
-                print(f"EMAIL ERROR: {e}")
+            # Send Email via API
+            msg_body = f"Hello {name},\n\nWelcome to Printagram!\n\nYour 6-digit verification code is: {otp}\n\nThis code will expire in 10 minutes."
+            success = send_system_email(email, 'Your PrintSmart Verification Code', msg_body)
+            if not success:
                 print(f"YOUR OTP IS: {otp}")
             
             session['verify_email'] = email
@@ -655,12 +669,9 @@ def login():
                 conn.commit()
                 conn.close()
 
-                try:
-                    msg = Message('Your PrintSmart Security Code', recipients=[email])
-                    msg.body = f"Hello {user['full_name']},\n\nYour login security code is: {otp}\n\nThis code will expire in 10 minutes."
-                    mail.send(msg)
-                except Exception as e:
-                    print(f"EMAIL ERROR: {e}")
+                msg_body = f"Hello {user['full_name']},\n\nYour login security code is: {otp}\n\nThis code will expire in 10 minutes."
+                success = send_system_email(email, 'Your PrintSmart Security Code', msg_body)
+                if not success:
                     print(f"NEW OTP: {otp}")
 
                 session['verify_email'] = email
@@ -706,15 +717,14 @@ def forgot_password():
             token = s.dumps(email, salt='password-reset-salt')
             reset_url = url_for('reset_password', token=token, _external=True)
             
-            try:
-                msg = Message('Password Reset Request - PrintSmart', recipients=[email])
-                msg.body = f"Hello {user['full_name']},\n\nClick the link below to securely reset your Printagram password:\n{reset_url}\n\nIf you did not request this, please ignore this email. This link will expire in 1 hour."
-                mail.send(msg)
+            msg_body = f"Hello {user['full_name']},\n\nClick the link below to securely reset your Printagram password:\n{reset_url}\n\nIf you did not request this, please ignore this email. This link will expire in 1 hour."
+            success = send_system_email(email, 'Password Reset Request - PrintSmart', msg_body)
+            
+            if success:
                 flash("A password reset link has been sent to your email.", "success")
-            except Exception as e:
-                print(f"EMAIL ERROR: {e}")
-                print(f"YOUR RESET LINK: {reset_url}")
+            else:
                 flash(f"System Email is disabled. Testing Link Generated: {reset_url}", "success")
+                print(f"YOUR RESET LINK: {reset_url}")
         else:
             flash("If that email exists in our system, a reset link has been sent.", "success")
         
@@ -893,6 +903,7 @@ def profile():
             flash(f"Error: {e}", "error")
         finally:
             conn.close()
+            
         return redirect(url_for('profile'))
 
     conn = get_db_connection()
