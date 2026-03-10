@@ -7,21 +7,19 @@ from datetime import datetime, timedelta
 from itsdangerous import URLSafeTimedSerializer
 from flask import Flask, render_template, request, session, redirect, url_for, flash, make_response
 from dotenv import load_dotenv
-
-# 1. LOAD THE SECRETS BEFORE ANYTHING ELSE!
-load_dotenv()
-
 import mysql.connector 
 from config import Config
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
 from authlib.integrations.flask_client import OAuth
-
-# --- CLOUDINARY INTEGRATION ---
 import cloudinary
 import cloudinary.uploader
 
+# 1. LOAD THE SECRETS
+load_dotenv()
+
+# --- CLOUDINARY INTEGRATION ---
 cloudinary.config( 
     cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME'), 
     api_key = os.environ.get('CLOUDINARY_API_KEY'), 
@@ -36,16 +34,12 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 app.config.from_object(Config)
 
-# 1. First, define the secret key
+# Security and Sessions
 app.secret_key = os.environ.get('SECRET_KEY', 'super_secret_key_for_session')
-
-# 2. THEN, initialize the serializer using that secret key
 s = URLSafeTimedSerializer(app.secret_key)
-
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-# Retained upload folder config as a fallback mechanism
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf', 'docx', 'psd', 'ai'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -92,10 +86,7 @@ def send_system_email(to_email, subject, body_text):
     if not api_key:
         print("ERROR: BREVO_API_KEY is missing from environment variables!")
         return False
-
-    # IMPORTANT: This MUST match the email you used to sign up for Brevo!
     sender_email = "system.printsmart@gmail.com" 
-
     url = "https://api.brevo.com/v3/smtp/email"
     payload = {
         "sender": {"name": "PrintSmart Security", "email": sender_email},
@@ -108,10 +99,8 @@ def send_system_email(to_email, subject, body_text):
         "api-key": api_key,
         "content-type": "application/json"
     }
-
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=10)
-        # If Brevo rejects it, this will print the EXACT reason to your Render Logs
         if response.status_code not in [200, 201, 202]:
             print(f"BREVO API ERROR {response.status_code}: {response.text}")
         return response.status_code in [200, 201, 202]
@@ -129,7 +118,6 @@ def social_auth_logic(email, name, provider):
     user = cursor.fetchone()
     
     if user:
-        # For social auth, we auto-trust the login and bypass OTP
         session['loggedin'] = True
         session['user_id'] = user[0]
         session['name'] = user[2] 
@@ -139,12 +127,9 @@ def social_auth_logic(email, name, provider):
         assigned_role = 'admin' if email == 'system.printsmart@gmail.com' else 'customer'
         random_pw = secrets.token_hex(16)
         hashed_password = generate_password_hash(random_pw)
-        
-        # Social auth bypasses OTP activation (is_active = TRUE)
         cursor.execute("INSERT INTO users (full_name, email, password_hash, role, is_active) VALUES (%s, %s, %s, %s, TRUE)", 
                        (name, email, hashed_password, assigned_role))
         conn.commit()
-        
         session['loggedin'] = True
         session['user_id'] = cursor.lastrowid
         session['name'] = name
@@ -218,6 +203,7 @@ def services():
         cursor = conn.cursor(dictionary=True) 
         cursor.execute("SELECT * FROM categories ORDER BY category_id")
         categories = cursor.fetchall()
+        
         cursor.execute("""
             SELECT p.*, c.slug as category_slug 
             FROM products p 
@@ -227,6 +213,11 @@ def services():
         products = cursor.fetchall()
         cursor.execute("SELECT * FROM product_features")
         all_features = cursor.fetchall()
+
+        cursor.execute("SELECT product_id, MIN(price) as min_price FROM product_variants GROUP BY product_id")
+        min_prices_db = cursor.fetchall()
+        min_price_map = {row['product_id']: row['min_price'] for row in min_prices_db}
+
         cursor.close()
         conn.close()
 
@@ -236,6 +227,9 @@ def services():
             if pid not in features_map: features_map[pid] = []
             features_map[pid].append(f['feature_text'])
 
+        for p in products:
+            p['starting_price'] = min_price_map.get(p['product_id'], 0.00)
+
         return render_template('services.html', categories=categories, products=products, features_map=features_map)
     except Exception as e:
         return f"Error fetching data: {e}"
@@ -244,24 +238,113 @@ def services():
 def order(product_id=None):
     product = None
     variants = [] 
+    gallery = []
+    reviews = []
+    avg_rating = 0
+    total_reviews = 0
+    can_review = False
+
     if product_id:
         try:
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM products WHERE product_id = %s", (product_id,))
             product = cursor.fetchone()
+            
             cursor.execute("SELECT * FROM product_variants WHERE product_id = %s", (product_id,))
             variants = cursor.fetchall()
+
+            cursor.execute("SELECT image_url FROM product_images WHERE product_id = %s", (product_id,))
+            gallery_rows = cursor.fetchall()
+            gallery = [row['image_url'] for row in gallery_rows]
+
+            cursor.execute("""
+                SELECT r.*, u.full_name 
+                FROM product_reviews r
+                JOIN users u ON r.user_id = u.user_id
+                WHERE r.product_id = %s
+                ORDER BY r.created_at DESC
+            """, (product_id,))
+            reviews = cursor.fetchall()
+            
+            total_reviews = len(reviews)
+            if total_reviews > 0:
+                avg_rating = round(sum(r['rating'] for r in reviews) / total_reviews, 1)
+            else:
+                avg_rating = 0.0 
+
+            if session.get('loggedin'):
+                user_id = session['user_id']
+                cursor.execute("""
+                    SELECT COUNT(*) as count 
+                    FROM orders o
+                    JOIN order_items oi ON o.order_id = oi.order_id
+                    WHERE o.user_id = %s AND oi.product_id = %s AND o.order_status = 'Completed'
+                """, (user_id, product_id))
+                has_completed_order = cursor.fetchone()['count'] > 0
+                
+                cursor.execute("SELECT COUNT(*) as count FROM product_reviews WHERE user_id = %s AND product_id = %s", (user_id, product_id))
+                already_reviewed = cursor.fetchone()['count'] > 0
+
+                if has_completed_order and not already_reviewed:
+                    can_review = True
+
             cursor.close()
             conn.close()
         except Exception as e:
-            print(f"Error fetching product: {e}")
-    return render_template('order.html', product=product, variants=variants)
+            print(f"Error fetching product data: {e}")
+            
+    return render_template('order.html', product=product, variants=variants, gallery=gallery, 
+                           reviews=reviews, avg_rating=avg_rating, total_reviews=total_reviews, can_review=can_review)
 
-# --- SMART CART LOGIC ---
+# --- SUBMIT REVIEW SECURE ROUTE (UPDATED) ---
+@app.route('/submit_review', methods=['POST'])
+def submit_review():
+    if not session.get('loggedin'):
+        return redirect(url_for('login'))
+        
+    user_id = session['user_id']
+    product_id = request.form.get('product_id')
+    rating = request.form.get('rating')
+    comment = request.form.get('comment')
+    source_order_id = request.form.get('source_order_id') # NEW: Knows where the request came from
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("""
+            SELECT COUNT(*) as count FROM orders o
+            JOIN order_items oi ON o.order_id = oi.order_id
+            WHERE o.user_id = %s AND oi.product_id = %s AND o.order_status = 'Completed'
+        """, (user_id, product_id))
+        
+        if cursor.fetchone()['count'] > 0:
+            cursor.execute("INSERT INTO product_reviews (product_id, user_id, rating, comment) VALUES (%s, %s, %s, %s)", 
+                           (product_id, user_id, rating, comment))
+            conn.commit()
+            flash("Thank you! Your review has been posted.", "success")
+        else:
+            flash("Action denied. You must receive your order before reviewing.", "error")
+            
+        conn.close()
+    except Exception as e:
+        print(f"Review Error: {e}")
+        
+    # Smart Redirect: Send them back to wherever they submitted the review from!
+    if source_order_id:
+        return redirect(url_for('my_order_details', order_id=source_order_id))
+    return redirect(url_for('order', product_id=product_id))
+
+# --- SMART CART LOGIC (FIXED) ---
 @app.route('/add_to_cart', methods=['POST'])
 def add_to_cart():
-    user_id = session.get('user_id', 1)
+    if not session.get('loggedin'):
+        flash("Please sign in or create an account to start adding items to your cart!", "error")
+        return redirect(url_for('login'))
+        
+    user_id = session.get('user_id')
+    
     try:
         product_id = int(request.form.get('product_id'))
         qty = int(request.form.get('quantity', 1))
@@ -278,7 +361,6 @@ def add_to_cart():
 
         unit_price = float(request.form.get('dynamic_unit_price', 0))
         variant_name = request.form.get('dynamic_variant_name', '')
-        
         has_layout = request.form.get('has_layout') == 'on'
         design_instructions = request.form.get('instructions', '').strip()
         special_instructions = request.form.get('order_note', '').strip()
@@ -287,7 +369,6 @@ def add_to_cart():
         layout_fee = 0
         item_total = 0
 
-        # Build physical specs
         if product_id == 1: 
             h = float(request.form.get('height_ft', 0))
             w = float(request.form.get('width_ft', 0))
@@ -332,7 +413,6 @@ def add_to_cart():
             layout_fee = 150
             
         item_total += layout_fee
-
         base_specs = " | ".join(details_list)
         final_details = base_specs
         if design_instructions: final_details += f" || DESIGN: {design_instructions}"
@@ -362,19 +442,15 @@ def add_to_cart():
 def update_cart_item():
     user_id = session.get('user_id', 1)
     cart_id = request.form.get('cart_id')
-    
     try:
         new_qty = int(request.form.get('quantity', 1))
         if new_qty < 1: new_qty = 1 
-
         base_specs = request.form.get('base_specs', '')
         design_note = request.form.get('design_note', '').strip()
         special_note = request.form.get('special_note', '').strip()
-
         final_details = base_specs
         if design_note: final_details += f" || DESIGN: {design_note}"
         if special_note: final_details += f" || NOTE: {special_note}"
-
         file_paths = []
         if 'design_file' in request.files:
             files = request.files.getlist('design_file')
@@ -382,17 +458,14 @@ def update_cart_item():
                 if f and f.filename != '':
                     res = cloudinary.uploader.upload(f, folder="customer_designs")
                     file_paths.append(res['secure_url'])
-
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT quantity, total_price, file_path FROM cart WHERE cart_id = %s AND user_id = %s", (cart_id, user_id))
         item = cursor.fetchone()
-
         if item:
             unit_price = float(item['total_price']) / int(item['quantity'])
             new_total = unit_price * new_qty
             final_file_path = ",".join(file_paths) if file_paths else item['file_path']
-
             cursor.execute("""
                 UPDATE cart 
                 SET quantity = %s, total_price = %s, item_details = %s, file_path = %s
@@ -400,11 +473,9 @@ def update_cart_item():
             """, (new_qty, new_total, final_details, final_file_path, cart_id, user_id))
             conn.commit()
             flash("Item details updated successfully!", "success")
-            
         conn.close()
     except Exception as e:
         flash(f"Error updating item: {e}", "error")
-
     return redirect('/checkout')
 
 @app.route('/remove_from_cart/<int:cart_id>')
@@ -425,28 +496,22 @@ def remove_from_cart(cart_id):
 def bulk_remove_from_cart():
     user_id = session.get('user_id', 1)
     cart_ids = request.form.getlist('cart_ids')
-    
     if not cart_ids:
         flash("No items were selected for deletion.", "error")
         return redirect('/checkout')
-        
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
         format_strings = ','.join(['%s'] * len(cart_ids))
         query = f"DELETE FROM cart WHERE cart_id IN ({format_strings}) AND user_id = %s"
         params = tuple(cart_ids) + (user_id,)
-        
         cursor.execute(query, params)
         conn.commit()
         conn.close()
-        
         flash(f"Successfully deleted {len(cart_ids)} selected items.", "success")
     except Exception as e:
         print(f"Error bulk removing items: {e}")
         flash("Error removing selected items.", "error")
-        
     return redirect('/checkout')
 
 @app.route('/checkout')
@@ -463,23 +528,19 @@ def checkout():
         """
         cursor.execute(query, (user_id,))
         cart_items = cursor.fetchall()
-        
         subtotal = 0.0
         for item in cart_items:
             subtotal += float(item['total_price'])
             item['file_list'] = item['file_path'].split(',') if item['file_path'] else []
-            
             parts = item['item_details'].split(' || ')
             item['specs'] = parts[0]
             item['design_note'] = ''
             item['special_note'] = ''
-            
             for p in parts[1:]:
                 if p.startswith('DESIGN: '):
                     item['design_note'] = p.replace('DESIGN: ', '', 1)
                 elif p.startswith('NOTE: '):
                     item['special_note'] = p.replace('NOTE: ', '', 1)
-
         processing_fee = 50.00 if cart_items else 0.00
         grand_total = subtotal + processing_fee
         conn.close()
@@ -491,33 +552,26 @@ def checkout():
 def place_order():
     if not session.get('loggedin'):
         return redirect(url_for('login'))
-        
     user_id = session['user_id']
     payment_method = request.form.get('payment_method')
-    
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM cart WHERE user_id = %s", (user_id,))
         cart_items = cursor.fetchall()
-        
         if not cart_items: 
             conn.close()
             return "Cart is empty!"
-
         total_amount = float(request.form.get('grand_total'))
-        
         cursor.execute("INSERT INTO orders (user_id, total_amount, payment_status, payment_method, order_status, created_at) VALUES (%s, %s, 'Paid', %s, 'Pending', NOW())", (user_id, total_amount, payment_method))
         conn.commit() 
         new_order_id = cursor.lastrowid
-
         for item in cart_items:
             safe_file_path = item['file_path'] if item['file_path'] else ""
             cursor.execute("""
                 INSERT INTO order_items (order_id, product_id, quantity, price_at_time, item_details, file_path) 
                 VALUES (%s, %s, %s, %s, %s, %s)
             """, (new_order_id, item['product_id'], item['quantity'], item['total_price'], item['item_details'], safe_file_path))
-            
         cursor.execute("DELETE FROM cart WHERE user_id = %s", (user_id,))
         conn.commit()
         conn.close()
@@ -537,17 +591,14 @@ def register():
         confirm_password = request.form.get('confirm_password')
 
         if not name or not re.match(r'^[A-Za-z\s]{2,}$', name):
-            flash("Invalid name. Please use only letters (minimum 2 characters).", "error")
+            flash("Invalid name. Please use only letters.", "error")
             return redirect(url_for('register'))
-
         if not phone or not re.match(r'^\+?[0-9]{10,15}$', phone):
-            flash("Invalid phone number. Please enter 10 to 15 digits without spaces or letters.", "error")
+            flash("Invalid phone number.", "error")
             return redirect(url_for('register'))
-
         if not email or not re.match(r'^[\w\.-]+@[\w\.-]+\.\w{2,}$', email):
             flash("Invalid email format.", "error")
             return redirect(url_for('register'))
-
         if password != confirm_password:
             flash("Passwords do not match!", "error")
             return redirect(url_for('register'))
@@ -562,11 +613,8 @@ def register():
 
         hashed_password = generate_password_hash(password)
         try:
-            # Generate OTP and Expiry
             otp = str(random.randint(100000, 999999))
             expiry = datetime.now() + timedelta(minutes=10)
-
-            # Insert with OTP and is_active = FALSE
             cursor.execute("""
                 INSERT INTO users (full_name, email, phone_number, password_hash, role, is_active, otp_code, otp_expiry) 
                 VALUES (%s, %s, %s, %s, 'customer', FALSE, %s, %s)
@@ -574,7 +622,6 @@ def register():
             conn.commit()
             conn.close()
 
-            # Send Email via API
             msg_body = f"Hello {name},\n\nWelcome to Printagram!\n\nYour 6-digit verification code is: {otp}\n\nThis code will expire in 10 minutes."
             success = send_system_email(email, 'Your PrintSmart Verification Code', msg_body)
             if not success:
@@ -582,12 +629,10 @@ def register():
             
             session['verify_email'] = email
             return redirect(url_for('verify_otp'))
-
         except Exception as e:
             conn.close()
             flash(f"An error occurred: {e}", "error")
             return redirect(url_for('register'))
-            
     return render_template('register.html')
 
 @app.route('/verify_otp', methods=['GET', 'POST'])
@@ -599,7 +644,6 @@ def verify_otp():
     if request.method == 'POST':
         user_otp = request.form.get('otp')
         remember_device = request.form.get('remember_device')
-
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
@@ -633,9 +677,7 @@ def verify_otp():
                     flash("This OTP has expired. Please log in again to get a new one.", "error")
             else:
                 flash("Invalid OTP code. Please try again.", "error")
-        
         conn.close()
-
     return render_template('verify_otp.html', email=email)
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -643,7 +685,6 @@ def login():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
-        
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
@@ -651,8 +692,6 @@ def login():
         conn.close()
 
         if user and check_password_hash(user['password_hash'], password):
-            
-            # 1. Check if the user's browser has a valid 30-Day Trusted Device cookie
             trusted_cookie = request.cookies.get('trusted_device')
             is_trusted = False
             
@@ -664,7 +703,6 @@ def login():
                 except Exception:
                     pass 
 
-            # 2. If device is NOT trusted (or account isn't activated yet), trigger OTP
             if not is_trusted or not user.get('is_active'):
                 otp = str(random.randint(100000, 999999))
                 expiry = datetime.now() + timedelta(minutes=10)
@@ -683,29 +721,22 @@ def login():
                 session['verify_email'] = email
                 return redirect(url_for('verify_otp'))
 
-            # 3. If device IS trusted AND active, skip OTP
             session['loggedin'] = True
             session['user_id'] = user['user_id']
             session['name'] = user['full_name']
             session['role'] = user.get('role', 'customer')
-
             flash("Logged in successfully!", "success")
             return redirect('/admin') if session['role'] == 'admin' else redirect(url_for('home'))
         else:
             flash("Incorrect email or password.", "error")
             return redirect(url_for('login'))
-            
     return render_template('login.html')
 
 @app.route('/logout')
 def logout():
-    # 1. Clear the server session
     session.clear()
-    
-    # 2. Delete the 30-Day Trusted Device cookie for security!
     resp = make_response(redirect(url_for('login')))
     resp.set_cookie('trusted_device', '', expires=0) 
-    
     flash("You have been logged out securely.", "success")
     return resp
 
@@ -722,7 +753,6 @@ def forgot_password():
         if user:
             token = s.dumps(email, salt='password-reset-salt')
             reset_url = url_for('reset_password', token=token, _external=True)
-            
             msg_body = f"Hello {user['full_name']},\n\nClick the link below to securely reset your Printagram password:\n{reset_url}\n\nIf you did not request this, please ignore this email. This link will expire in 1 hour."
             success = send_system_email(email, 'Password Reset Request - PrintSmart', msg_body)
             
@@ -733,7 +763,6 @@ def forgot_password():
                 print(f"YOUR RESET LINK: {reset_url}")
         else:
             flash("If that email exists in our system, a reset link has been sent.", "success")
-        
         return redirect(url_for('login'))
     return render_template('forgot_password.html')
 
@@ -748,24 +777,20 @@ def reset_password(token):
     if request.method == 'POST':
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
-
         if password != confirm_password:
             flash("Passwords do not match.", "error")
             return redirect(url_for('reset_password', token=token))
         
-        # 1. Open database connection to check the old password first
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT password_hash FROM users WHERE email = %s", (email,))
         user = cursor.fetchone()
 
-        # 2. Check if the new password matches the current one in the database
         if user and check_password_hash(user['password_hash'], password):
             conn.close()
             flash("Your new password cannot be the same as your current password.", "error")
             return redirect(url_for('reset_password', token=token))
         
-        # 3. If it's a completely new password, hash it and save it!
         hashed_password = generate_password_hash(password)
         cursor.execute("UPDATE users SET password_hash = %s WHERE email = %s", (hashed_password, email))
         conn.commit()
@@ -773,7 +798,6 @@ def reset_password(token):
         
         flash("Your password has been successfully updated! You can now log in.", "success")
         return redirect(url_for('login'))
-
     return render_template('reset_password.html', token=token)
 
 # --- ADMIN AND PROFILE MANAGEMENT ---
@@ -784,28 +808,22 @@ def admin_dashboard():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        
         cursor.execute("SELECT COUNT(*) as count FROM orders")
         res_orders = cursor.fetchone()
         total_orders = res_orders['count'] if res_orders else 0
-        
         cursor.execute("SELECT SUM(total_amount) as revenue FROM orders")
         res_rev = cursor.fetchone()
         total_revenue = res_rev['revenue'] if res_rev and res_rev['revenue'] else 0
-        
         cursor.execute("SELECT * FROM products")
         products = cursor.fetchall() or [] 
-        
         cursor.execute("SELECT * FROM product_variants")
         list_of_variants = cursor.fetchall() or []
-
         cursor.execute("""
             SELECT o.*, u.full_name FROM orders o
             JOIN users u ON o.user_id = u.user_id
             ORDER BY o.created_at DESC
         """)
         orders = cursor.fetchall() or []
-
         for order in orders:
             cursor.execute("""
                 SELECT oi.*, p.name as product_name FROM order_items oi
@@ -813,17 +831,14 @@ def admin_dashboard():
                 WHERE oi.order_id = %s
             """, (order['order_id'],))
             order['safe_items'] = cursor.fetchall() or []
-
         cursor.execute("SELECT * FROM users WHERE role = 'customer' ORDER BY user_id DESC")
         customers = cursor.fetchall() or []
         conn.close() 
-
         variants_map = {}
         for v in list_of_variants: 
             pid = v['product_id']
             if pid not in variants_map: variants_map[pid] = []
             variants_map[pid].append(v)
-
         return render_template('admin.html', total_orders=total_orders, total_revenue=total_revenue, 
                                products=products, variants_map=variants_map, orders=orders, customers=customers)
     except Exception as e:
@@ -849,36 +864,33 @@ def update_order_status():
 def upload_product_image():
     if 'role' not in session or session['role'] != 'admin':
         return redirect('/login')
-
     product_id = request.form.get('product_id')
-    file = request.files.get('product_image')
-
-    if file:
+    files = request.files.getlist('product_images') 
+    if files:
+        conn = get_db_connection()
+        cursor = conn.cursor()
         try:
-            upload_result = cloudinary.uploader.upload(file)
-            image_url = upload_result['secure_url']
-
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("UPDATE products SET image_path = %s WHERE product_id = %s", 
-                           (image_url, product_id))
+            for i, file in enumerate(files):
+                if file and file.filename != '':
+                    upload_result = cloudinary.uploader.upload(file)
+                    image_url = upload_result['secure_url']
+                    if i == 0:
+                        cursor.execute("UPDATE products SET image_path = %s WHERE product_id = %s", (image_url, product_id))
+                    cursor.execute("INSERT INTO product_images (product_id, image_url) VALUES (%s, %s)", (product_id, image_url))
             conn.commit()
-            conn.close()
-            flash("Cloud image updated successfully!", "success")
+            flash("Gallery images updated successfully!", "success")
         except Exception as e:
-            flash(f"Cloudinary Error: {e}", "error")
-
+            flash(f"Upload Error: {e}", "error")
+        finally:
+            conn.close()
     return redirect('/admin')
 
 @app.route('/admin/update_variant', methods=['POST'])
 def update_variant():
-    if 'role' not in session or session['role'] != 'admin':
-        return redirect('/login')
-
+    if 'role' not in session or session['role'] != 'admin': return redirect('/login')
     variant_id = request.form.get('variant_id')
     new_price = request.form.get('price')
     new_stock = request.form.get('stock')
-
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -889,7 +901,6 @@ def update_variant():
         flash("Price and Stock updated!", "success")
     except Exception as e:
         flash(f"Database Error: {e}", "error")
-
     return redirect('/admin')
 
 @app.route('/profile', methods=['GET', 'POST'])
@@ -920,7 +931,6 @@ def profile():
             flash(f"Error: {e}", "error")
         finally:
             conn.close()
-            
         return redirect(url_for('profile'))
 
     conn = get_db_connection()
@@ -952,19 +962,35 @@ def my_orders():
 @app.route('/my_order_details/<int:order_id>')
 def my_order_details(order_id):
     if not session.get('loggedin'): return redirect(url_for('login'))
+    
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT * FROM orders WHERE order_id = %s AND user_id = %s", (order_id, session['user_id']))
     order = cursor.fetchone()
+    
     if not order:
         conn.close()
         return "Order not found."
+        
     cursor.execute("""
-        SELECT oi.*, p.name as product_name, p.image_path FROM order_items oi
+        SELECT oi.*, p.name as product_name, p.image_path 
+        FROM order_items oi
         JOIN products p ON oi.product_id = p.product_id
         WHERE oi.order_id = %s
     """, (order_id,))
     order_items = cursor.fetchall()
+    
+    # --- NEW LOGIC: Check if items are eligible for review ---
+    if order['order_status'] == 'Completed':
+        for item in order_items:
+            cursor.execute("SELECT COUNT(*) as count FROM product_reviews WHERE user_id = %s AND product_id = %s", (session['user_id'], item['product_id']))
+            already_reviewed = cursor.fetchone()['count'] > 0
+            # They can review if they haven't already!
+            item['can_review'] = not already_reviewed
+    else:
+        for item in order_items:
+            item['can_review'] = False
+
     conn.close()
     return render_template('order_details.html', order=order, items=order_items)
 

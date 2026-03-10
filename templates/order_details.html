@@ -3,29 +3,54 @@
 {% block content %}
 <style>
     /* Specific Styles for Receipt */
-    .receipt-wrapper {
-        padding: 50px 20px;
-        display: flex;
-        justify-content: center;
-    }
+    .receipt-wrapper { padding: 50px 20px; display: flex; justify-content: center; }
     .receipt-container { 
-        width: 100%;
-        max-width: 700px; 
-        background: white; 
-        padding: 40px; 
-        border-radius: 12px; 
-        box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
+        width: 100%; max-width: 700px; background: white; padding: 40px; 
+        border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
     }
     .top-info { display: flex; justify-content: space-between; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 20px; }
-    .item-row { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px dashed #eee; }
+    .item-row { padding: 20px 0; border-bottom: 1px dashed #eee; display: flex; flex-direction: column; }
+    .item-main-details { display: flex; justify-content: space-between; align-items: flex-start; }
     .total-row { display: flex; justify-content: space-between; padding-top: 20px; font-size: 20px; font-weight: bold; color: #DC5500; }
     
     .btn-back { display: inline-block; padding: 10px 20px; background: #333; color: white; text-decoration: none; border-radius: 6px; font-size: 14px; margin-top: 20px; }
     .btn-back:hover { background: #555; }
+
+    /* --- NEW INLINE REVIEW STYLES --- */
+    .btn-leave-review {
+        background: #fff5e6; color: #DC5500; border: 1px solid #ffccaa; padding: 6px 12px;
+        border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 10px; display: inline-flex; align-items: center; gap: 5px;
+    }
+    .btn-leave-review:hover { background: #DC5500; color: white; border-color: #DC5500; }
+
+    .review-dropdown-form {
+        display: none; background: #fafafa; border: 1px solid #eee; border-radius: 8px; padding: 15px; margin-top: 15px;
+    }
+    .star-rating-input { display: flex; flex-direction: row-reverse; justify-content: flex-end; gap: 5px; margin-bottom: 10px; font-size: 20px; }
+    .star-rating-input input { display: none; }
+    .star-rating-input label { color: #ccc; cursor: pointer; transition: 0.2s; }
+    .star-rating-input label:hover, .star-rating-input label:hover ~ label, .star-rating-input input:checked ~ label { color: #ff6600; }
+    
+    .custom-textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family: inherit; font-size: 13px; box-sizing: border-box; resize: vertical; }
+    .btn-submit-review { background: #DC5500; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; margin-top: 10px; }
+    .btn-submit-review:hover { background: #b84700; }
 </style>
 
 <div class="receipt-wrapper">
     <div class="receipt-container">
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div style="padding: 12px; border-radius: 6px; margin-bottom: 20px; font-size: 13px; text-align: center;
+                        background: {{ '#d4edda' if category == 'success' else '#f8d7da' }}; 
+                        color: {{ '#155724' if category == 'success' else '#721c24' }};">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
         <div class="top-info">
             <div>
                 <h2 style="margin:0;">Order #{{ order.order_id }}</h2>
@@ -41,16 +66,50 @@
         
         {% for item in items %}
         <div class="item-row">
-            <div style="flex: 1;">
-                <strong>{{ item.quantity }}x {{ item.product_name }}</strong>
-                <div style="font-size: 12px; color: #666; margin-top: 4px;">{{ item.item_details }}</div>
-                {% if item.file_path %}
-                    <div style="font-size: 11px; color: #888; margin-top: 2px;">Files uploaded</div>
-                {% endif %}
+            <div class="item-main-details">
+                <div style="flex: 1;">
+                    <strong>{{ item.quantity }}x {{ item.product_name }}</strong>
+                    <div style="font-size: 12px; color: #666; margin-top: 4px;">{{ item.item_details }}</div>
+                    {% if item.file_path %}
+                        <div style="font-size: 11px; color: #888; margin-top: 2px;">Files uploaded</div>
+                    {% endif %}
+                    
+                    {% if item.can_review %}
+                        <button class="btn-leave-review" onclick="toggleReviewForm({{ item.item_id }})">
+                            <i class="fas fa-star"></i> Review Item
+                        </button>
+                    {% endif %}
+                </div>
+                <div style="font-weight: 600;">
+                    ₱{{ "{:,.2f}".format(item.price_at_time) }}
+                </div>
             </div>
-            <div style="font-weight: 600;">
-                ₱{{ "{:,.2f}".format(item.price_at_time) }}
+
+            {% if item.can_review %}
+            <div class="review-dropdown-form" id="review-form-{{ item.item_id }}">
+                <div style="font-size: 13px; font-weight: 600; margin-bottom: 10px; color: #333;">How was your {{ item.product_name }}?</div>
+                <form action="/submit_review" method="POST">
+                    <input type="hidden" name="product_id" value="{{ item.product_id }}">
+                    <input type="hidden" name="source_order_id" value="{{ order.order_id }}">
+                    
+                    <div class="star-rating-input">
+                        <input type="radio" id="star5_{{ item.item_id }}" name="rating" value="5" required /><label for="star5_{{ item.item_id }}" title="5 stars"><i class="fas fa-star"></i></label>
+                        <input type="radio" id="star4_{{ item.item_id }}" name="rating" value="4" /><label for="star4_{{ item.item_id }}" title="4 stars"><i class="fas fa-star"></i></label>
+                        <input type="radio" id="star3_{{ item.item_id }}" name="rating" value="3" /><label for="star3_{{ item.item_id }}" title="3 stars"><i class="fas fa-star"></i></label>
+                        <input type="radio" id="star2_{{ item.item_id }}" name="rating" value="2" /><label for="star2_{{ item.item_id }}" title="2 stars"><i class="fas fa-star"></i></label>
+                        <input type="radio" id="star1_{{ item.item_id }}" name="rating" value="1" /><label for="star1_{{ item.item_id }}" title="1 star"><i class="fas fa-star"></i></label>
+                    </div>
+
+                    <textarea name="comment" rows="2" placeholder="Tell us about the print quality..." class="custom-textarea" required></textarea>
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <button type="submit" class="btn-submit-review">Submit</button>
+                        <button type="button" class="btn-submit-review" style="background: #eee; color: #555;" onclick="toggleReviewForm({{ item.item_id }})">Cancel</button>
+                    </div>
+                </form>
             </div>
+            {% endif %}
+
         </div>
         {% endfor %}
 
@@ -64,4 +123,15 @@
         </div>
     </div>
 </div>
+
+<script>
+    function toggleReviewForm(itemId) {
+        var formBox = document.getElementById('review-form-' + itemId);
+        if (formBox.style.display === 'block') {
+            formBox.style.display = 'none';
+        } else {
+            formBox.style.display = 'block';
+        }
+    }
+</script>
 {% endblock %}

@@ -10,9 +10,29 @@
         <input type="hidden" name="dynamic_variant_name" id="dynamic-variant-name" value="">
 
         <div class="product-top-section">
+            
             <div class="product-gallery">
-                <div class="main-image-box">
-                    <img id="main-img" src="{{ product.image_path if product.image_path and 'http' in product.image_path else url_for('static', filename=product.image_path if product.image_path else 'images/icon-signage.png') }}" alt="Product">
+                <div class="shopee-gallery-container">
+                    <div class="main-image-box">
+                        <img id="mainGalleryImage" 
+                             src="{% if gallery %}{{ gallery[0] }}{% elif product.image_path %}{{ product.image_path if 'http' in product.image_path else url_for('static', filename=product.image_path) }}{% else %}{{ url_for('static', filename='images/product_' ~ product.product_id ~ '.jpg') }}{% endif %}" 
+                             alt="{{ product.name }}"
+                             onerror="this.src='{{ url_for('static', filename='images/icon-signage.png') }}'">
+                    </div>
+                    
+                    <div class="thumbnail-row">
+                        {% if gallery %}
+                            {% for img in gallery %}
+                            <div class="thumb-box {% if loop.first %}active{% endif %}" onclick="changeMainImage('{{ img }}', this)">
+                                <img src="{{ img }}" alt="Thumbnail">
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="thumb-box active">
+                                <img src="{% if product.image_path %}{{ product.image_path if 'http' in product.image_path else url_for('static', filename=product.image_path) }}{% else %}{{ url_for('static', filename='images/product_' ~ product.product_id ~ '.jpg') }}{% endif %}" onerror="this.style.display='none'">
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
 
@@ -183,6 +203,72 @@
             </div> 
         </div>
     </form>
+<div class="reviews-section">
+        <h2 class="reviews-header">Product Ratings</h2>
+        
+        <div class="rating-summary-box">
+            <div class="score-col">
+                <div class="big-score"><span class="score-num">{{ avg_rating }}</span> out of 5</div>
+                <div class="stars-display">
+                    {% for i in range(1, 6) %}
+                        {% if avg_rating >= i %}
+                            <i class="fas fa-star" style="color: #ff6600;"></i>
+                        {% elif avg_rating >= i - 0.5 %}
+                            <i class="fas fa-star-half-alt" style="color: #ff6600;"></i>
+                        {% else %}
+                            <i class="far fa-star" style="color: #ff6600;"></i>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="filter-col">
+                <div class="filter-btn active">All ({{ total_reviews }})</div>
+            </div>
+        </div>
+
+        {% if can_review %}
+        <div class="review-submission-box">
+            <h4 style="margin: 0 0 15px 0; color: #333;"><i class="fas fa-edit"></i> Write a Review for this Product</h4>
+            <form action="/submit_review" method="POST">
+                <input type="hidden" name="product_id" value="{{ product.product_id }}">
+                
+                <div class="star-rating-input">
+                    <input type="radio" id="star5" name="rating" value="5" required /><label for="star5" title="5 stars"><i class="fas fa-star"></i></label>
+                    <input type="radio" id="star4" name="rating" value="4" /><label for="star4" title="4 stars"><i class="fas fa-star"></i></label>
+                    <input type="radio" id="star3" name="rating" value="3" /><label for="star3" title="3 stars"><i class="fas fa-star"></i></label>
+                    <input type="radio" id="star2" name="rating" value="2" /><label for="star2" title="2 stars"><i class="fas fa-star"></i></label>
+                    <input type="radio" id="star1" name="rating" value="1" /><label for="star1" title="1 star"><i class="fas fa-star"></i></label>
+                </div>
+
+                <textarea name="comment" rows="3" placeholder="Share your thoughts on the print quality and materials..." class="custom-textarea" style="margin-bottom: 10px;" required></textarea>
+                <button type="submit" class="btn-buy" style="width: auto; padding: 10px 25px;">Submit Review</button>
+            </form>
+        </div>
+        {% endif %}
+
+        <div class="reviews-list">
+            {% if reviews %}
+                {% for review in reviews %}
+                <div class="review-item">
+                    <div class="reviewer-avatar"><i class="fas fa-user"></i></div>
+                    <div class="review-content">
+                        <div class="reviewer-name">{{ review.full_name[0] }}***{{ review.full_name[-1] }}</div>
+                        <div class="review-stars">
+                            {% for i in range(review.rating) %}<i class="fas fa-star"></i>{% endfor %}
+                        </div>
+                        <div class="review-date">{{ review.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                        <p class="review-text">{{ review.comment }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div style="text-align: center; padding: 40px; color: #999;">
+                    <i class="fas fa-comment-slash" style="font-size: 30px; margin-bottom: 10px;"></i>
+                    <p>No reviews yet. Be the first to review after purchasing!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
 </div>
 
 <style>
@@ -190,9 +276,22 @@
     .product-page-container { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
     .product-top-section { display: flex; gap: 30px; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
     .product-gallery { flex: 4; }
-    .main-image-box { width: 100%; height: 400px; background: #f9f9f9; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-    .main-image-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
     .product-info-column { flex: 5; padding-left: 20px; }
+    
+    /* NEW GALLERY STYLES */
+    .shopee-gallery-container { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+    .main-image-box { width: 100%; aspect-ratio: 1 / 1; background: #f9f9f9; border-radius: 8px; border: 1px solid #eee; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    .main-image-box img { max-width: 100%; max-height: 100%; object-fit: contain; transition: 0.3s ease; }
+    
+    .thumbnail-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: thin; }
+    .thumbnail-row::-webkit-scrollbar { height: 6px; }
+    .thumbnail-row::-webkit-scrollbar-thumb { background: #ffccaa; border-radius: 10px; }
+    
+    .thumb-box { width: 80px; height: 80px; flex-shrink: 0; border: 2px solid transparent; border-radius: 6px; cursor: pointer; overflow: hidden; transition: 0.2s; opacity: 0.6; background: white; }
+    .thumb-box img { width: 100%; height: 100%; object-fit: cover; }
+    .thumb-box:hover { opacity: 1; }
+    .thumb-box.active { border-color: #ff6600; opacity: 1; box-shadow: 0 0 5px rgba(255,102,0,0.2); }
+
     .product-title { font-size: 24px; font-weight: 600; margin: 0 0 10px 0; color: #333; }
     .price-display { background: #fffcf9; padding: 15px; margin: 20px 0; border-radius: 6px; border: 1px solid #fff0e0; }
     .price-display span { font-size: 32px; color: #ff6600; font-weight: 700; }
@@ -223,10 +322,44 @@
     .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
     input:checked + .slider { background-color: #ff6600; }
     input:checked + .slider:before { transform: translateX(22px); }
+    /* --- NEW REVIEWS SECTION STYLES --- */
+    .reviews-section { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-top: 30px; }
+    .reviews-header { font-size: 18px; color: #222; margin: 0 0 20px 0; font-weight: 600; text-transform: uppercase;}
+    
+    .rating-summary-box { background: #fffbf8; border: 1px solid #f9ece1; padding: 25px; border-radius: 4px; display: flex; gap: 40px; margin-bottom: 30px; }
+    .score-col { text-align: center; }
+    .big-score { color: #ff6600; font-size: 16px; }
+    .score-num { font-size: 36px; font-weight: bold; }
+    .stars-display { font-size: 18px; margin-top: 5px; }
+    
+    .filter-col { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .filter-btn { border: 1px solid #ddd; padding: 5px 20px; border-radius: 20px; background: white; font-size: 14px; cursor: pointer; color: #555; }
+    .filter-btn.active { border-color: #ff6600; color: #ff6600; font-weight: 600; }
+
+    .review-submission-box { background: #fafafa; padding: 20px; border-radius: 6px; border: 1px dashed #ddd; margin-bottom: 30px; }
+    .star-rating-input { display: flex; flex-direction: row-reverse; justify-content: flex-end; gap: 5px; margin-bottom: 15px; font-size: 24px; }
+    .star-rating-input input { display: none; }
+    .star-rating-input label { color: #ccc; cursor: pointer; transition: 0.2s; }
+    .star-rating-input label:hover, .star-rating-input label:hover ~ label, .star-rating-input input:checked ~ label { color: #ff6600; }
+
+    .review-item { display: flex; gap: 15px; padding: 20px 0; border-bottom: 1px solid #eee; }
+    .reviewer-avatar { width: 40px; height: 40px; background: #eee; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #aaa; flex-shrink: 0; }
+    .review-content { flex: 1; }
+    .reviewer-name { font-size: 12px; font-weight: 600; color: #333; }
+    .review-stars { color: #ff6600; font-size: 12px; margin: 4px 0; }
+    .review-date { font-size: 11px; color: #999; margin-bottom: 10px; }
+    .review-text { font-size: 14px; color: #444; margin: 0; line-height: 1.5; }
 </style>
 
 <script>
     var productId = {{ product.product_id }};
+
+    // NEW: Gallery Swapping Logic
+    function changeMainImage(url, element) {
+        document.getElementById('mainGalleryImage').src = url;
+        document.querySelectorAll('.thumb-box').forEach(box => box.classList.remove('active'));
+        element.classList.add('active');
+    }
 
     function setDynamicValues(price, name) {
         document.getElementById('dynamic-unit-price').value = price;
