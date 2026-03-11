@@ -15,95 +15,58 @@
     {% block styles %}{% endblock %}
 
 <style>
-    .site-header { 
-    font-family: 'Alexandria', sans-serif !important; 
-}
+    .site-header { font-family: 'Alexandria', sans-serif !important; }
+    
     /* --- FLASH POP-UP UI --- */
-    .flash-container {
-        position: fixed;
-        top: 100px;
-        right: 20px;
-        z-index: 9999;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-    .flash-message {
-        min-width: 280px;
-        padding: 16px 24px;
-        border-radius: 8px;
-        background: white;
-        color: #333;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        display: flex;
-        align-items: center; gap: 12px;
-        font-family: 'Alexandria', sans-serif;
-        font-size: 14px;
-        border-left: 5px solid #DC5500;
-        animation: slideIn 0.4s ease forwards;
-    }
+    .flash-container { position: fixed; top: 100px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+    .flash-message { min-width: 280px; padding: 16px 24px; border-radius: 8px; background: white; color: #333; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 12px; font-family: 'Alexandria', sans-serif; font-size: 14px; border-left: 5px solid #DC5500; animation: slideIn 0.4s ease forwards; }
 
     /* --- HEADER LOGO FIX --- */
     .header-logo .brand-link { display: flex; align-items: center; gap: 10px; text-decoration: none; }
     .header-brand-text { display: flex; flex-direction: column; justify-content: center; }
-    
-    /* Forces the header text to be dark and visible */
-    .header-brand-text .brand-name { 
-        font-weight: 800; 
-        color: #222222; /* Dark grey for the white header */
-        font-size: 22px;
-        line-height: 1;
-        margin-bottom: 2px;
-    }
-    .header-brand-text .brand-tagline { 
-        color: #DC5500; 
-        font-size: 10px; 
-        letter-spacing: 2px; 
-        font-weight: 600;
-    }
+    .header-brand-text .brand-name { font-weight: 800; color: #222222; font-size: 22px; line-height: 1; margin-bottom: 2px; }
+    .header-brand-text .brand-tagline { color: #DC5500; font-size: 10px; letter-spacing: 2px; font-weight: 600; }
 
     /* --- FOOTER UI ENHANCEMENTS --- */
-    .site-footer {
-        background-color: #1a1a1a;
-        color: #ffffff;
-        padding-top: 60px;
-        margin-top: 50px;
-    }
-    /* Forces the footer text to remain white */
-    .footer-brand .brand-text h3 { 
-        font-weight: 700; 
-        color: #ffffff; 
-        margin: 0;
-    }
-    .footer-brand .brand-text p {
-        color: #DC5500; 
-        font-size: 10px; 
-        letter-spacing: 2px; 
-        margin: 5px 0 0 0;
-    }
-
-    .footer-col h4 {
-        color: #DC5500;
-        margin-bottom: 20px;
-        font-size: 18px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
+    .site-footer { background-color: #1a1a1a; color: #ffffff; padding-top: 60px; margin-top: 50px; }
+    .footer-brand .brand-text h3 { font-weight: 700; color: #ffffff; margin: 0; }
+    .footer-brand .brand-text p { color: #DC5500; font-size: 10px; letter-spacing: 2px; margin: 5px 0 0 0; }
+    .footer-col h4 { color: #DC5500; margin-bottom: 20px; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
     .footer-col ul { list-style: none; padding: 0; }
     .footer-col ul li { margin-bottom: 12px; }
-    .footer-col ul li a {
-        color: #bbb;
-        text-decoration: none;
-        transition: 0.3s;
-        font-size: 14px;
-    }
-    .footer-col ul li a:hover {
-        color: #DC5500;
-        padding-left: 5px;
-    }
+    .footer-col ul li a { color: #bbb; text-decoration: none; transition: 0.3s; font-size: 14px; }
+    .footer-col ul li a:hover { color: #DC5500; padding-left: 5px; }
     .contact-item strong { color: #DC5500; }
 
     @keyframes slideIn { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
+
+    /* --- CUSTOM LIVE CHAT WIDGET STYLES --- */
+    .chat-widget-container { position: fixed; bottom: 30px; right: 30px; z-index: 10000; font-family: 'Alexandria', sans-serif; }
+    .chat-toggle-btn { width: 60px; height: 60px; border-radius: 50%; background: #DC5500; color: white; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 5px 15px rgba(220, 85, 0, 0.4); transition: 0.3s; display: flex; align-items: center; justify-content: center; }
+    .chat-toggle-btn:hover { transform: scale(1.05); background: #c24b00; }
+    
+    .chat-window { width: 350px; height: 500px; background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: flex; flex-direction: column; overflow: hidden; position: absolute; bottom: 80px; right: 0; border: 1px solid #eee; transition: 0.3s; opacity: 0; transform: translateY(20px); pointer-events: none; }
+    .chat-window.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    
+    .chat-header { background: #DC5500; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 15px; }
+    .close-chat { background: transparent; border: none; color: white; font-size: 18px; cursor: pointer; }
+    
+    .chat-messages { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #f9f9f9; }
+    .chat-bubble { max-width: 80%; padding: 10px 15px; border-radius: 15px; font-size: 13px; line-height: 1.4; word-wrap: break-word; }
+    .chat-bubble.mine { background: #DC5500; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .chat-bubble.theirs { background: #e9ecef; color: #333; align-self: flex-start; border-bottom-left-radius: 4px; }
+    .chat-timestamp { font-size: 9px; opacity: 0.7; margin-top: 5px; text-align: right; }
+    .chat-attachment { max-width: 100%; border-radius: 8px; margin-top: 5px; cursor: pointer; }
+    
+    .chat-input-area { padding: 15px; background: white; border-top: 1px solid #eee; display: flex; flex-direction: column; gap: 5px;}
+    .chat-form-row { display: flex; gap: 10px; align-items: center; }
+    .chat-file-label { cursor: pointer; color: #888; font-size: 18px; transition: 0.2s; padding: 5px; }
+    .chat-file-label:hover { color: #DC5500; }
+    .chat-input { flex: 1; padding: 10px 15px; border: 1px solid #ddd; border-radius: 20px; outline: none; font-family: inherit; font-size: 13px; }
+    .chat-input:focus { border-color: #DC5500; }
+    .chat-send-btn { background: #DC5500; color: white; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+    .chat-send-btn:hover { background: #c24b00; }
+    #chat-file-name { font-size: 10px; color: #DC5500; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
 </style>
 
 </head>
@@ -171,6 +134,38 @@
 
     {% block content %}{% endblock %}
 
+    {% if session.get('loggedin') and session.get('role') != 'admin' %}
+    <div class="chat-widget-container">
+        <div id="chatWindow" class="chat-window">
+            <div class="chat-header">
+                <span><i class="fas fa-headset"></i> Support Chat</span>
+                <button onclick="toggleChat()" class="close-chat"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div id="chatMessages" class="chat-messages">
+                <div style="text-align: center; color: #aaa; font-size: 12px; margin-top: 20px;">
+                    Send us a message! We typically reply within a few minutes.
+                </div>
+            </div>
+            
+            <div class="chat-input-area">
+                <div id="chat-file-name"></div>
+                <form id="chatForm" class="chat-form-row" onsubmit="sendChatMessage(event)">
+                    <label for="chatAttachment" class="chat-file-label" title="Attach Design/Proof">
+                        <i class="fas fa-paperclip"></i>
+                    </label>
+                    <input type="file" id="chatAttachment" style="display: none;" onchange="updateChatFileName(this)">
+                    <input type="text" id="chatInputText" class="chat-input" placeholder="Type a message..." autocomplete="off">
+                    <button type="submit" class="chat-send-btn" id="chatSendBtn"><i class="fas fa-paper-plane"></i></button>
+                </form>
+            </div>
+        </div>
+        <button class="chat-toggle-btn" onclick="toggleChat()">
+            <i class="fas fa-comment-dots"></i>
+        </button>
+    </div>
+    {% endif %}
+
     <footer class="site-footer">
         <div class="footer-container">
             <div class="footer-brand">
@@ -236,11 +231,124 @@
                 for (let i = 0; i < dropdowns.length; i++) { dropdowns[i].classList.remove('show'); }
             }
         }
+        
         // Auto-hide flash messages
         setTimeout(() => {
             const msgs = document.querySelectorAll('.flash-message');
             msgs.forEach(m => m.style.display = 'none');
         }, 4000);
+
+        // ==========================================
+        // --- CUSTOM LIVE CHAT JAVASCRIPT ---
+        // ==========================================
+        {% if session.get('loggedin') and session.get('role') != 'admin' %}
+        let chatInterval = null;
+        let lastMessageCount = 0;
+
+        function toggleChat() {
+            const windowEl = document.getElementById('chatWindow');
+            windowEl.classList.toggle('show');
+            if (windowEl.classList.contains('show')) {
+                fetchMessages();
+                chatInterval = setInterval(fetchMessages, 3000); // Poll every 3 seconds
+            } else {
+                clearInterval(chatInterval);
+            }
+        }
+
+        function updateChatFileName(input) {
+            const nameDisplay = document.getElementById('chat-file-name');
+            if (input.files.length > 0) {
+                nameDisplay.innerHTML = `<i class="fas fa-image"></i> Attached: ${input.files[0].name}`;
+            } else {
+                nameDisplay.innerHTML = "";
+            }
+        }
+
+function fetchMessages() {
+            // Adds a timestamp to bypass strict browser caching
+            fetch('/api/get_messages?t=' + new Date().getTime())
+                .then(res => res.json())
+                .then(data => {
+                    if (data.length !== lastMessageCount) {
+                        renderMessages(data);
+                        lastMessageCount = data.length;
+                        scrollToBottom();
+                    }
+                }).catch(err => console.error('Chat fetch error:', err));
+        }
+
+        function renderMessages(messages) {
+            const container = document.getElementById('chatMessages');
+            container.innerHTML = '';
+            
+            if(messages.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #aaa; font-size: 12px; margin-top: 20px;">Send us a message! We typically reply within a few minutes.</div>';
+                return;
+            }
+
+            messages.forEach(msg => {
+                const bubbleClass = msg.is_mine ? 'mine' : 'theirs';
+                let html = `<div class="chat-bubble ${bubbleClass}">`;
+                
+                if (msg.message_text) {
+                    html += `<div>${msg.message_text}</div>`;
+                }
+                if (msg.attachment_url) {
+                    // Check if it's an image to show preview, else show download link
+                    if(msg.attachment_url.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null) {
+                        html += `<a href="${msg.attachment_url}" target="_blank"><img src="${msg.attachment_url}" class="chat-attachment" alt="Attachment"></a>`;
+                    } else {
+                        html += `<a href="${msg.attachment_url}" target="_blank" style="color: inherit; text-decoration: underline; font-weight: bold; display: block; margin-top: 5px;"><i class="fas fa-file-download"></i> Download File</a>`;
+                    }
+                }
+                html += `<div class="chat-timestamp">${msg.created_at}</div></div>`;
+                container.innerHTML += html;
+            });
+        }
+
+        function scrollToBottom() {
+            const container = document.getElementById('chatMessages');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function sendChatMessage(e) {
+            e.preventDefault();
+            const textInput = document.getElementById('chatInputText');
+            const fileInput = document.getElementById('chatAttachment');
+            const sendBtn = document.getElementById('chatSendBtn');
+
+            if (!textInput.value.trim() && fileInput.files.length === 0) return;
+
+            // UI loading state
+            sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            sendBtn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('message_text', textInput.value);
+            if (fileInput.files.length > 0) {
+                formData.append('attachment', fileInput.files[0]);
+            }
+
+            fetch('/api/send_message', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    textInput.value = '';
+                    fileInput.value = '';
+                    document.getElementById('chat-file-name').innerHTML = '';
+                    fetchMessages(); // Immediately fetch new message
+                }
+            })
+            .finally(() => {
+                sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+                sendBtn.disabled = false;
+            });
+        }
+        {% endif %}
     </script>
 </body>
 </html>

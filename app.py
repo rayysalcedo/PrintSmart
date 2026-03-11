@@ -5,7 +5,7 @@ import random
 import requests
 from datetime import datetime, timedelta
 from itsdangerous import URLSafeTimedSerializer
-from flask import Flask, render_template, request, session, redirect, url_for, flash, make_response
+from flask import Flask, render_template, request, session, redirect, url_for, flash, make_response, jsonify
 from dotenv import load_dotenv
 import mysql.connector 
 from config import Config
@@ -1074,6 +1074,97 @@ def my_order_details(order_id):
 
     conn.close()
     return render_template('order_details.html', order=order, items=order_items)
+
+# ==========================================
+# --- LIVE CHAT API ROUTES ---
+# ==========================================
+
+@app.route('/api/get_messages')
+def get_messages():
+    if not session.get('loggedin'):
+        return jsonify({'status': 'error', 'message': 'Not logged in'}), 401
+    
+    user_id = session['user_id']
+    role = session.get('role', 'customer')
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        if role == 'admin':
+            other_user_id = request.args.get('user_id')
+            if not other_user_id:
+                return jsonify([])
+                
+            # THE FIX: Admin fetches ALL messages belonging to this specific customer's thread
+            cursor.execute("""
+                SELECT * FROM chat_messages 
+                WHERE sender_id = %s OR receiver_id = %s
+                ORDER BY created_at ASC
+            """, (other_user_id, other_user_id))
+        else:
+            # THE FIX: Customer fetches ALL messages in their own thread
+            cursor.execute("""
+                SELECT * FROM chat_messages 
+                WHERE sender_id = %s OR receiver_id = %s
+                ORDER BY created_at ASC
+            """, (user_id, user_id))
+            
+        messages = cursor.fetchall()
+        conn.close()
+        
+        for msg in messages:
+            msg['created_at'] = msg['created_at'].strftime('%b %d, %I:%M %p')
+            # Identifies if the message bubble should be orange (mine) or grey (theirs)
+            msg['is_mine'] = (msg['sender_id'] == user_id)
+            
+        return jsonify(messages)
+    except Exception as e:
+        print(f"Chat Fetch Error: {e}")
+        return jsonify([])
+
+@app.route('/api/send_message', methods=['POST'])
+def send_message():
+    if not session.get('loggedin'):
+        return jsonify({'status': 'error', 'message': 'Not logged in'}), 401
+        
+    sender_id = session['user_id']
+    role = session.get('role', 'customer')
+    
+    message_text = request.form.get('message_text', '').strip()
+    attachment = request.files.get('attachment')
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        if role == 'admin':
+            receiver_id = request.form.get('receiver_id')
+        else:
+            # Ensures the customer always points to the primary admin account
+            cursor.execute("SELECT user_id FROM users WHERE role = 'admin' ORDER BY user_id ASC LIMIT 1")
+            admin_user = cursor.fetchone()
+            receiver_id = admin_user['user_id'] if admin_user else 1
+            
+        if not message_text and not attachment:
+            return jsonify({'status': 'error', 'message': 'Empty message'})
+            
+        attachment_url = None
+        if attachment and attachment.filename != '':
+            upload_result = cloudinary.uploader.upload(attachment, folder="chat_attachments")
+            attachment_url = upload_result['secure_url']
+            
+        cursor.execute("""
+            INSERT INTO chat_messages (sender_id, receiver_id, message_text, attachment_url)
+            VALUES (%s, %s, %s, %s)
+        """, (sender_id, receiver_id, message_text, attachment_url))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        print(f"Chat Send Error: {e}")
+        return jsonify({'status': 'error', 'message': str(e)})
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5001))
