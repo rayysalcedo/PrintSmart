@@ -892,13 +892,21 @@ def admin_dashboard():
         cursor.execute("SELECT COUNT(*) as count FROM orders")
         res_orders = cursor.fetchone()
         total_orders = res_orders['count'] if res_orders else 0
+        
         cursor.execute("SELECT SUM(total_amount) as revenue FROM orders")
         res_rev = cursor.fetchone()
         total_revenue = res_rev['revenue'] if res_rev and res_rev['revenue'] else 0
+        
         cursor.execute("SELECT * FROM products")
         products = cursor.fetchall() or [] 
+        
         cursor.execute("SELECT * FROM product_variants")
         list_of_variants = cursor.fetchall() or []
+
+        # NEW: Fetch all gallery images ordered by when they were uploaded
+        cursor.execute("SELECT * FROM product_images ORDER BY image_id ASC")
+        gallery_images = cursor.fetchall() or []
+
         cursor.execute("""
             SELECT o.*, u.full_name FROM orders o
             JOIN users u ON o.user_id = u.user_id
@@ -912,18 +920,46 @@ def admin_dashboard():
                 WHERE oi.order_id = %s
             """, (order['order_id'],))
             order['safe_items'] = cursor.fetchall() or []
+            
         cursor.execute("SELECT * FROM users WHERE role = 'customer' ORDER BY user_id DESC")
         customers = cursor.fetchall() or []
         conn.close() 
+        
         variants_map = {}
         for v in list_of_variants: 
             pid = v['product_id']
             if pid not in variants_map: variants_map[pid] = []
             variants_map[pid].append(v)
+            
+        # NEW: Map the gallery images to their specific products
+        gallery_map = {}
+        for img in gallery_images:
+            pid = img['product_id']
+            if pid not in gallery_map: gallery_map[pid] = []
+            gallery_map[pid].append(img)
+            
         return render_template('admin.html', total_orders=total_orders, total_revenue=total_revenue, 
-                               products=products, variants_map=variants_map, orders=orders, customers=customers)
+                               products=products, variants_map=variants_map, gallery_map=gallery_map, orders=orders, customers=customers)
     except Exception as e:
         return f"DB Error: {e}"
+    
+@app.route('/admin/delete_gallery_image', methods=['POST'])
+def delete_gallery_image():
+    if 'role' not in session or session['role'] != 'admin':
+        return redirect('/login')
+        
+    image_id = request.form.get('image_id')
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM product_images WHERE image_id = %s", (image_id,))
+        conn.commit()
+        conn.close()
+        flash("Image removed from gallery successfully!", "success")
+    except Exception as e:
+        flash(f"Error removing image: {e}", "error")
+        
+    return redirect('/admin')
 
 @app.route('/admin/update_order_status', methods=['POST'])
 def update_order_status():
