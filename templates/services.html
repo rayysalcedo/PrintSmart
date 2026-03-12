@@ -1,148 +1,322 @@
 {% extends "base.html" %}
 
+{% block title %}Explore Printing Services | Printagram{% endblock %}
+
 {% block content %}
+<style>
+    body { background-color: #f6f5f7; }
+
+    /* --- HERO SLIDESHOW SECTION --- */
+    .services-hero {
+        position: relative; padding: 80px 20px 100px 20px; text-align: center; color: white;
+        border-radius: 0 0 30px 30px; margin-bottom: 0; overflow: hidden; box-shadow: 0 8px 15px rgba(220, 85, 0, 0.15);
+    }
+    .hero-slideshow { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
+    .hero-slideshow img {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0;
+        animation: slideFade 15s infinite;
+    }
+    .hero-slideshow img:nth-child(1) { animation-delay: 0s; }
+    .hero-slideshow img:nth-child(2) { animation-delay: 5s; }
+    .hero-slideshow img:nth-child(3) { animation-delay: 10s; }
+
+    @keyframes slideFade {
+        0% { opacity: 0; transform: scale(1.05); } 10% { opacity: 1; transform: scale(1); }
+        33% { opacity: 1; transform: scale(1); } 43% { opacity: 0; transform: scale(1.05); }
+        100% { opacity: 0; transform: scale(1.05); }
+    }
+
+    .hero-overlay {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        /* I lowered the opacity from 0.85 and 0.95 down to 0.5 and 0.7 */
+        background: linear-gradient(135deg, rgba(255, 140, 66, 0.5) 0%, rgba(220, 85, 0, 0.7) 100%); 
+        z-index: 1;
+    }
+    .hero-content { 
+        position: relative; 
+        z-index: 2; 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; /* Forces absolute center alignment */
+    }
+    .trusted-badge {
+        display: inline-block; background: rgba(255,255,255,0.25); padding: 6px 15px; border-radius: 50px;
+        font-size: 13px; margin-bottom: 15px; font-weight: 600; backdrop-filter: blur(5px);
+    }
+    .services-hero h1 { font-size: 36px; font-weight: 700; margin-bottom: 12px; text-align: center; }
+    .services-hero p { opacity: 0.95; margin-bottom: 25px; font-size: 16px; font-weight: 300; text-align: center; }
+
+    .search-container { 
+        width: 100%; /* Important for centering */
+        max-width: 600px; 
+        margin: 0 auto; 
+        position: relative; 
+    }
+    .search-container input {
+        width: 100%; 
+        box-sizing: border-box; /* THIS FIXES THE RIGHT-SHIFT BUG */
+        padding: 18px 25px 18px 55px; border-radius: 50px; border: none; font-size: 16px;
+        font-family: 'Alexandria', sans-serif; box-shadow: 0 4px 20px rgba(0,0,0,0.2); outline: none; transition: 0.3s;
+    }
+    .search-container input:focus { box-shadow: 0 6px 30px rgba(0,0,0,0.3); }
+    .search-icon { position: absolute; left: 22px; top: 50%; transform: translateY(-50%); color: #DC5500; font-size: 18px; font-weight: bold; }
+
+    .how-it-works-btn {
+        background: transparent; border: none; color: white; opacity: 0.9; margin-top: 15px;
+        font-size: 13px; cursor: pointer; text-decoration: underline; transition: 0.3s; font-family: inherit; font-weight: 600;
+        text-align: center;
+    }
+    .how-it-works-btn:hover { opacity: 1; color: #FFE4BD; }
+
+    /* --- CATEGORY BUBBLES --- */
+    .category-showcase {
+        display: flex; justify-content: center; align-items: flex-start; gap: 30px; margin-bottom: 45px;
+        flex-wrap: wrap; padding: 0 20px; margin-top: -50px; position: relative; z-index: 10;
+    }
+    .category-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: 0.3s; width: 100px; color: inherit; }
+    .category-icon-wrapper {
+        width: 80px; height: 80px; background: #fff; border-radius: 20px; display: flex; align-items: center;
+        justify-content: center; box-shadow: 0 6px 20px rgba(0,0,0,0.1); margin-bottom: 12px; transition: 0.3s;
+        color: #DC5500; font-size: 32px; border: 2px solid transparent; flex-shrink: 0;
+    }
+    .category-icon-wrapper img { width: 45px; height: 45px; object-fit: contain; }
+    .category-item:hover .category-icon-wrapper, .category-item.active .category-icon-wrapper {
+        background-color: #DC5500; color: #ffffff; transform: translateY(-5px); box-shadow: 0 10px 25px rgba(220, 85, 0, 0.25);
+    }
+    .category-item:hover .category-icon-wrapper img, .category-item.active .category-icon-wrapper img { filter: brightness(0) invert(1); }
+    .category-item span { font-size: 13px; font-weight: 600; text-align: center; line-height: 1.3; color: #444; }
+    .category-item.active span { color: #DC5500; }
+
+    /* --- E-COMMERCE PRODUCT CARDS --- */
+    .store-container { max-width: 1200px; margin: 0 auto; padding: 0 20px 60px; }
+    .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 25px; }
+    .product-link { text-decoration: none; color: inherit; display: flex; }
+    
+    .product-card {
+        background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        transition: 0.3s; display: flex; flex-direction: column; border: 1px solid #eee; width: 100%;
+    }
+    .product-card:hover { transform: translateY(-6px); box-shadow: 0 15px 35px rgba(0,0,0,0.1); border-color: #FFE4BD;}
+    
+    .product-image-container {
+        height: 200px; background: #FFF5E6; display: flex; align-items: center; justify-content: center;
+        overflow: hidden; position: relative; border-bottom: 1px solid #f5f5f5;
+    }
+    .product-image-container img { width: 100%; height: 100%; object-fit: cover; transition: 0.6s ease; }
+    .product-card:hover .product-image-container img { transform: scale(1.08); }
+    .fallback-category-icon { font-size: 60px; color: #FFE4BD; opacity: 0.8; }
+
+    .card-body { padding: 25px 20px; display: flex; flex-direction: column; flex-grow: 1; text-align: left; }
+    .product-tag { font-size: 11px; text-transform: uppercase; color: #DC5500; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px; }
+    .card-body h3 { font-size: 20px; font-weight: 700; color: #222; margin: 0 0 12px 0; line-height: 1.2; }
+    
+    .features { list-style: none; padding: 0; margin: 0 0 20px 0; font-size: 13px; color: #666; flex-grow: 1; }
+    .features li { margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .features li i { color: #2e7d32; font-size: 12px; }
+
+    /* NEW: DYNAMIC PRICE ROW STYLING */
+    .card-footer {
+        display: flex; justify-content: space-between; align-items: flex-end;
+        margin-top: auto; padding-top: 15px; border-top: 1px dashed #e0e0e0;
+    }
+    .price-wrap { display: flex; flex-direction: column; }
+    .price-label { font-size: 10px; text-transform: uppercase; color: #888; letter-spacing: 0.5px; margin-bottom: 2px; font-weight: 600;}
+    .price-value { font-size: 18px; font-weight: 800; color: #DC5500; display: flex; align-items: center;}
+    .price-currency { font-size: 12px; font-weight: 700; margin-right: 3px; margin-top: 2px;}
+
+    .order-btn-small {
+        background: #FFF5E6; color: #DC5500; padding: 8px 14px; border-radius: 8px;
+        font-size: 13px; font-weight: 700; transition: 0.3s; display: flex; align-items: center; gap: 6px;
+    }
+    .product-card:hover .order-btn-small { background: #DC5500; color: #fff; }
+
+    .no-results { grid-column: 1 / -1; text-align: center; padding: 60px; background: #fff; border-radius: 16px; border: 1px dashed #ccc; display: none; color: #888; }
+
+    /* --- MODAL POP-UP STYLING --- */
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000;
+        display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; backdrop-filter: blur(3px);
+    }
+    .process-modal {
+        background: #fff; border-radius: 20px; padding: 50px 30px; max-width: 900px; width: 95%; text-align: center;
+        position: relative; transform: translateY(-30px); transition: transform 0.3s ease; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    }
+    .modal-close { position: absolute; top: 15px; right: 25px; font-size: 28px; color: #aaa; cursor: pointer; transition: 0.2s; background: none; border: none; }
+    .modal-close:hover { color: #DC5500; }
+    .process-modal h2 { font-size: 32px; color: #222; margin-bottom: 10px; font-weight: 700;}
+    .process-sub { color: #666; margin-bottom: 40px; }
+    .steps-container { display: flex; justify-content: center; gap: 0; flex-wrap: wrap; margin: 0 auto; position: relative;}
+    .step-item { flex: 1; min-width: 180px; text-align: center; position: relative; padding: 0 10px; margin-bottom: 20px;}
+    @media(min-width: 768px) { .step-item:not(:last-child)::after { content: ""; position: absolute; top: 30px; right: -50%; width: 100%; height: 2px; background: #DC5500; opacity: 0.3; z-index: 1; } }
+    .step-circle { width: 60px; height: 60px; background: #DC5500; color: #ffffff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; margin: 0 auto 20px; position: relative; z-index: 2; box-shadow: 0 4px 10px rgba(220, 85, 0, 0.3); }
+    .step-item h4 { margin-bottom: 10px; font-size: 18px; color: #333; font-weight: 700; }
+    .step-item p { font-size: 14px; color: #777; line-height: 1.5; }
+    .start-order-btn { background: #DC5500; color: white; border: none; padding: 14px 45px; border-radius: 50px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px; transition: 0.3s; }
+    .start-order-btn:hover { background: #b84700; transform: translateY(-2px); }
+</style>
 
 <div class="services-hero">
+    <div class="hero-slideshow">
+        <img src="{{ url_for('static', filename='images/slide1.jpg') }}" alt="Printing Image 1">
+        <img src="{{ url_for('static', filename='images/slide2.jpg') }}" alt="Printing Image 2">
+        <img src="{{ url_for('static', filename='images/slide3.jpg') }}" alt="Printing Image 3">
+    </div>
+    <div class="hero-overlay"></div>
     <div class="hero-content">
-        <span class="trusted-badge">
-            <span class="google-icon"></span> Trusted Printing Partner
-        </span>
-        <h1>Professional Printing Solutions</h1>
-        <p>From business cards to full-color marketing materials, we deliver high-quality printing services.</p>
+        <span class="trusted-badge">✓ Professional Printing Solutions</span>
+        <h1>Explore Our Printing Services</h1>
+        <p>From business cards to large banners, we deliver high-quality prints to make your business shine.</p>
+        <div class="search-container">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="productSearch" placeholder="Search for tarpaulin, business cards, apparel...">
+        </div>
+        <button class="how-it-works-btn" onclick="openProcessModal()"><i class="fa-solid fa-circle-info"></i> How does ordering work?</button>
     </div>
 </div>
 
 <div class="main-container">
-
-    <div class="category-wrapper">
-        <div class="category-nav">
-            {% for category in categories %}
-                <div id="tab-{{ category.slug }}" 
-                     class="cat-tab {{ 'active' if loop.first else '' }}" 
-                     onclick="openCategory(event, '{{ category.slug }}')">
-                     {{ category.name }}
-                </div>
-            {% endfor %}
+    <div class="category-showcase">
+        <div class="category-item active" data-filter="all" onclick="filterCategory('all', this)">
+            <div class="category-icon-wrapper"><i class="fa-solid fa-layer-group"></i></div>
+            <span>All Services</span>
         </div>
+        {% for category in categories %}
+        <div class="category-item" data-filter="{{ category.slug }}" onclick="filterCategory('{{ category.slug }}', this)">
+            <div class="category-icon-wrapper">
+                {% if 'large' in category.slug or 'signage' in category.slug %}<i class="fa-solid fa-expand"></i>
+                {% elif 'sticker' in category.slug %}<i class="fa-solid fa-tags"></i>
+                {% elif 'document' in category.slug or 'photo' in category.slug %}<i class="fa-solid fa-images"></i>
+                {% elif 'apparel' in category.slug or 'shirt' in category.slug %}<i class="fa-solid fa-shirt"></i>
+                {% else %}<i class="fa-solid fa-print"></i>{% endif %}
+            </div>
+            <span>{{ category.name }}</span>
+        </div>
+        {% endfor %}
     </div>
 
-    {% for category in categories %}
-        
-        <div id="{{ category.slug }}" class="category-content" style="display: {{ 'block' if loop.first else 'none' }};">
-            
-            <div class="category-header">
-                <div class="icon-box"><img src="{{ url_for('static', filename=category.icon_path) }}" alt=""></div>
-                <h2>{{ category.name }}</h2>
-            </div>
-
-            <div class="products-grid">
-                {% for product in products %}
-                    {% if product.category_slug == category.slug %}
+    <div class="store-container">
+        <div class="products-grid" id="productGrid">
+            {% for product in products %}
+            <a href="{{ url_for('order', product_id=product.product_id) }}" class="product-link">
+                <div class="product-card" data-category="{{ product.category_slug }}" data-name="{{ product.name | lower }}">
                     
-                    <div class="product-card">
-                        <div class="card-body">
-                            <h3>{{ product.name }}</h3>
-                            <p class="desc">{{ product.description }}</p>
-                            
-                            <ul class="features">
-                                {% if product.product_id in features_map %}
-                                    {% for feature in features_map[product.product_id] %}
-                                        <li><span class="check">✓</span> {{ feature }}</li>
-                                    {% endfor %}
-                                {% endif %}
-                            </ul>
-                        </div>
-                        <a href="{{ url_for('order', product_id=product.product_id) }}" class="btn-order">Order Now &rarr;</a>
+                    <div class="product-image-container">
+                        {% set product_image = 'images/product_' ~ product.product_id ~ '.jpg' %}
+                        <img src="{{ url_for('static', filename=product_image) }}" alt="{{ product.name }}" onerror="handleImageError(this, '{{ product.category_slug }}')">
                     </div>
 
-                    {% endif %}
-                {% endfor %}
+                    <div class="card-body">
+                        <h3>{{ product.name }}</h3>
+                        
+                        <ul class="features">
+                            {% if product.product_id in features_map %}
+                                {% for feature in features_map[product.product_id] %}
+                                    <li><i class="fa-solid fa-circle-check"></i> {{ feature }}</li>
+                                {% endfor %}
+                            {% endif %}
+                        </ul>
+
+                        <div class="card-footer">
+                            <div class="price-wrap">
+                                <span class="price-label">Starts at</span>
+                                <span class="price-value"><span class="price-currency">₱</span>{{ "{:,.2f}".format(product.starting_price) }}</span>
+                            </div>
+                            <div class="order-btn-small">Order <i class="fa-solid fa-arrow-right"></i></div>
+                        </div>
+
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+            <div class="no-results" id="noResults">
+                <i class="fa-solid fa-magnifying-glass" style="font-size: 50px; margin-bottom: 20px; color: #ccc;"></i>
+                <h3 style="margin-bottom: 10px; color: #555;">No matches found</h3>
+                <p>Try searching for a different term or browse our categories above.</p>
             </div>
-        </div>
-
-    {% endfor %}
-    </div> <div class="process-section">
-    <h2>How It Works</h2>
-    <p class="process-sub">Our simple 4-step process ensures you get exactly what you need</p>
-    
-    <div class="steps-container">
-        <div class="step-item">
-            <div class="step-circle">1</div>
-            <h4>Choose Your Product</h4>
-            <p>Select from our wide range of printing services</p>
-        </div>
-
-        <div class="step-item">
-            <div class="step-circle">2</div>
-            <h4>Upload Design + Description</h4>
-            <p>Upload your artwork and provide precise print specifications</p>
-        </div>
-
-        <div class="step-item">
-            <div class="step-circle">3</div>
-            <h4>Place Order</h4>
-            <p>Confirm your details and complete your order with confidence</p>
-        </div>
-
-        <div class="step-item">
-            <div class="step-circle">4</div>
-            <h4>Fast Turnaround</h4>
-            <p>Expertly produced with a refined, timely finish</p>
         </div>
     </div>
 </div>
 
+<div class="modal-overlay" id="processModalOverlay">
+    <div class="process-modal" id="processModalContent">
+        <button class="modal-close" onclick="closeProcessModal()">&times;</button>
+        <h2>Simple 4-Step Process</h2>
+        <p class="process-sub">Get your custom prints produced expertly with timely turnaround.</p>
+        <div class="steps-container">
+            <div class="step-item"><div class="step-circle">1</div><h4>Choose Product</h4><p>Select from our professional range of printing services.</p></div>
+            <div class="step-item"><div class="step-circle">2</div><h4>Configure Details</h4><p>Specify size, materials, quantity, and upload your design.</p></div>
+            <div class="step-item"><div class="step-circle">3</div><h4>Review & Pay</h4><p>Confirm order specifications and complete payment confidently.</p></div>
+            <div class="step-item"><div class="step-circle">4</div><h4>Fast Delivery</h4><p>We expertly produce and handle the refined finish.</p></div>
+        </div>
+        <button class="start-order-btn" onclick="closeProcessModal()">Got it, Start Ordering!</button>
+    </div>
+</div>
+
 <script>
-    // 1. Main Tab Switching Function
-    function openCategory(evt, categoryName) {
-        // Hide all category contents
-        var i, content, tabs;
-        content = document.getElementsByClassName("category-content");
-        for (i = 0; i < content.length; i++) {
-            content[i].style.display = "none";
-        }
+    const modalOverlay = document.getElementById('processModalOverlay');
+    const modalContent = document.getElementById('processModalContent');
+    function openProcessModal() { modalOverlay.style.display = 'flex'; setTimeout(() => { modalOverlay.style.opacity = '1'; modalContent.style.transform = 'translateY(0)'; }, 10); }
+    function closeProcessModal() { modalOverlay.style.opacity = '0'; modalContent.style.transform = 'translateY(-30px)'; setTimeout(() => { modalOverlay.style.display = 'none'; }, 300); }
+    modalOverlay.addEventListener('click', function(e) { if (e.target === modalOverlay) { closeProcessModal(); } });
 
-        // Deactivate all tabs
-        tabs = document.getElementsByClassName("cat-tab");
-        for (i = 0; i < tabs.length; i++) {
-            tabs[i].classList.remove("active");
-        }
+    const searchInput = document.getElementById('productSearch');
+    const productLinks = document.querySelectorAll('.product-link');
+    const noResults = document.getElementById('noResults');
+    const categoryItems = document.querySelectorAll('.category-item');
 
-        // Show the target content
-        var targetContent = document.getElementById(categoryName);
-        if (targetContent) {
-            targetContent.style.display = "block";
-        }
-
-        // Activate the tab button
-        var targetTab = document.getElementById("tab-" + categoryName);
-        if (targetTab) {
-            targetTab.classList.add("active");
-        }
-    }
-
-    // 2. Auto-Scroll & Hash Check
-    function checkHashAndOpen() {
+    document.addEventListener("DOMContentLoaded", function() {
+        if (!sessionStorage.getItem('hasSeenProcessModal')) { setTimeout(openProcessModal, 600); sessionStorage.setItem('hasSeenProcessModal', 'true'); }
         if(window.location.hash) {
-            var hash = window.location.hash.substring(1);
-            var validCategories = ['signage', 'stickers', 'documents', 'apparel'];
-            
-            if (validCategories.includes(hash)) {
-                // Activate the tab
-                openCategory(null, hash);
-                
-                // Force Scroll to the Category Wrapper
-                setTimeout(function() {
-                    var element = document.querySelector('.category-wrapper');
-                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 100); 
-            }
+            const hash = window.location.hash.substring(1);
+            const targetBubble = document.querySelector(`.category-item[data-filter="${hash}"]`);
+            if (targetBubble) { filterCategory(hash, targetBubble); setTimeout(() => { document.querySelector('.category-showcase').scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100); }
         }
+    });
+
+    function handleImageError(imgElement, categorySlug) {
+        imgElement.style.display = 'none';
+        const container = imgElement.parentElement;
+        const iconDiv = document.createElement('div');
+        iconDiv.className = 'fallback-category-icon';
+        let iconHtml = '<i class="fa-solid fa-box-open"></i>'; 
+        if (categorySlug.includes('large') || categorySlug.includes('signage')) iconHtml = '<i class="fa-solid fa-expand"></i>';
+        else if (categorySlug.includes('sticker')) iconHtml = '<i class="fa-solid fa-tags"></i>';
+        else if (categorySlug.includes('document') || categorySlug.includes('photo')) iconHtml = '<i class="fa-solid fa-images"></i>';
+        else if (categorySlug.includes('apparel') || categorySlug.includes('shirt')) iconHtml = '<i class="fa-solid fa-shirt"></i>';
+        iconDiv.innerHTML = iconHtml; container.appendChild(iconDiv);
     }
 
-    // 3. Listeners
-    document.addEventListener("DOMContentLoaded", checkHashAndOpen);
-    window.addEventListener("hashchange", checkHashAndOpen);
-</script>
+    function runFilters() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const activeCategory = document.querySelector('.category-item.active').getAttribute('data-filter');
+        let visibleCount = 0;
+        productLinks.forEach(link => {
+            const card = link.querySelector('.product-card');
+            const productName = card.getAttribute('data-name');
+            const productCategory = card.getAttribute('data-category');
+            const matchesSearch = productName.includes(searchTerm);
+            const matchesCategory = (activeCategory === 'all' || productCategory === activeCategory);
+            if (matchesSearch && matchesCategory) { link.style.display = 'flex'; visibleCount++; } else { link.style.display = 'none'; }
+        });
+        noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+    }
 
+    function filterCategory(slug, element) {
+        categoryItems.forEach(item => item.classList.remove('active'));
+        if (element) { element.classList.add('active'); } else {
+            const targetBubble = document.querySelector(`.category-item[data-filter="${slug}"]`);
+            if (targetBubble) targetBubble.classList.add('active');
+        }
+        searchInput.value = ''; runFilters();
+    }
+
+    searchInput.addEventListener('input', runFilters);
+    window.addEventListener("hashchange", function() {
+        if(window.location.hash) {
+            const hash = window.location.hash.substring(1);
+            const targetBubble = document.querySelector(`.category-item[data-filter="${hash}"]`);
+            if (targetBubble) filterCategory(hash, targetBubble);
+        }
+    });
+</script>
 {% endblock %}
