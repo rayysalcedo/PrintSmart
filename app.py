@@ -568,8 +568,16 @@ def place_order():
 
         total_amount = float(request.form.get('grand_total'))
         
-        # 1. Create the order in the DB as 'Pending'
-        cursor.execute("INSERT INTO orders (user_id, total_amount, payment_status, payment_method, order_status, created_at) VALUES (%s, %s, 'Pending', 'PayMongo', 'Pending', NOW())", (user_id, total_amount))
+        # GRAB DELIVERY INFO
+        delivery_method = request.form.get('delivery_method', 'Pickup') 
+        # Only save the address if they actually chose Delivery
+        shipping_address = request.form.get('shipping_address', '').strip() if delivery_method == 'Delivery' else None
+        
+        # 1. Create the order in the DB with the Delivery Method and Address included
+        cursor.execute("""
+            INSERT INTO orders (user_id, total_amount, payment_status, payment_method, delivery_method, shipping_address, order_status, created_at) 
+            VALUES (%s, %s, 'Pending', 'PayMongo', %s, %s, 'Pending', NOW())
+        """, (user_id, total_amount, delivery_method, shipping_address))
         conn.commit() 
         new_order_id = cursor.lastrowid
 
@@ -587,11 +595,9 @@ def place_order():
         # 2. GENERATE PAYMONGO CHECKOUT LINK
         paymongo_key = os.environ.get('PAYMONGO_SECRET_KEY')
         
-        # Failsafe: If no API key is set, bypass to success (so your app doesn't break if env vars are missing)
         if not paymongo_key:
             return redirect(url_for('payment_success', order_id=new_order_id))
 
-        # PayMongo expects amounts in cents (e.g., Php 100.00 = 10000 cents)
         amount_in_cents = int(total_amount * 100)
 
         url = "https://api.paymongo.com/v1/checkout_sessions"
@@ -616,7 +622,6 @@ def place_order():
             }
         }
         
-        # PayMongo uses Basic Auth. We encode the secret key to Base64.
         auth_str = f"{paymongo_key}:"
         b64_auth = base64.b64encode(auth_str.encode()).decode()
         
@@ -630,7 +635,6 @@ def place_order():
         api_data = response.json()
 
         if response.status_code == 200:
-            # 3. Redirect the user to the official PayMongo Hosted Checkout Page!
             checkout_url = api_data['data']['attributes']['checkout_url']
             return redirect(checkout_url)
         else:
@@ -889,16 +893,19 @@ def admin_dashboard():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT COUNT(*) as count FROM orders")
+        
+        # FIX: Only count orders that are NOT Cancelled
+        cursor.execute("SELECT COUNT(*) as count FROM orders WHERE order_status != 'Cancelled'")
         res_orders = cursor.fetchone()
         total_orders = res_orders['count'] if res_orders else 0
         
-        cursor.execute("SELECT SUM(total_amount) as revenue FROM orders")
+        # FIX: Only sum the revenue for orders that are NOT Cancelled
+        cursor.execute("SELECT SUM(total_amount) as revenue FROM orders WHERE order_status != 'Cancelled'")
         res_rev = cursor.fetchone()
         total_revenue = res_rev['revenue'] if res_rev and res_rev['revenue'] else 0
         
         cursor.execute("SELECT * FROM products")
-        products = cursor.fetchall() or [] 
+        products = cursor.fetchall() or []
         
         cursor.execute("SELECT * FROM product_variants")
         list_of_variants = cursor.fetchall() or []
@@ -966,15 +973,25 @@ def update_order_status():
     if 'role' not in session or session['role'] != 'admin': return redirect('/login')
     order_id = request.form.get('order_id')
     new_status = request.form.get('status')
+    
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("UPDATE orders SET order_status = %s WHERE order_id = %s", (new_status, order_id))
+        
+        # If the admin sets it to 'Out for Delivery', generate the Estimated Delivery Date (+5 Days)
+        if new_status == 'Out for Delivery':
+            est_date = datetime.now() + timedelta(days=5)
+            cursor.execute("UPDATE orders SET order_status = %s, estimated_delivery_date = %s WHERE order_id = %s", (new_status, est_date, order_id))
+        else:
+            # FIX: If status is changed to anything else, erase the estimated delivery date so it hides on the frontend
+            cursor.execute("UPDATE orders SET order_status = %s, estimated_delivery_date = NULL WHERE order_id = %s", (new_status, order_id))
+            
         conn.commit()
         conn.close()
         flash(f"Order #{order_id} updated to {new_status}", "success")
     except Exception as e:
         flash(f"Error updating status: {e}", "error")
+        
     return redirect('/admin')
 
 @app.route('/admin/upload_product_image', methods=['POST'])
@@ -1097,19 +1114,59 @@ def my_order_details(order_id):
     """, (order_id,))
     order_items = cursor.fetchall()
     
-    # --- NEW LOGIC: Check if items are eligible for review ---
+    # Calculate Breakdown
+    subtotal = sum(float(item['price_at_time']) for item in order_items)
+    processing_fee = float(order['total_amount']) - subtotal
+    
+    # Check if items are eligible for review
     if order['order_status'] == 'Completed':
         for item in order_items:
             cursor.execute("SELECT COUNT(*) as count FROM product_reviews WHERE user_id = %s AND product_id = %s", (session['user_id'], item['product_id']))
             already_reviewed = cursor.fetchone()['count'] > 0
-            # They can review if they haven't already!
             item['can_review'] = not already_reviewed
     else:
         for item in order_items:
             item['can_review'] = False
 
     conn.close()
-    return render_template('order_details.html', order=order, items=order_items)
+    return render_template('order_details.html', order=order, items=order_items, subtotal=subtotal, processing_fee=processing_fee)
+
+# --- NEW: CANCEL ORDER ROUTE ---
+@app.route('/cancel_order', methods=['POST'])
+def cancel_order():
+    if not session.get('loggedin'): return redirect(url_for('login'))
+    
+    order_id = request.form.get('order_id')
+    reasons = request.form.getlist('reason')
+    other_reason = request.form.get('other_reason', '').strip()
+    
+    # Compile the cancellation reasons
+    final_reasons = [r for r in reasons if r != 'Others']
+    if 'Others' in reasons and other_reason:
+        final_reasons.append(f"Others: {other_reason}")
+    
+    cancel_reason_str = " | ".join(final_reasons)
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        # Verify the order belongs to the user AND is still Pending
+        cursor.execute("SELECT * FROM orders WHERE order_id = %s AND user_id = %s", (order_id, session['user_id']))
+        order = cursor.fetchone()
+        
+        if order and order['order_status'] == 'Pending':
+            cursor.execute("UPDATE orders SET order_status = 'Cancelled', cancellation_reason = %s WHERE order_id = %s", (cancel_reason_str, order_id))
+            conn.commit()
+            flash("Order cancelled successfully. A refund request has been sent to PayMongo (Processing takes 3-5 business days).", "success")
+        else:
+            flash("This order can no longer be cancelled.", "error")
+            
+        conn.close()
+    except Exception as e:
+        flash(f"Error cancelling order: {e}", "error")
+        
+    return redirect(url_for('my_order_details', order_id=order_id))
+
 
 # ==========================================
 # --- LIVE CHAT API ROUTES ---
@@ -1201,6 +1258,81 @@ def send_message():
     except Exception as e:
         print(f"Chat Send Error: {e}")
         return jsonify({'status': 'error', 'message': str(e)})
+    
+# --- DELETE CUSTOMER (ADMIN SIDE) ---
+@app.route('/admin/delete_customer/<int:user_id>', methods=['POST'])
+def admin_delete_customer(user_id):
+    if 'role' not in session or session['role'] != 'admin':
+        return redirect(url_for('login'))
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # 1. Delete items sitting in their cart
+        cursor.execute("DELETE FROM cart WHERE user_id = %s", (user_id,))
+        
+        # 2. Delete any product reviews they made
+        cursor.execute("DELETE FROM product_reviews WHERE user_id = %s", (user_id,))
+        
+        # 3. Delete any chat messages they sent or received
+        cursor.execute("DELETE FROM chat_messages WHERE sender_id = %s OR receiver_id = %s", (user_id, user_id))
+        
+        # 4. Delete the actual items inside their orders
+        cursor.execute("""
+            DELETE oi FROM order_items oi
+            INNER JOIN orders o ON oi.order_id = o.order_id
+            WHERE o.user_id = %s
+        """, (user_id,))
+        
+        # 5. Delete the parent orders
+        cursor.execute("DELETE FROM orders WHERE user_id = %s", (user_id,))
+        
+        # 6. Finally, delete the user account
+        cursor.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
+        
+        conn.commit()
+        conn.close()
+        flash("Customer account and all related data have been permanently deleted.", "success")
+    except Exception as e:
+        flash(f"Error deleting account: {e}", "error")
+        
+    return redirect(url_for('admin_dashboard'))
+
+# --- DELETE MY ACCOUNT (CUSTOMER SIDE) ---
+@app.route('/delete_my_account', methods=['POST'])
+def delete_my_account():
+    if not session.get('loggedin'):
+        return redirect(url_for('login'))
+        
+    user_id = session['user_id']
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Perform the exact same cleanup for the customer doing it themselves
+        cursor.execute("DELETE FROM cart WHERE user_id = %s", (user_id,))
+        cursor.execute("DELETE FROM product_reviews WHERE user_id = %s", (user_id,))
+        cursor.execute("DELETE FROM chat_messages WHERE sender_id = %s OR receiver_id = %s", (user_id, user_id))
+        cursor.execute("""
+            DELETE oi FROM order_items oi
+            INNER JOIN orders o ON oi.order_id = o.order_id
+            WHERE o.user_id = %s
+        """, (user_id,))
+        cursor.execute("DELETE FROM orders WHERE user_id = %s", (user_id,))
+        cursor.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        # Log the user out after deletion
+        session.clear()
+        flash("Your account has been deleted. We're sorry to see you go!", "success")
+        return redirect(url_for('home'))
+    except Exception as e:
+        flash(f"Error: {e}", "error")
+        return redirect(url_for('profile'))
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5001))

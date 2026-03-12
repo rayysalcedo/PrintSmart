@@ -90,7 +90,7 @@
         box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.1);
     }
 
-    /* 2. ADDED: Fix for Phone Input width to match other fields */
+    /* Fix for Phone Input width to match other fields */
     .iti { width: 100%; }
 
     /* Buttons */
@@ -207,11 +207,18 @@
 
         </div>
         
-        <div style="background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
-            <a href="/my_orders" style="text-decoration: none; color: #ff6600; font-weight: 600; font-size: 14px;">
-                <i class="fas fa-box-open"></i> View My Order History
-            </a>
+        {% if session['role'] == 'customer' %}
+        <div style="margin: 0 40px; padding: 20px 0 40px 0; border-top: 1px solid #eee;">
+            <h4 style="color: #dc3545; font-size: 14px; margin-bottom: 10px;">Danger Zone</h4>
+            <p style="font-size: 12px; color: #888; margin-bottom: 15px;">Once you delete your account, there is no going back. Please be certain.</p>
+            
+            <form action="/delete_my_account" method="POST" onsubmit="return confirm('Wait! Are you sure you want to delete your account? You will lose all your order history and messages.');">
+                <button type="submit" style="background: white; color: #dc3545; border: 1px solid #dc3545; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: 0.3s;">
+                    Delete My Account
+                </button>
+            </form>
         </div>
+        {% endif %}
 
     </div>
 </div>

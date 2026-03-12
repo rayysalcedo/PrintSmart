@@ -145,14 +145,14 @@
                 <div class="stat-card">
                     <h3>Total Revenue</h3>
                     <div class="value">₱{{ "{:,.2f}".format(total_revenue) }}</div>
-                    <div class="trend"><i class="fas fa-arrow-up"></i> +12.5% vs last month</div>
+                    <div class="trend"><i class="fas fa-arrow-up"></i> Valid Orders Only</div>
                     <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
                 </div>
 
                 <div class="stat-card">
                     <h3>Total Orders</h3>
                     <div class="value">{{ total_orders }}</div>
-                    <div class="trend"><i class="fas fa-arrow-up"></i> +8.3% vs last month</div>
+                    <div class="trend"><i class="fas fa-arrow-up"></i> Valid Orders Only</div>
                     <div class="stat-icon"><i class="fas fa-shopping-cart"></i></div>
                 </div>
 
@@ -252,10 +252,25 @@
                         {% for order in orders %}
                         <tr style="border-bottom: 1px solid #eee;">
                             <td style="padding: 15px;"><strong>#{{ order.order_id }}</strong></td>
-                            <td style="padding: 15px;">
+                            
+                            <td style="padding: 15px; min-width: 180px;">
                                 <div style="font-weight: 600; color: #222;">{{ order.full_name }}</div>
-                                <div style="font-size: 12px; color: #888;">{{ order.created_at.strftime('%b %d, %Y') }}</div>
+                                <div style="font-size: 12px; color: #888; margin-bottom: 8px;">{{ order.created_at.strftime('%b %d, %Y') }}</div>
+                                
+                                {% if order.delivery_method == 'Delivery' %}
+                                    <div style="font-size: 11px; background: #fff5eb; color: #DC5500; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 4px; font-weight: bold;">
+                                        <i class="fas fa-motorcycle"></i> Delivery
+                                    </div>
+                                    <div style="font-size: 11px; color: #555; line-height: 1.4; background: #f9f9f9; padding: 6px; border-radius: 4px; border: 1px solid #eee;">
+                                        <strong>To:</strong> {{ order.shipping_address }}
+                                    </div>
+                                {% else %}
+                                    <div style="font-size: 11px; background: #f0f0f0; color: #555; padding: 4px 8px; border-radius: 4px; display: inline-block; font-weight: bold;">
+                                        <i class="fas fa-store"></i> Store Pickup
+                                    </div>
+                                {% endif %}
                             </td>
+                            
                             <td style="padding: 15px; max-width: 300px;">
                                 {% for item in order.safe_items %}
                                 <div style="margin-bottom: 15px;">
@@ -293,11 +308,13 @@
                                 {% endfor %}
                             </td>
                             <td style="padding: 15px; font-weight: bold; color: #222;">₱{{ "{:,.2f}".format(order.total_amount) }}</td>
+                            
                             <td style="padding: 15px;">
-                                <span style="padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; white-space: nowrap; background-color: {{ '#d4edda' if order.order_status == 'Completed' else '#cce5ff' if order.order_status == 'Ready for Pickup' else '#fff3cd' if order.order_status == 'Processing' else '#f8d7da' if order.order_status == 'Cancelled' else '#e2e3e5' }}; color: {{ '#155724' if order.order_status == 'Completed' else '#004085' if order.order_status == 'Ready for Pickup' else '#856404' if order.order_status == 'Processing' else '#721c24' if order.order_status == 'Cancelled' else '#383d41' }};">
+                                <span style="padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; white-space: nowrap; background-color: {{ '#d4edda' if order.order_status == 'Completed' else '#cce5ff' if order.order_status == 'Ready for Pickup' else '#ffeeba' if order.order_status == 'Out for Delivery' else '#fff3cd' if order.order_status == 'Processing' else '#f8d7da' if order.order_status == 'Cancelled' else '#e2e3e5' }}; color: {{ '#155724' if order.order_status == 'Completed' else '#004085' if order.order_status == 'Ready for Pickup' else '#856404' if order.order_status == 'Out for Delivery' else '#856404' if order.order_status == 'Processing' else '#721c24' if order.order_status == 'Cancelled' else '#383d41' }};">
                                     {{ order.order_status }}
                                 </span>
                             </td>
+                            
                             <td style="padding: 15px;">
                                 <form action="/admin/update_order_status" method="POST">
                                     <input type="hidden" name="order_id" value="{{ order.order_id }}">
@@ -305,6 +322,7 @@
                                         <option value="Pending" {{ 'selected' if order.order_status == 'Pending' }}>Pending</option>
                                         <option value="Processing" {{ 'selected' if order.order_status == 'Processing' }}>Processing</option>
                                         <option value="Ready for Pickup" {{ 'selected' if order.order_status == 'Ready for Pickup' }}>Ready for Pickup</option>
+                                        <option value="Out for Delivery" {{ 'selected' if order.order_status == 'Out for Delivery' }}>Out for Delivery</option>
                                         <option value="Completed" {{ 'selected' if order.order_status == 'Completed' }}>Completed</option>
                                         <option value="Cancelled" {{ 'selected' if order.order_status == 'Cancelled' }}>Cancelled</option>
                                     </select>
@@ -347,11 +365,19 @@
                             </td>
                             <td style="padding: 15px; color: #666;">{{ cust.created_at.strftime('%Y-%m-%d') if cust.created_at else 'N/A' }}</td>
                             <td style="padding: 15px;">
-                                <form action="/admin/reset_user_password" method="POST" style="display:flex; gap:5px; align-items:center;">
-                                    <input type="hidden" name="user_id" value="{{ cust.user_id }}">
-                                    <input type="text" name="new_password" placeholder="New Password" style="padding:5px; border:1px solid #ddd; border-radius:4px; font-size:12px; width:120px;" required>
-                                    <button type="submit" style="background:#ff4444; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:12px;">Reset</button>
-                                </form>
+                                <div style="display: flex; gap: 15px; align-items: center;">
+                                    <form action="/admin/reset_user_password" method="POST" style="display:flex; gap:5px; align-items:center; margin: 0;">
+                                        <input type="hidden" name="user_id" value="{{ cust.user_id }}">
+                                        <input type="text" name="new_password" placeholder="New Password" style="padding:5px; border:1px solid #ddd; border-radius:4px; font-size:12px; width:120px;" required>
+                                        <button type="submit" style="background:#ff4444; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:12px;">Reset</button>
+                                    </form>
+
+                                    <form action="{{ url_for('admin_delete_customer', user_id=cust.user_id) }}" method="POST" onsubmit="return confirm('Are you sure? This will permanently remove this customer and their history.');" style="margin: 0;">
+                                        <button type="submit" style="background:transparent; color:#dc3545; border:none; cursor:pointer; font-size:12px; text-decoration:underline;">
+                                            Delete Account
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -436,7 +462,7 @@
             document.getElementById('page-title').innerText = tabId.charAt(0).toUpperCase() + tabId.slice(1);
         }
 
-        // Dashboard Chart
+        // Dashboard Chart (Using Static Example Data for UI)
         const ctx = document.getElementById('revenueChart').getContext('2d');
         const myChart = new Chart(ctx, {
             type: 'line',
@@ -450,7 +476,7 @@
                     fill: true, tension: 0.4
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, title: { display: true, text: 'Monthly Revenue Trends' } } }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, title: { display: true, text: 'Monthly Revenue Trends (Example)' } } }
         });
 
         // ==========================================
