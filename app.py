@@ -167,6 +167,10 @@ def home():
 def about():
     return render_template('about.html')
 
+@app.route('/contact')
+def contact():
+    return render_template('contact.html')
+
 @app.route('/login/google')
 def google_login():
     redirect_uri = url_for('google_authorize', _external=True)
