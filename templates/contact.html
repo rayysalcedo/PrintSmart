@@ -2,16 +2,45 @@
 
 {% block content %}
 
-<section class="contact-hero">
-    <div class="contact-hero-content">
-        <h1>Contact Printagram</h1>
-        <p>Your trusted partner for high-quality printing services.</p>
-        <p class="contact-sub">Business cards • Tarpaulins • Stickers • Invitations • and more</p>
+<section class="hero-header">
+    <div class="hero-container" style="background-image: linear-gradient(rgba(235, 107, 40, 0.85), rgba(235, 107, 40, 0.85)), url('/static/images/PrintagramBG.jpg');">
+        
+        <div class="hero-content">
+            <span class="badge-tag">✓ Professional Printing Solutions</span>
+            <h1>Contact Printagram</h1>
+            <p>Your trusted partner for high-quality printing services.<br>
+            Business cards • Tarpaulins • Stickers • Invitations • and more</p>
+
+            <div class="search-section">
+                <div class="search-pill">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search for contact info, locations, FAQs...">
+                </div>
+                </div>
+
+            <div class="floating-nav">
+                <div class="nav-box">
+                    <div class="icon-wrapper"><i class="fas fa-phone-alt"></i></div>
+                    <span class="nav-label">Phone</span>
+                </div>
+                <div class="nav-box">
+                    <div class="icon-wrapper"><i class="fas fa-envelope"></i></div>
+                    <span class="nav-label">Email</span>
+                </div>
+                <div class="nav-box">
+                    <div class="icon-wrapper"><i class="fab fa-facebook-f"></i></div>
+                    <span class="nav-label">Facebook</span>
+                </div>
+                <div class="nav-box">
+                    <div class="icon-wrapper"><i class="fas fa-map-marker-alt"></i></div>
+                    <span class="nav-label">Location</span>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 
 <section class="contact-container">
-
     <div class="contact-card">
         <div class="contact-icon">📞</div>
         <h3>Phone</h3>
@@ -39,20 +68,17 @@
         <p>National Rd. Panilao</p>
         <span>Pilar, Bataan</span>
     </div>
-
 </section>
 
 <section class="map-section">
-
-<iframe 
-src="https://www.google.com/maps?q=National+Rd+Panilao+Pilar+Bataan&output=embed"
-width="100%" 
-height="350"
-style="border:0;"
-allowfullscreen=""
-loading="lazy">
-</iframe>
-
+    <iframe 
+        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3859.9483329241584!2d120.5583!3d14.6567!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3396404961555555%3A0x7777777777777777!2sNational%20Rd%2C%20Pilar%2C%20Bataan!5e0!3m2!1sen!2sph!4v1700000000000"
+        width="100%" 
+        height="350"
+        style="border:0;"
+        allowfullscreen=""
+        loading="lazy">
+    </iframe>
 </section>
 
 {% endblock %}
