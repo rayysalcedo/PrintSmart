@@ -11,13 +11,10 @@
     <h1>Where Designs Come to Life</h1>
     <p>High-quality printing for students and businesses.</p>
 
-```
-<!-- Buttons that redirect users to the services page -->
-<div class="hero-buttons">
-    <a href="{{ url_for('services') }}" class="cta-button">Order Now</a>
-    <a href="{{ url_for('services') }}" class="secondary-button">View Services</a>
-</div>
-```
-
+    <!-- Buttons that redirect users to the services page -->
+    <div class="hero-buttons">
+        <a href="{{ url_for('services') }}" class="cta-button">Order Now</a>
+        <a href="{{ url_for('about') }}" class="secondary-button">View About Us</a>
+    </div>
 </section>
 {% endblock %}
