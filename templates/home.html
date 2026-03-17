@@ -9,10 +9,98 @@
     <h1>Where Designs Come to Life</h1>
     <p>High-quality printing for students and businesses.</p>
 
-    <!-- Buttons that redirect users to the services page -->
     <div class="hero-buttons">
         <a href="{{ url_for('services') }}" class="cta-button">Order Now</a>
         <a href="{{ url_for('about') }}" class="secondary-button">View About Us</a>
     </div>
 </section>
+
+<section class="featured-products">
+    <div class="main-container">
+        <div class="section-header">
+            <p>Featured Selection</p>
+            <h2>Our Most <span>Popular</span> Services</h2>
+            <p>Premium quality prints tailored for students and professionals.</p>
+        </div>
+
+        <div class="slider-wrapper">
+            <button class="slide-btn prev" onclick="moveSlide(-1)">&#10094;</button>
+            
+            <div class="slider-window">
+                <div class="product-grid" id="productSlider">
+                    <div class="product-card reveal">
+                        <img src="{{ url_for('static', filename='images/product_1.jpg') }}" alt="Tarpaulin Printing">
+                        <h3>Tarpaulin Printing</h3>
+                        <p>A burst of heavy-duty color! Durable, sun-proof banners that make your events glow with high-octane energy.</p>
+                        <a href="{{ url_for('order', product_id=1) }}" class="btn-order">Order Now</a>
+                    </div>
+
+                    <div class="product-card reveal" style="transition-delay: 0.1s;">
+                        <img src="{{ url_for('static', filename='images/product_2.jpg') }}" alt="Sintra Board">
+                        <h3>Sintra Boards</h3>
+                        <p>Fresh, sleek, and sharp. These lightweight boards provide a citrus-crisp finish for your professional displays.</p>
+                        <a href="{{ url_for('order', product_id=2) }}" class="btn-order">Order Now</a>
+                    </div>
+
+                    <div class="product-card reveal" style="transition-delay: 0.2s;">
+                        <img src="{{ url_for('static', filename='images/product_3.jpg') }}" alt="Sticker Labels">
+                        <h3>Sticker Labels</h3>
+                        <p>Peel away the boring! Squeeze every drop of personality out of your branding with glossy, tangy custom labels.</p>
+                        <a href="{{ url_for('order', product_id=3) }}" class="btn-order">Order Now</a>
+                    </div>
+                </div> 
+            </div>
+
+            <button class="slide-btn next" onclick="moveSlide(1)">&#10095;</button>
+        </div>
+    </div> 
+</section>
+
+<script>
+let currentIndex = 0;
+
+function moveSlide(direction) {
+    const slider = document.getElementById('productSlider');
+    const cards = document.querySelectorAll('.product-card');
+    const totalCards = cards.length;
+    
+    // We get the actual width of the card dynamically in case of padding
+    const cardWidth = cards[0].offsetWidth; 
+
+    currentIndex += direction;
+
+    // Loop logic
+    if (currentIndex < 0) {
+        currentIndex = totalCards - 1;
+    } else if (currentIndex >= totalCards) {
+        currentIndex = 0;
+    }
+
+    // Move the slider
+    const offset = -(currentIndex * cardWidth);
+    slider.style.transform = `translateX(${offset}px)`;
+
+    // SCRIPT FIX: Force the current card to be visible if 'reveal' is stuck
+    cards[currentIndex].classList.add('active');
+}
+
+// Ensure the first card is visible on load
+document.addEventListener("DOMContentLoaded", function() {
+    const firstCard = document.querySelector('.product-card');
+    if (firstCard) firstCard.classList.add('active');
+});
+
+// Your existing scroll reveal function (keep this if you still want it)
+function reveal() {
+    var reveals = document.querySelectorAll(".reveal");
+    for (var i = 0; i < reveals.length; i++) {
+        var windowHeight = window.innerHeight;
+        var elementTop = reveals[i].getBoundingClientRect().top;
+        if (elementTop < windowHeight - 100) {
+            reveals[i].classList.add("active");
+        }
+    }
+}
+window.addEventListener("scroll", reveal);
+</script>
 {% endblock %}

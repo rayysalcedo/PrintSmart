@@ -59,15 +59,7 @@
     .item-price-block { text-align: right; min-width: 100px; }
     .price-tag { font-weight: 700; font-size: 18px; color: #333; margin-bottom: 8px; }
 
-    /* PAYMENT TABS */
     .section-head { color: #DC5500; font-size: 18px; font-weight: 600; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
-    .payment-tabs { display: flex; gap: 15px; margin-bottom: 25px; }
-    .p-tab { flex: 1; padding: 12px; text-align: center; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; transition: 0.2s; color: #555;}
-    .p-tab.active { background: #DC5500; color: white; border-color: #DC5500; }
-    .form-group { margin-bottom: 15px; }
-    .form-label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; font-weight: 600;}
-    .form-control { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; background: #fcfcfc; font-size: 14px; box-sizing: border-box; font-family: inherit;}
-    .row-inputs { display: flex; gap: 15px; }
 
     /* SUMMARY BOX */
     .summary-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; color: #555; }
@@ -75,6 +67,21 @@
     .btn-complete { width: 100%; padding: 15px; background: #DC5500; color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 20px; transition: 0.3s; }
     .btn-complete:hover { background: #b84700; }
     .secure-text { text-align: center; font-size: 11px; color: #888; margin-top: 15px; background: #f9f9f9; padding: 10px; border-radius: 4px; border: 1px dashed #ddd; }
+
+    /* --- DELIVERY TOGGLE STYLES --- */
+    .delivery-options-container { display: flex; gap: 15px; margin-bottom: 20px; }
+    .delivery-option { flex: 1; position: relative; }
+    .delivery-option input { display: none; }
+    .delivery-card { border: 2px solid #eee; border-radius: 8px; padding: 15px; text-align: center; cursor: pointer; transition: 0.3s; background: white; }
+    .delivery-card i { font-size: 24px; color: #888; margin-bottom: 10px; display: block; transition: 0.3s; }
+    .delivery-card span { font-weight: 600; font-size: 14px; color: #555; transition: 0.3s; }
+    
+    .delivery-option input:checked + .delivery-card { border-color: #DC5500; background: #fffaf5; }
+    .delivery-option input:checked + .delivery-card i, 
+    .delivery-option input:checked + .delivery-card span { color: #DC5500; }
+    
+    .delivery-info-box { background: #f9f9f9; padding: 15px; border-radius: 8px; border-left: 4px solid #DC5500; font-size: 13px; color: #555; line-height: 1.5; display: none; }
+    .delivery-info-box.active { display: block; }
 
     @media(max-width: 768px) { .checkout-grid { grid-template-columns: 1fr; } }
 </style>
@@ -191,26 +198,67 @@
 
             <form action="/place_order" method="POST" id="main-checkout-form">
                 <input type="hidden" name="grand_total" value="{{ grand_total }}">
-                <div class="card-box">
-                    <div class="section-head"><i class="fas fa-credit-card"></i> Payment Method</div>
-                    <div class="payment-tabs">
-                        <input type="hidden" name="payment_method" id="payment_method" value="Credit Card">
-                        <div class="p-tab active" onclick="selectPayment('Credit Card', this)">Credit/Debit Card</div>
-                        <div class="p-tab" onclick="selectPayment('GCash', this)">GCash</div>
+                <input type="hidden" name="payment_method" value="PayMongo">
+                
+                <div class="card-box" style="margin-top: 20px;">
+                    <div class="section-head" style="border: none; padding: 0; margin-bottom: 15px;">
+                        <i class="fas fa-truck"></i> Delivery Method
                     </div>
-                    <div id="credit-card-fields">
-                        <div class="form-group"><label class="form-label">Cardholder Name</label><input type="text" name="card_name" class="form-control" placeholder="John Doe"></div>
-                        <div class="form-group"><label class="form-label">Card Number</label><input type="text" name="card_number" class="form-control" placeholder="1234 5678 9012 3456"></div>
-                        <div class="row-inputs">
-                            <div class="form-group" style="flex:1;"><label class="form-label">Expiry</label><input type="text" name="expiry" class="form-control" placeholder="MM/YY"></div>
-                            <div class="form-group" style="flex:1;"><label class="form-label">CVV</label><input type="text" name="cvv" class="form-control" placeholder="123"></div>
+                    
+                    <div class="delivery-options-container">
+                        <label class="delivery-option">
+                            <input type="radio" name="delivery_method" value="Pickup" checked onchange="toggleDeliveryText()">
+                            <div class="delivery-card">
+                                <i class="fas fa-store"></i>
+                                <span>Store Pickup</span>
+                            </div>
+                        </label>
+                        
+                        <label class="delivery-option">
+                            <input type="radio" name="delivery_method" value="Delivery" onchange="toggleDeliveryText()">
+                            <div class="delivery-card">
+                                <i class="fas fa-motorcycle"></i>
+                                <span>External Delivery</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div id="pickup-text" class="delivery-info-box active">
+                        <strong><i class="fas fa-info-circle"></i> Pick up at shop:</strong> You will pick up your finished order directly at our physical store located at National Rd. Panilao, Pilar, Bataan.
+                    </div>
+                    <div id="delivery-text" class="delivery-info-box">
+                        <strong><i class="fas fa-info-circle"></i> 3rd-Party Courier:</strong> We will book an external rider (Lalamove, J&T, or LBC) to deliver your items. <em>Note: Shipping fees are not included in the total and will be paid directly to the rider upon arrival.</em>
+                        
+                        <div style="margin-top: 15px;">
+                            <label for="shipping_address" style="display: block; font-weight: bold; margin-bottom: 8px; color: #333;">Complete Delivery Address <span style="color:red;">*</span></label>
+                            <textarea name="shipping_address" id="shipping_address" rows="3" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-family: inherit; font-size: 13px; box-sizing: border-box;" placeholder="House/Unit #, Street Name, Barangay, City, Province, Zip Code"></textarea>
+                        </div>
+                        
+                        <div style="margin-top: 12px; color: #DC5500; font-weight: 700; font-size: 12px; background: #fff5eb; padding: 10px; border-radius: 6px; border: 1px dashed #ffd8bf;">
+                            <i class="fas fa-clock"></i> Note: Deliveries may take 3-7 days depending on your location.
                         </div>
                     </div>
-                    <div id="gcash-fields" style="display:none; text-align:center; padding: 20px;">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/GCash_Logo.svg/1200px-GCash_Logo.svg.png" style="width:100px; margin-bottom:15px;">
-                        <p style="color:#666; font-size:14px;">Please scan the QR code on the next step to complete your payment.</p>
+                </div>
+
+                <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-top: 20px;">
+                    <h3 style="margin-top: 0; margin-bottom: 20px; color: #333; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
+                        <i class="fas fa-shield-alt" style="color: #28a745;"></i> Secure Payment
+                    </h3>
+                    
+                    <div style="text-align: center; padding: 20px 10px;">
+                        <p style="font-size: 14px; color: #555; margin-bottom: 20px;">
+                            You will be redirected to <strong>PayMongo's secure payment gateway</strong> to complete your purchase safely.
+                        </p>
+                        
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 15px; flex-wrap: wrap;">
+                            <span style="background: #007DFE; color: white; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 14px; letter-spacing: 0.5px;">GCash</span>
+                            <span style="background: #111; color: white; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 14px; letter-spacing: 0.5px;">Maya</span>
+                            <i class="fab fa-cc-visa" style="font-size: 32px; color: #1a1f71;"></i>
+                            <i class="fab fa-cc-mastercard" style="font-size: 32px; color: #eb001b;"></i>
+                        </div>
                     </div>
                 </div>
+
             </form>
         </div>
 
@@ -220,8 +268,9 @@
                 <div class="summary-row"><span>Subtotal</span><span>₱{{ "{:,.2f}".format(subtotal) }}</span></div>
                 <div class="summary-row"><span>Processing Fee</span><span>₱{{ "{:,.2f}".format(processing_fee) }}</span></div>
                 <div class="total-row"><span>Total</span><span>₱{{ "{:,.2f}".format(grand_total) }}</span></div>
+                
                 <button type="submit" form="main-checkout-form" class="btn-complete">Complete Order <i class="fas fa-arrow-right" style="margin-left: 8px;"></i></button>
-                <div class="secure-text"><i class="fas fa-lock" style="color: #28a745;"></i> Secure checkout with 256-bit SSL encryption</div>
+                <div class="secure-text"><i class="fas fa-lock" style="color: #28a745;"></i> Secure checkout with PayMongo</div>
             </div>
         </div>
     </div>
@@ -229,20 +278,6 @@
 </div>
 
 <script>
-    // Payment Toggle
-    function selectPayment(method, element) {
-        document.getElementById('payment_method').value = method;
-        document.querySelectorAll('.p-tab').forEach(el => el.classList.remove('active'));
-        element.classList.add('active');
-        if(method === 'GCash') {
-            document.getElementById('credit-card-fields').style.display = 'none';
-            document.getElementById('gcash-fields').style.display = 'block';
-        } else {
-            document.getElementById('credit-card-fields').style.display = 'block';
-            document.getElementById('gcash-fields').style.display = 'none';
-        }
-    }
-
     // Inline Edit Toggle
     function toggleEditMode(cartId) {
         const viewDiv = document.getElementById('view-mode-' + cartId);
@@ -285,6 +320,24 @@
             selectAllCb.checked = true;
         } else {
             selectAllCb.checked = false;
+        }
+    }
+
+    // Toggle Delivery Method Info Boxes & Address Requirement
+    function toggleDeliveryText() {
+        const pickupRadio = document.querySelector('input[value="Pickup"]');
+        const pickupText = document.getElementById('pickup-text');
+        const deliveryText = document.getElementById('delivery-text');
+        const addressInput = document.getElementById('shipping_address');
+        
+        if (pickupRadio.checked) {
+            pickupText.classList.add('active');
+            deliveryText.classList.remove('active');
+            addressInput.removeAttribute('required'); // Not required for pickup
+        } else {
+            pickupText.classList.remove('active');
+            deliveryText.classList.add('active');
+            addressInput.setAttribute('required', 'required'); // Required for delivery
         }
     }
 </script>

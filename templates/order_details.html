@@ -3,65 +3,224 @@
 {% block content %}
 <style>
     /* Specific Styles for Receipt */
-    .receipt-wrapper {
-        padding: 50px 20px;
-        display: flex;
-        justify-content: center;
-    }
+    .receipt-wrapper { padding: 50px 20px; display: flex; justify-content: center; }
     .receipt-container { 
-        width: 100%;
-        max-width: 700px; 
-        background: white; 
-        padding: 40px; 
-        border-radius: 12px; 
-        box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
+        width: 100%; max-width: 700px; background: white; padding: 40px; 
+        border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
     }
     .top-info { display: flex; justify-content: space-between; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 20px; }
-    .item-row { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px dashed #eee; }
-    .total-row { display: flex; justify-content: space-between; padding-top: 20px; font-size: 20px; font-weight: bold; color: #DC5500; }
+    .item-row { padding: 20px 0; border-bottom: 1px dashed #eee; display: flex; flex-direction: column; }
+    .item-main-details { display: flex; justify-content: space-between; align-items: flex-start; }
     
-    .btn-back { display: inline-block; padding: 10px 20px; background: #333; color: white; text-decoration: none; border-radius: 6px; font-size: 14px; margin-top: 20px; }
+    /* Breakdown Styles */
+    .breakdown-section { margin-top: 30px; padding-top: 20px; border-top: 2px solid #eee; }
+    .summary-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; color: #555; }
+    .total-row { display: flex; justify-content: space-between; padding-top: 15px; margin-top: 5px; border-top: 1px dashed #ccc; font-size: 20px; font-weight: bold; color: #DC5500; }
+    
+    .btn-back { display: inline-block; padding: 12px 25px; background: #333; color: white; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600; transition: 0.3s;}
     .btn-back:hover { background: #555; }
+    .btn-cancel-trigger { display: inline-block; padding: 12px 25px; background: white; color: #dc3545; border: 1px solid #dc3545; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.3s; margin-left: 10px;}
+    .btn-cancel-trigger:hover { background: #fff5f5; }
+
+    /* Note Formatting */
+    .formatted-note { font-size: 12px; color: #666; margin-top: 6px; padding-left: 10px; border-left: 2px solid #DC5500; line-height: 1.5; }
+    
+    /* Modal Styles */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-box { background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+    .modal-box h3 { margin-top: 0; color: #333; margin-bottom: 5px; }
+    .cancel-reason-list { margin: 20px 0; display: flex; flex-direction: column; gap: 12px; }
+    .cancel-reason-list label { display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer; color: #555; }
+    .cancel-reason-list input[type="checkbox"] { accent-color: #DC5500; width: 16px; height: 16px; }
+    .other-input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; margin-top: 10px; display: none; font-family: inherit; font-size: 13px; box-sizing: border-box; outline: none;}
+    .other-input:focus { border-color: #DC5500; }
+    
+    /* Inline Review Styles */
+    .btn-leave-review { background: #fff5e6; color: #DC5500; border: 1px solid #ffccaa; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 10px; display: inline-flex; align-items: center; gap: 5px; }
+    .btn-leave-review:hover { background: #DC5500; color: white; border-color: #DC5500; }
+    .review-dropdown-form { display: none; background: #fafafa; border: 1px solid #eee; border-radius: 8px; padding: 15px; margin-top: 15px; }
+    .star-rating-input { display: flex; flex-direction: row-reverse; justify-content: flex-end; gap: 5px; margin-bottom: 10px; font-size: 20px; }
+    .star-rating-input input { display: none; }
+    .star-rating-input label { color: #ccc; cursor: pointer; transition: 0.2s; }
+    .star-rating-input label:hover, .star-rating-input label:hover ~ label, .star-rating-input input:checked ~ label { color: #ff6600; }
+    .custom-textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family: inherit; font-size: 13px; box-sizing: border-box; resize: vertical; }
+    .btn-submit-review { background: #DC5500; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; margin-top: 10px; }
 </style>
 
 <div class="receipt-wrapper">
     <div class="receipt-container">
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div style="padding: 12px; border-radius: 6px; margin-bottom: 20px; font-size: 13px; text-align: center;
+                        background: {{ '#d4edda' if category == 'success' else '#f8d7da' }}; 
+                        color: {{ '#155724' if category == 'success' else '#721c24' }};">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
         <div class="top-info">
             <div>
                 <h2 style="margin:0;">Order #{{ order.order_id }}</h2>
-                <div style="color:#888; font-size: 14px; margin-top: 5px;">{{ order.created_at }}</div>
+                <div style="color:#888; font-size: 14px; margin-top: 5px;">{{ order.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
             </div>
             <div style="text-align: right;">
                 <div style="font-weight: bold; text-transform: uppercase; color: #DC5500;">{{ order.order_status }}</div>
-                <div style="font-size: 13px; color: #888;">{{ order.payment_method }}</div>
+                <div style="font-size: 13px; color: #888; font-weight: 600; margin-top: 4px;"><i class="fas fa-credit-card"></i> {{ order.payment_method }}</div>
             </div>
+        </div>
+
+        <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #DC5500;">
+            {% if order.delivery_method == 'Delivery' %}
+                <h4 style="margin: 0 0 10px 0; color: #333; font-size: 16px;"><i class="fas fa-motorcycle" style="color: #DC5500;"></i> External Delivery</h4>
+                <p style="margin: 0 0 12px 0; color: #555; font-size: 14px; line-height: 1.5;"><strong>Shipping Address:</strong><br>{{ order.shipping_address }}</p>
+                {% if order.estimated_delivery_date %}
+                <div style="background: #fff5eb; padding: 10px 15px; border-radius: 6px; border: 1px dashed #ffccaa; display: inline-block;">
+                    <strong style="color: #DC5500; font-size: 13px;"><i class="fas fa-calendar-check"></i> Estimated Arrival:</strong>
+                    <span style="color: #333; font-size: 13px; font-weight: 700; margin-left: 5px;">{{ order.estimated_delivery_date.strftime('%B %d, %Y') }}</span>
+                </div>
+                {% endif %}
+            {% else %}
+                <h4 style="margin: 0 0 10px 0; color: #333; font-size: 16px;"><i class="fas fa-store" style="color: #888;"></i> Store Pickup</h4>
+                <p style="margin: 0; color: #555; font-size: 14px; line-height: 1.5;"><strong>Pickup Location:</strong><br>National Rd. Panilao, Pilar, Bataan</p>
+            {% endif %}
         </div>
 
         <h3 style="border-bottom: 1px solid #eee; padding-bottom: 10px;">Items Ordered</h3>
         
         {% for item in items %}
         <div class="item-row">
-            <div style="flex: 1;">
-                <strong>{{ item.quantity }}x {{ item.product_name }}</strong>
-                <div style="font-size: 12px; color: #666; margin-top: 4px;">{{ item.item_details }}</div>
-                {% if item.file_path %}
-                    <div style="font-size: 11px; color: #888; margin-top: 2px;">Files uploaded</div>
-                {% endif %}
+            <div class="item-main-details">
+                <div style="flex: 1; padding-right: 20px;">
+                    <strong style="color: #333; font-size: 16px;">{{ item.quantity }}x {{ item.product_name }}</strong>
+                    
+                    {% set note_parts = item.item_details.split(' || ') %}
+                    <div style="font-size: 13px; color: #444; margin-top: 4px; font-weight: 600;">{{ note_parts[0] }}</div>
+                    
+                    {% if note_parts|length > 1 %}
+                        <div class="formatted-note">
+                        {% for p in note_parts[1:] %}
+                            {% if p.startswith('DESIGN: ') %}
+                                <div><strong style="color:#DC5500;">Design Note:</strong> {{ p.replace('DESIGN: ', '') }}</div>
+                            {% elif p.startswith('NOTE: ') %}
+                                <div><strong style="color:#DC5500;">Special Request:</strong> {{ p.replace('NOTE: ', '') }}</div>
+                            {% endif %}
+                        {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    {% if item.file_path %}
+                        <div style="font-size: 11px; color: #888; margin-top: 8px;"><i class="fas fa-paperclip"></i> Files uploaded securely</div>
+                    {% endif %}
+                    
+                    {% if item.can_review %}
+                        <button class="btn-leave-review" onclick="toggleReviewForm({{ item.item_id }})">
+                            <i class="fas fa-star"></i> Review Item
+                        </button>
+                    {% endif %}
+                </div>
+                <div style="font-weight: 700; font-size: 16px; color: #222;">
+                    ₱{{ "{:,.2f}".format(item.price_at_time) }}
+                </div>
             </div>
-            <div style="font-weight: 600;">
-                ₱{{ "{:,.2f}".format(item.price_at_time) }}
+
+            {% if item.can_review %}
+            <div class="review-dropdown-form" id="review-form-{{ item.item_id }}">
+                <div style="font-size: 13px; font-weight: 600; margin-bottom: 10px; color: #333;">How was your {{ item.product_name }}?</div>
+                <form action="/submit_review" method="POST">
+                    <input type="hidden" name="product_id" value="{{ item.product_id }}">
+                    <input type="hidden" name="source_order_id" value="{{ order.order_id }}">
+                    <div class="star-rating-input">
+                        <input type="radio" id="star5_{{ item.item_id }}" name="rating" value="5" required /><label for="star5_{{ item.item_id }}" title="5 stars"><i class="fas fa-star"></i></label>
+                        <input type="radio" id="star4_{{ item.item_id }}" name="rating" value="4" /><label for="star4_{{ item.item_id }}" title="4 stars"><i class="fas fa-star"></i></label>
+                        <input type="radio" id="star3_{{ item.item_id }}" name="rating" value="3" /><label for="star3_{{ item.item_id }}" title="3 stars"><i class="fas fa-star"></i></label>
+                        <input type="radio" id="star2_{{ item.item_id }}" name="rating" value="2" /><label for="star2_{{ item.item_id }}" title="2 stars"><i class="fas fa-star"></i></label>
+                        <input type="radio" id="star1_{{ item.item_id }}" name="rating" value="1" /><label for="star1_{{ item.item_id }}" title="1 star"><i class="fas fa-star"></i></label>
+                    </div>
+                    <textarea name="comment" rows="2" placeholder="Tell us about the print quality..." class="custom-textarea" required></textarea>
+                    <div style="display: flex; gap: 10px;">
+                        <button type="submit" class="btn-submit-review">Submit</button>
+                        <button type="button" class="btn-submit-review" style="background: #eee; color: #555;" onclick="toggleReviewForm({{ item.item_id }})">Cancel</button>
+                    </div>
+                </form>
             </div>
+            {% endif %}
         </div>
         {% endfor %}
 
-        <div class="total-row">
-            <span>Grand Total</span>
-            <span>₱{{ "{:,.2f}".format(order.total_amount) }}</span>
+        <div class="breakdown-section">
+            <div class="summary-row"><span>Subtotal</span><span>₱{{ "{:,.2f}".format(subtotal) }}</span></div>
+            <div class="summary-row"><span>Processing Fee</span><span>₱{{ "{:,.2f}".format(processing_fee) }}</span></div>
+            <div class="total-row"><span>Grand Total</span><span>₱{{ "{:,.2f}".format(order.total_amount) }}</span></div>
         </div>
 
-        <div style="text-align: center; margin-top: 30px;">
+        <div style="text-align: center; margin-top: 40px;">
             <a href="/my_orders" class="btn-back">Back to Orders</a>
+            
+            {% if order.order_status == 'Pending' %}
+                <button onclick="openCancelModal()" class="btn-cancel-trigger">Cancel Order</button>
+            {% else %}
+                <p style="margin-top: 20px; font-size: 13px; color: #888; background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px dashed #ddd;">
+                    <i class="fas fa-info-circle"></i> Your order is currently <strong>{{ order.order_status }}</strong>, so it can no longer be cancelled.
+                </p>
+            {% endif %}
         </div>
     </div>
 </div>
+
+<div id="cancelModal" class="modal-overlay">
+    <div class="modal-box">
+        <h3>Cancel Order</h3>
+        <p style="font-size: 13px; color: #666; margin-bottom: 20px;">Please let us know why you are cancelling this order. A refund will be processed via PayMongo.</p>
+        
+        <form action="/cancel_order" method="POST">
+            <input type="hidden" name="order_id" value="{{ order.order_id }}">
+            
+            <div class="cancel-reason-list">
+                <label><input type="checkbox" name="reason" value="Found a cheaper alternative"> Found a cheaper alternative</label>
+                <label><input type="checkbox" name="reason" value="Ordered by mistake"> Ordered by mistake</label>
+                <label><input type="checkbox" name="reason" value="Change of mind"> Change of mind</label>
+                <label><input type="checkbox" name="reason" value="Need to change design files"> Need to change design files</label>
+                <label><input type="checkbox" name="reason" value="Others" onchange="toggleOtherReason(this)"> Others</label>
+            </div>
+            
+            <input type="text" name="other_reason" id="otherReasonInput" class="other-input" placeholder="Please specify...">
+            
+            <div style="display: flex; gap: 10px; margin-top: 25px;">
+                <button type="submit" style="flex: 1; padding: 12px; background: #dc3545; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Confirm Cancellation</button>
+                <button type="button" onclick="closeCancelModal()" style="flex: 1; padding: 12px; background: #eee; color: #555; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Keep Order</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function toggleReviewForm(itemId) {
+        var formBox = document.getElementById('review-form-' + itemId);
+        formBox.style.display = (formBox.style.display === 'block') ? 'none' : 'block';
+    }
+
+    function openCancelModal() {
+        document.getElementById('cancelModal').style.display = 'flex';
+    }
+
+    function closeCancelModal() {
+        document.getElementById('cancelModal').style.display = 'none';
+    }
+
+    function toggleOtherReason(checkbox) {
+        const input = document.getElementById('otherReasonInput');
+        if(checkbox.checked) {
+            input.style.display = 'block';
+            input.setAttribute('required', 'required');
+        } else {
+            input.style.display = 'none';
+            input.removeAttribute('required');
+            input.value = '';
+        }
+    }
+</script>
 {% endblock %}

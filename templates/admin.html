@@ -11,7 +11,6 @@
         /* --- GLOBAL & SIDEBAR --- */
         body { font-family: 'Segoe UI', sans-serif; background: #f4f7fa; margin: 0; display: flex; height: 100vh; overflow: hidden; }
         
-        /* Sidebar */
         .sidebar { width: 260px; background: #ff6600; color: white; display: flex; flex-direction: column; padding: 20px; }
         .brand { font-size: 24px; font-weight: bold; margin-bottom: 40px; display: flex; align-items: center; gap: 10px; }
         .brand i { background: white; color: #ff6600; padding: 8px; border-radius: 5px; }
@@ -22,12 +21,10 @@
         
         .logout-btn { margin-top: auto; background: rgba(0,0,0,0.2); }
 
-        /* Main Content */
         .main-content { flex: 1; overflow-y: auto; padding: 30px; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
         .search-bar input { padding: 10px 15px; width: 300px; border: 1px solid #ddd; border-radius: 20px; outline: none; }
         
-        /* --- VIEW SECTIONS (TABS) --- */
         .view-section { display: none; } 
         .view-section.active { display: block; } 
 
@@ -39,8 +36,7 @@
         .stat-card .trend { font-size: 13px; color: #28a745; }
         .stat-icon { position: absolute; top: 25px; right: 25px; background: #ff6600; color: white; width: 45px; height: 45px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
 
-        /* Chart Area */
-        .chart-container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); height: 350px; }
+        .chart-container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); height: 350px; margin-bottom: 20px;}
 
         /* --- INVENTORY / PRODUCTS STYLES --- */
         .product-manager-card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; gap: 20px; }
@@ -52,11 +48,36 @@
         .input-edit { width: 70px; padding: 5px; border: 1px solid #ddd; border-radius: 4px; }
         .btn-save { background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
 
-        /* FORMATTED NOTES FOR ADMIN */
         .admin-note-box { background: #f8f9fb; border-left: 3px solid #ff6600; padding: 8px; margin-top: 5px; border-radius: 0 4px 4px 0; font-size: 11px; }
         .admin-design-tag { color: #4f46e5; font-weight: bold; margin-bottom: 2px; }
         .admin-special-tag { color: #dc3545; font-weight: bold; margin-bottom: 2px; }
 
+        /* --- NEW: ADMIN LIVE CHAT STYLES --- */
+        .admin-chat-container { display: flex; height: 650px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden; border: 1px solid #eee; }
+        .chat-sidebar { width: 280px; border-right: 1px solid #eee; overflow-y: auto; background: #fcfcfc; }
+        .chat-sidebar-header { padding: 15px; background: #fff; border-bottom: 1px solid #eee; font-weight: bold; color: #333; position: sticky; top: 0; z-index: 10; }
+        .chat-user-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 12px; }
+        .chat-user-item:hover { background: #fff5e6; }
+        .chat-user-item.active { background: #DC5500; color: white; border-bottom-color: #DC5500; }
+        .chat-user-avatar { width: 40px; height: 40px; background: #e0e0e0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #555; font-weight: bold; font-size: 18px; flex-shrink: 0; }
+        .chat-user-item.active .chat-user-avatar { background: white; color: #DC5500; }
+        .chat-user-info { flex: 1; overflow: hidden; }
+        .chat-user-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .chat-user-id { font-size: 11px; opacity: 0.8; margin-top: 2px; }
+        
+        .chat-main { flex: 1; display: flex; flex-direction: column; background: #fff; }
+        .chat-main-header { padding: 20px; border-bottom: 1px solid #eee; background: #fff; font-weight: bold; color: #333; font-size: 16px; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); z-index: 10; }
+        .admin-chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; background: #f9f9f9; }
+        
+        .admin-chat-bubble { max-width: 65%; padding: 12px 18px; border-radius: 18px; font-size: 14px; line-height: 1.5; position: relative; word-wrap: break-word; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .admin-chat-bubble.mine { background: #DC5500; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .admin-chat-bubble.theirs { background: #fff; border: 1px solid #eee; color: #333; align-self: flex-start; border-bottom-left-radius: 4px; }
+        
+        .admin-chat-input-area { padding: 20px; border-top: 1px solid #eee; background: #fff; display: flex; gap: 15px; align-items: center; }
+        .admin-chat-input { flex: 1; padding: 14px 20px; border: 1px solid #ddd; border-radius: 30px; outline: none; font-size: 14px; transition: 0.2s; background: #f9f9f9; }
+        .admin-chat-input:focus { border-color: #DC5500; background: #fff; box-shadow: 0 0 0 3px rgba(220, 85, 0, 0.1); }
+        
+        #admin-chat-file-name { font-size: 12px; color: #DC5500; margin-bottom: 5px; margin-left: 20px; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -80,6 +101,10 @@
         
         <div class="nav-item" onclick="switchTab('products', this)">
             <i class="fas fa-box"></i> Products
+        </div>
+
+        <div class="nav-item" onclick="switchTab('messages', this)">
+            <i class="fas fa-comments"></i> Messages
         </div>
         
         <div class="nav-item" onclick="switchTab('analytics', this)">
@@ -120,14 +145,14 @@
                 <div class="stat-card">
                     <h3>Total Revenue</h3>
                     <div class="value">₱{{ "{:,.2f}".format(total_revenue) }}</div>
-                    <div class="trend"><i class="fas fa-arrow-up"></i> +12.5% vs last month</div>
+                    <div class="trend"><i class="fas fa-arrow-up"></i> Valid Orders Only</div>
                     <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
                 </div>
 
                 <div class="stat-card">
                     <h3>Total Orders</h3>
                     <div class="value">{{ total_orders }}</div>
-                    <div class="trend"><i class="fas fa-arrow-up"></i> +8.3% vs last month</div>
+                    <div class="trend"><i class="fas fa-arrow-up"></i> Valid Orders Only</div>
                     <div class="stat-icon"><i class="fas fa-shopping-cart"></i></div>
                 </div>
 
@@ -145,17 +170,37 @@
         </div>
 
         <div id="products" class="view-section">
-            <h3>Product Inventory & Prices</h3>
-            
+            <h3 style="margin-bottom: 20px; color: #333;">Product Inventory & Galleries</h3>
             {% for product in products %}
             <div class="product-manager-card">
-                <div style="text-align:center;">
-                    <img src="{{ product.image_path if product.image_path and 'http' in product.image_path else url_for('static', filename=product.image_path if product.image_path else 'images/icon-signage.png') }}" class="img-preview">
-                    <form action="/admin/upload_product_image" method="POST" enctype="multipart/form-data" style="margin-top:10px;">
+                <div style="text-align:center; width: 150px; flex-shrink: 0;">
+                    <img src="{{ product.image_path if product.image_path and 'http' in product.image_path else url_for('static', filename=product.image_path if product.image_path else 'images/product_' ~ product.product_id ~ '.jpg') }}" class="img-preview" onerror="this.src='{{ url_for('static', filename='images/icon-signage.png') }}'">
+                    
+                    <form action="/admin/upload_product_image" method="POST" enctype="multipart/form-data" style="margin-top:10px; margin-bottom: 15px;">
                         <input type="hidden" name="product_id" value="{{ product.product_id }}">
-                        <input type="file" name="product_image" id="file-{{product.product_id}}" style="display:none;" onchange="this.form.submit()">
-                        <label for="file-{{product.product_id}}" style="font-size:12px; color:#ff6600; cursor:pointer; font-weight: bold;"><i class="fas fa-upload"></i> Change Image</label>
+                        <input type="file" name="product_images" id="file-{{product.product_id}}" accept="image/*" multiple style="display:none;" onchange="this.form.submit()">
+                        <label for="file-{{product.product_id}}" style="font-size:12px; color:#ff6600; cursor:pointer; font-weight: bold;">
+                            <i class="fas fa-images"></i> Upload Gallery
+                        </label>
                     </form>
+
+                    <div style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;">
+                        {% if product.product_id in gallery_map %}
+                            {% for img in gallery_map[product.product_id] %}
+                            <div style="position: relative; width: 40px; height: 40px; border-radius: 4px; overflow: hidden; border: 1px solid #eee; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                <img src="{{ img.image_url }}" style="width: 100%; height: 100%; object-fit: cover;">
+                                <form action="/admin/delete_gallery_image" method="POST">
+                                    <input type="hidden" name="image_id" value="{{ img.image_id }}">
+                                    <button type="submit" style="position: absolute; top: 0; right: 0; background: rgba(220, 53, 69, 0.9); color: white; border: none; width: 14px; height: 14px; font-size: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; border-bottom-left-radius: 4px;" title="Delete Image">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <span style="font-size: 10px; color: #aaa;">No gallery images yet.</span>
+                        {% endif %}
+                    </div>
                 </div>
 
                 <div class="pm-info">
@@ -189,7 +234,6 @@
         
         <div id="orders" class="view-section">
             <h3 style="margin-bottom: 20px; color: #333;">Order Management</h3>
-
             {% if orders %}
             <div style="background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden;">
                 <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
@@ -209,21 +253,30 @@
                         <tr style="border-bottom: 1px solid #eee;">
                             <td style="padding: 15px;"><strong>#{{ order.order_id }}</strong></td>
                             
-                            <td style="padding: 15px;">
+                            <td style="padding: 15px; min-width: 180px;">
                                 <div style="font-weight: 600; color: #222;">{{ order.full_name }}</div>
-                                <div style="font-size: 12px; color: #888;">{{ order.created_at.strftime('%b %d, %Y') }}</div>
+                                <div style="font-size: 12px; color: #888; margin-bottom: 8px;">{{ order.created_at.strftime('%b %d, %Y') }}</div>
+                                
+                                {% if order.delivery_method == 'Delivery' %}
+                                    <div style="font-size: 11px; background: #fff5eb; color: #DC5500; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 4px; font-weight: bold;">
+                                        <i class="fas fa-motorcycle"></i> Delivery
+                                    </div>
+                                    <div style="font-size: 11px; color: #555; line-height: 1.4; background: #f9f9f9; padding: 6px; border-radius: 4px; border: 1px solid #eee;">
+                                        <strong>To:</strong> {{ order.shipping_address }}
+                                    </div>
+                                {% else %}
+                                    <div style="font-size: 11px; background: #f0f0f0; color: #555; padding: 4px 8px; border-radius: 4px; display: inline-block; font-weight: bold;">
+                                        <i class="fas fa-store"></i> Store Pickup
+                                    </div>
+                                {% endif %}
                             </td>
-
+                            
                             <td style="padding: 15px; max-width: 300px;">
                                 {% for item in order.safe_items %}
                                 <div style="margin-bottom: 15px;">
                                     <strong style="color: #333;">{{ item.quantity }}x {{ item.product_name }}</strong>
-                                    
                                     {% set note_parts = item.item_details.split(' || ') %}
-                                    <div style="font-size: 12px; color: #666; margin-top: 3px;">
-                                        {{ note_parts[0] }}
-                                    </div>
-                                    
+                                    <div style="font-size: 12px; color: #666; margin-top: 3px;">{{ note_parts[0] }}</div>
                                     {% if note_parts|length > 1 %}
                                         <div class="admin-note-box">
                                         {% for p in note_parts[1:] %}
@@ -240,17 +293,13 @@
                                 </div>
                                 {% endfor %}
                             </td>
-
                             <td style="padding: 15px;">
                                 {% for item in order.safe_items %}
                                     {% if item.file_path %}
                                         {% set files = item.file_path.split(',') %}
                                         {% for f in files %}
-                                            <a href="{{ f if 'http' in f else url_for('static', filename=f) }}" 
-                                               target="_blank" 
-                                               style="display: inline-block; background: #fff0e6; color: #ff6600; padding: 5px 10px; border-radius: 4px; font-size: 11px; text-decoration: none; margin-bottom: 4px; border: 1px solid #ffccaa; font-weight: 600;">
-                                                <i class="fas {{ 'fa-external-link-alt' if 'http' in f else 'fa-download' }}"></i> 
-                                                {{ 'View Design' if 'http' in f else 'Download' }}
+                                            <a href="{{ f if 'http' in f else url_for('static', filename=f) }}" target="_blank" style="display: inline-block; background: #fff0e6; color: #ff6600; padding: 5px 10px; border-radius: 4px; font-size: 11px; text-decoration: none; margin-bottom: 4px; border: 1px solid #ffccaa; font-weight: 600;">
+                                                <i class="fas {{ 'fa-external-link-alt' if 'http' in f else 'fa-download' }}"></i> {{ 'View Design' if 'http' in f else 'Download' }}
                                             </a><br>
                                         {% endfor %}
                                     {% else %}
@@ -258,29 +307,22 @@
                                     {% endif %}
                                 {% endfor %}
                             </td>
-
-                            <td style="padding: 15px; font-weight: bold; color: #222;">
-                                ₱{{ "{:,.2f}".format(order.total_amount) }}
-                            </td>
-
+                            <td style="padding: 15px; font-weight: bold; color: #222;">₱{{ "{:,.2f}".format(order.total_amount) }}</td>
+                            
                             <td style="padding: 15px;">
-                                <span style="
-                                    padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; white-space: nowrap;
-                                    background-color: {{ '#d4edda' if order.order_status == 'Completed' else '#cce5ff' if order.order_status == 'Ready for Pickup' else '#fff3cd' if order.order_status == 'Processing' else '#f8d7da' if order.order_status == 'Cancelled' else '#e2e3e5' }};
-                                    color: {{ '#155724' if order.order_status == 'Completed' else '#004085' if order.order_status == 'Ready for Pickup' else '#856404' if order.order_status == 'Processing' else '#721c24' if order.order_status == 'Cancelled' else '#383d41' }};
-                                ">
+                                <span style="padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; white-space: nowrap; background-color: {{ '#d4edda' if order.order_status == 'Completed' else '#cce5ff' if order.order_status == 'Ready for Pickup' else '#ffeeba' if order.order_status == 'Out for Delivery' else '#fff3cd' if order.order_status == 'Processing' else '#f8d7da' if order.order_status == 'Cancelled' else '#e2e3e5' }}; color: {{ '#155724' if order.order_status == 'Completed' else '#004085' if order.order_status == 'Ready for Pickup' else '#856404' if order.order_status == 'Out for Delivery' else '#856404' if order.order_status == 'Processing' else '#721c24' if order.order_status == 'Cancelled' else '#383d41' }};">
                                     {{ order.order_status }}
                                 </span>
                             </td>
-
+                            
                             <td style="padding: 15px;">
                                 <form action="/admin/update_order_status" method="POST">
                                     <input type="hidden" name="order_id" value="{{ order.order_id }}">
-                                    <select name="status" onchange="this.form.submit()" 
-                                            style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; font-size: 12px; cursor: pointer; background: white; width: 130px;">
+                                    <select name="status" onchange="this.form.submit()" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; font-size: 12px; cursor: pointer; background: white; width: 130px;">
                                         <option value="Pending" {{ 'selected' if order.order_status == 'Pending' }}>Pending</option>
                                         <option value="Processing" {{ 'selected' if order.order_status == 'Processing' }}>Processing</option>
                                         <option value="Ready for Pickup" {{ 'selected' if order.order_status == 'Ready for Pickup' }}>Ready for Pickup</option>
+                                        <option value="Out for Delivery" {{ 'selected' if order.order_status == 'Out for Delivery' }}>Out for Delivery</option>
                                         <option value="Completed" {{ 'selected' if order.order_status == 'Completed' }}>Completed</option>
                                         <option value="Cancelled" {{ 'selected' if order.order_status == 'Cancelled' }}>Cancelled</option>
                                     </select>
@@ -301,7 +343,6 @@
 
         <div id="customers" class="view-section">
             <h3 style="margin-bottom: 20px; color: #333;">Customer Management</h3>
-
             <div style="background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden;">
                 <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
                     <thead style="background-color: #f8f9fa; border-bottom: 2px solid #eee;">
@@ -317,24 +358,26 @@
                         {% for cust in customers %}
                         <tr style="border-bottom: 1px solid #eee;">
                             <td style="padding: 15px;">#{{ cust.user_id }}</td>
-                            <td style="padding: 15px;">
-                                <strong>{{ cust.full_name }}</strong>
-                            </td>
+                            <td style="padding: 15px;"><strong>{{ cust.full_name }}</strong></td>
                             <td style="padding: 15px;">
                                 <div style="margin-bottom: 4px;"><i class="fas fa-envelope" style="color:#888; width:20px;"></i> {{ cust.email }}</div>
                                 <div><i class="fas fa-phone" style="color:#888; width:20px;"></i> {{ cust.phone_number if cust.phone_number else 'No Phone' }}</div>
                             </td>
-                            <td style="padding: 15px; color: #666;">
-                                {{ cust.created_at.strftime('%Y-%m-%d') if cust.created_at else 'N/A' }}
-                            </td>
+                            <td style="padding: 15px; color: #666;">{{ cust.created_at.strftime('%Y-%m-%d') if cust.created_at else 'N/A' }}</td>
                             <td style="padding: 15px;">
-                                <form action="/admin/reset_user_password" method="POST" style="display:flex; gap:5px; align-items:center;">
-                                    <input type="hidden" name="user_id" value="{{ cust.user_id }}">
-                                    <input type="text" name="new_password" placeholder="New Password" style="padding:5px; border:1px solid #ddd; border-radius:4px; font-size:12px; width:120px;" required>
-                                    <button type="submit" style="background:#ff4444; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:12px;">
-                                        Reset
-                                    </button>
-                                </form>
+                                <div style="display: flex; gap: 15px; align-items: center;">
+                                    <form action="/admin/reset_user_password" method="POST" style="display:flex; gap:5px; align-items:center; margin: 0;">
+                                        <input type="hidden" name="user_id" value="{{ cust.user_id }}">
+                                        <input type="text" name="new_password" placeholder="New Password" style="padding:5px; border:1px solid #ddd; border-radius:4px; font-size:12px; width:120px;" required>
+                                        <button type="submit" style="background:#ff4444; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:12px;">Reset</button>
+                                    </form>
+
+                                    <form action="{{ url_for('admin_delete_customer', user_id=cust.user_id) }}" method="POST" onsubmit="return confirm('Are you sure? This will permanently remove this customer and their history.');" style="margin: 0;">
+                                        <button type="submit" style="background:transparent; color:#dc3545; border:none; cursor:pointer; font-size:12px; text-decoration:underline;">
+                                            Delete Account
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -343,10 +386,72 @@
             </div>
         </div>
 
+        <div id="messages" class="view-section">
+            <h3 style="margin-bottom: 20px; color: #333;">Support Inbox</h3>
+            
+            <div class="admin-chat-container">
+                <div class="chat-sidebar">
+                    <div class="chat-sidebar-header">
+                        Customers
+                    </div>
+                    {% for cust in customers %}
+                    <div class="chat-user-item" onclick="loadUserChat({{ cust.user_id }}, '{{ cust.full_name }}', this)">
+                        <div class="chat-user-avatar">{{ cust.full_name[0] | upper }}</div>
+                        <div class="chat-user-info">
+                            <div class="chat-user-name">{{ cust.full_name }}</div>
+                            <div class="chat-user-id">Customer ID: #{{ cust.user_id }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="chat-main" id="chat-main-panel" style="display: none;">
+                    <div class="chat-main-header" id="active-chat-user-name">
+                        <i class="fas fa-user-circle" style="color: #ccc; font-size: 24px;"></i> Select a customer
+                    </div>
+                    
+                    <div class="admin-chat-messages" id="adminChatMessages">
+                        </div>
+                    
+                    <div id="admin-chat-file-name"></div>
+                    
+                    <form class="admin-chat-input-area" onsubmit="sendAdminMessage(event)">
+                        <input type="hidden" id="active_chat_user_id">
+                        
+                        <label for="adminChatAttachment" style="cursor: pointer; color: #888; font-size: 22px; padding: 5px; transition: 0.2s;" title="Attach Design/Proof">
+                            <i class="fas fa-paperclip"></i>
+                        </label>
+                        <input type="file" id="adminChatAttachment" style="display: none;" onchange="updateAdminChatFileName(this)">
+                        
+                        <input type="text" id="adminChatInputText" class="admin-chat-input" placeholder="Type a reply to the customer..." autocomplete="off">
+                        
+                        <button type="submit" id="adminChatSendBtn" style="background: #DC5500; color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: 0.2s; box-shadow: 0 4px 10px rgba(220, 85, 0, 0.3);">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+
+                <div id="chat-placeholder" style="flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; color: #aaa; background: #fafafa;">
+                    <i class="fas fa-envelope-open-text" style="font-size: 60px; margin-bottom: 20px; opacity: 0.3; color: #DC5500;"></i>
+                    <p style="font-size: 16px; font-weight: 500; color: #777;">Select a customer from the left sidebar to start chatting</p>
+                    <p style="font-size: 13px; color: #999; margin-top: 5px;">You can send text updates or attach layout proofs.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="analytics" class="view-section">
+            <h3 style="margin-bottom: 20px; color: #333;">Advanced Analytics</h3>
+            <div style="background: white; padding: 40px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+                <i class="fas fa-tools" style="font-size: 50px; color: #ddd; margin-bottom: 20px;"></i>
+                <h4 style="color: #666;">Deeper Analytics Coming Soon</h4>
+                <p style="color: #999; font-size: 14px;">This section is reserved for future capstone expansions (e.g., top-selling products, demographic data).</p>
+            </div>
+        </div>
+
     </div> 
     
     <script>
-        // Tab Switching Logic
+        // Base Tab Switching Logic
         function switchTab(tabId, navItem) {
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
@@ -357,7 +462,7 @@
             document.getElementById('page-title').innerText = tabId.charAt(0).toUpperCase() + tabId.slice(1);
         }
 
-        // Simple Revenue Chart
+        // Dashboard Chart (Using Static Example Data for UI)
         const ctx = document.getElementById('revenueChart').getContext('2d');
         const myChart = new Chart(ctx, {
             type: 'line',
@@ -368,20 +473,145 @@
                     data: [12000, 19000, 15000, 25000, 22000, 30000],
                     borderColor: '#ff6600',
                     backgroundColor: 'rgba(255, 102, 0, 0.1)',
-                    fill: true,
-                    tension: 0.4
+                    fill: true, tension: 0.4
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    title: { display: true, text: 'Monthly Revenue Trends' }
-                }
-            }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, title: { display: true, text: 'Monthly Revenue Trends (Example)' } } }
         });
-    </script>
 
+        // ==========================================
+        // --- CUSTOM ADMIN CHAT JAVASCRIPT ---
+        // ==========================================
+        let adminChatInterval = null;
+        let adminLastMessageCount = 0;
+        let currentActiveUserId = null;
+
+        function loadUserChat(userId, userName, element) {
+            // Highlight the active user in the sidebar
+            document.querySelectorAll('.chat-user-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            
+            // Switch UI from placeholder to Chat Panel
+            document.getElementById('chat-placeholder').style.display = 'none';
+            document.getElementById('chat-main-panel').style.display = 'flex';
+            
+            // Set Headers and Hidden Inputs
+            document.getElementById('active-chat-user-name').innerHTML = `<i class="fas fa-user-circle" style="color: #DC5500; font-size: 24px;"></i> Chatting with: ${userName}`;
+            document.getElementById('active_chat_user_id').value = userId;
+            
+            // Reset variables for the new conversation
+            currentActiveUserId = userId;
+            adminLastMessageCount = 0; 
+            document.getElementById('adminChatMessages').innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;"><i class="fas fa-spinner fa-spin"></i> Loading messages...</div>';
+            
+            fetchAdminMessages(); // Fetch instantly
+            
+            // Start Polling every 3 seconds to check for new replies from this specific user
+            if(adminChatInterval) clearInterval(adminChatInterval);
+            adminChatInterval = setInterval(fetchAdminMessages, 3000);
+        }
+        
+       function fetchAdminMessages() {
+            if(!currentActiveUserId) return;
+            // Adds a timestamp to bypass strict browser caching
+            fetch(`/api/get_messages?user_id=${currentActiveUserId}&t=` + new Date().getTime())
+                .then(res => res.json())
+                .then(data => {
+                    // Only re-render the screen if the database has a new message
+                    if (data.length !== adminLastMessageCount) {
+                        renderAdminMessages(data);
+                        adminLastMessageCount = data.length;
+                        scrollAdminToBottom();
+                    }
+                }).catch(err => console.error('Admin Chat Fetch Error:', err));
+        }
+
+        function renderAdminMessages(messages) {
+            const container = document.getElementById('adminChatMessages');
+            container.innerHTML = '';
+            
+            if(messages.length === 0) {
+                container.innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;">No messages yet. Send a greeting to start the conversation!</div>';
+                return;
+            }
+
+            messages.forEach(msg => {
+                const bubbleClass = msg.is_mine ? 'mine' : 'theirs';
+                let html = `<div class="admin-chat-bubble ${bubbleClass}">`;
+                
+                if (msg.message_text) {
+                    html += `<div>${msg.message_text}</div>`;
+                }
+                
+                // Display attachments (Images get a preview, PDFs get a download link)
+                if (msg.attachment_url) {
+                    if(msg.attachment_url.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null) {
+                        html += `<a href="${msg.attachment_url}" target="_blank"><img src="${msg.attachment_url}" style="max-width: 100%; max-height: 200px; border-radius: 8px; margin-top: 5px; border: 1px solid rgba(0,0,0,0.1);"></a>`;
+                    } else {
+                        html += `<a href="${msg.attachment_url}" target="_blank" style="color: inherit; text-decoration: underline; font-weight: bold; display: block; margin-top: 5px;"><i class="fas fa-file-download"></i> Download Attached File</a>`;
+                    }
+                }
+                html += `<div style="font-size: 9px; opacity: 0.7; margin-top: 5px; text-align: right;">${msg.created_at}</div></div>`;
+                container.innerHTML += html;
+            });
+        }
+        
+        function scrollAdminToBottom() {
+            const container = document.getElementById('adminChatMessages');
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function updateAdminChatFileName(input) {
+            const nameDisplay = document.getElementById('admin-chat-file-name');
+            if (input.files.length > 0) {
+                nameDisplay.innerHTML = `<i class="fas fa-image"></i> File Selected: ${input.files[0].name}`;
+            } else {
+                nameDisplay.innerHTML = "";
+            }
+        }
+        
+        function sendAdminMessage(e) {
+            e.preventDefault();
+            const userId = document.getElementById('active_chat_user_id').value;
+            const textInput = document.getElementById('adminChatInputText');
+            const fileInput = document.getElementById('adminChatAttachment');
+            const sendBtn = document.getElementById('adminChatSendBtn');
+
+            // Don't send if it's completely empty
+            if (!userId || (!textInput.value.trim() && fileInput.files.length === 0)) return;
+
+            // Loading state
+            sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            sendBtn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('receiver_id', userId);
+            formData.append('message_text', textInput.value);
+            if (fileInput.files.length > 0) {
+                formData.append('attachment', fileInput.files[0]);
+            }
+
+            fetch('/api/send_message', { 
+                method: 'POST', 
+                body: formData 
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    textInput.value = '';
+                    fileInput.value = '';
+                    document.getElementById('admin-chat-file-name').innerHTML = '';
+                    fetchAdminMessages(); // Immediately pull the new message down
+                } else {
+                    alert("Error sending message: " + data.message);
+                }
+            })
+            .catch(err => console.error("Upload failed", err))
+            .finally(() => {
+                sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+                sendBtn.disabled = false;
+            });
+        }
+    </script>
 </body>
 </html>
