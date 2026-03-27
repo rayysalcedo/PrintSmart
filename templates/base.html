@@ -151,7 +151,7 @@
 
     {% block content %}{% endblock %}
 
-    {% if session.get('loggedin') and session.get('role') != 'admin' %}
+    {% if session.get('role') != 'admin' %}
     <div class="chat-widget-container">
         
         <div id="chatWindow" class="chat-window">
@@ -267,7 +267,7 @@
         // ==========================================
         // --- REAL-TIME CHATBOT LOGIC ---
         // ==========================================
-        {% if session.get('loggedin') and session.get('role') != 'admin' %}
+        {% if session.get('role') != 'admin' %}
         let chatInterval = null;
         let lastMessageCount = -1;
         let isBotMode = true; 
@@ -453,7 +453,6 @@
 
             if (!textInput.value.trim() && fileInput.files.length === 0) return;
 
-            // FIX: 10MB File Size Shield
             if (fileInput.files.length > 0) {
                 const fileSizeMB = fileInput.files[0].size / (1024 * 1024);
                 if (fileSizeMB > 10) {
@@ -478,7 +477,14 @@
                     textInput.value = ''; fileInput.value = '';
                     document.getElementById('chat-file-name').innerHTML = '';
                     fetchMessages(); 
+                } else {
+                    // FIX 3: Instantly alert the user if the database or upload fails!
+                    alert("Message failed to send: " + data.message);
                 }
+            })
+            .catch(err => {
+                console.error("Upload error:", err);
+                alert("Network error: Server disconnected or file too large.");
             })
             .finally(() => {
                 sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';

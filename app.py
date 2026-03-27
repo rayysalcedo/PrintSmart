@@ -930,7 +930,7 @@ def admin_dashboard():
                    (SELECT created_at FROM chat_messages WHERE sender_id = u.user_id OR receiver_id = u.user_id ORDER BY created_at DESC LIMIT 1) as latest_time,
                    (SELECT COUNT(*) FROM chat_messages WHERE sender_id = u.user_id AND (is_read = FALSE OR is_read IS NULL)) as unread_count
             FROM users u
-            WHERE u.role = 'customer'
+            WHERE u.role IN ('customer', 'guest')
             ORDER BY latest_time DESC, u.user_id DESC
         """)
         customers = cursor.fetchall() or []
@@ -1182,7 +1182,7 @@ def admin_sidebar():
                    (SELECT created_at FROM chat_messages WHERE sender_id = u.user_id OR receiver_id = u.user_id ORDER BY created_at DESC LIMIT 1) as latest_time,
                    (SELECT COUNT(*) FROM chat_messages WHERE sender_id = u.user_id AND (is_read = FALSE OR is_read IS NULL)) as unread_count
             FROM users u
-            WHERE u.role = 'customer'
+            WHERE u.role IN ('customer', 'guest')
             ORDER BY latest_time DESC, u.user_id DESC
         """)
         customers = cursor.fetchall()
@@ -1199,15 +1199,17 @@ def admin_sidebar():
 
 @app.route('/api/heartbeat', methods=['POST'])
 def heartbeat():
-    if not session.get('loggedin'): return jsonify({'status': 'error'})
-    user_id = session['user_id']
-    
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("UPDATE users SET last_active = NOW() WHERE user_id = %s", (user_id,))
     
+    # Check if ANY admin is online
     cursor.execute("SELECT COUNT(*) as admin_count FROM users WHERE role = 'admin' AND last_active >= NOW() - INTERVAL 2 MINUTE")
     admin_online = cursor.fetchone()['admin_count'] > 0
+    
+    # If the user (or guest) has a session ID, update their activity tracker
+    user_id = session.get('user_id')
+    if user_id:
+        cursor.execute("UPDATE users SET last_active = NOW() WHERE user_id = %s", (user_id,))
     
     conn.commit()
     conn.close()
@@ -1215,10 +1217,6 @@ def heartbeat():
 
 @app.route('/api/get_messages')
 def get_messages():
-    if not session.get('loggedin'):
-        return jsonify({'status': 'error', 'message': 'Not logged in'}), 401
-    
-    user_id = session['user_id']
     role = session.get('role', 'customer')
     
     try:
@@ -1226,21 +1224,23 @@ def get_messages():
         cursor = conn.cursor(dictionary=True)
         
         if role == 'admin':
+            if not session.get('loggedin'): return jsonify([])
             other_user_id = request.args.get('user_id')
             if not other_user_id: return jsonify([])
             
-            # MARK AS READ: Clears the unread notification no matter which admin account was originally targeted
             cursor.execute("UPDATE chat_messages SET is_read = TRUE WHERE sender_id = %s", (other_user_id,))
             conn.commit()
             
-            # We just need all messages where the customer is either the sender OR the receiver.
             cursor.execute("""
                 SELECT * FROM chat_messages 
                 WHERE sender_id = %s OR receiver_id = %s
                 ORDER BY created_at ASC
             """, (other_user_id, other_user_id))
         else:
-            # Customer Side
+            # If they are a guest who hasn't sent a message yet, they have no history
+            user_id = session.get('user_id')
+            if not user_id: return jsonify([])
+            
             cursor.execute("""
                 SELECT * FROM chat_messages 
                 WHERE sender_id = %s OR receiver_id = %s
@@ -1252,7 +1252,7 @@ def get_messages():
         
         for msg in messages:
             msg['created_at'] = msg['created_at'].strftime('%b %d, %I:%M %p')
-            msg['is_mine'] = (msg['sender_id'] == user_id)
+            msg['is_mine'] = (msg['sender_id'] == session.get('user_id'))
             
         return jsonify(messages)
     except Exception as e:
@@ -1260,12 +1260,36 @@ def get_messages():
 
 @app.route('/api/send_message', methods=['POST'])
 def send_message():
-    if not session.get('loggedin'):
+    role = session.get('role', 'guest')
+    
+    if role == 'admin' and not session.get('loggedin'):
         return jsonify({'status': 'error', 'message': 'Not logged in'}), 401
         
+    # AUTO-CREATE GUEST ACCOUNT if they don't have a user ID yet
+    if 'user_id' not in session:
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            guest_name = f"GUEST-{random.randint(1000, 9999)}"
+            guest_email = f"guest_{secrets.token_hex(4)}@printagram.local"
+            
+            # FIX 1: Added a dummy phone number to prevent MySQL strict-mode crashes!
+            cursor.execute("""
+                INSERT INTO users (full_name, email, phone_number, password_hash, role, is_active)
+                VALUES (%s, %s, %s, 'guest_no_login', 'customer', TRUE)
+            """, (guest_name, guest_email, 'No Phone'))
+            conn.commit()
+            
+            session['user_id'] = cursor.lastrowid
+            session['role'] = 'guest'
+            session['name'] = guest_name
+            conn.close()
+        except Exception as e:
+            print(f"Guest Creation Error: {e}")
+            return jsonify({'status': 'error', 'message': f'Guest creation failed: {str(e)}'})
+        
     sender_id = session['user_id']
-    role = session.get('role', 'customer')
-    
     message_text = request.form.get('message_text', '').strip()
     attachment = request.files.get('attachment')
     
@@ -1285,31 +1309,27 @@ def send_message():
             
         attachment_url = None
         if attachment and attachment.filename != '':
-            import time
             from werkzeug.utils import secure_filename
             
             safe_filename = secure_filename(attachment.filename)
             ext = safe_filename.rsplit('.', 1)[-1].lower() if '.' in safe_filename else ''
             
-            # THE FIX: ZIPs, DOCX, and other non-media files must be stored as "raw" 
-            # WITH their extensions intact so computers know how to open them.
+            # FIX 2: 'use_filename=True' forces Cloudinary to keep the exact .zip extension!
             if ext in ['zip', 'rar', '7z', 'docx', 'xlsx', 'txt']:
-                unique_id = f"{int(time.time())}_{safe_filename}" # Keeps the .zip extension!
                 upload_result = cloudinary.uploader.upload(
                     attachment, 
                     folder="chat_attachments", 
-                    resource_type="raw",
-                    public_id=unique_id
+                    resource_type="raw", 
+                    use_filename=True,
+                    unique_filename=True
                 )
             else:
-                # Images and PDFs use "auto" and safely strip the extension
-                base_name = safe_filename.rsplit('.', 1)[0] if '.' in safe_filename else safe_filename
-                unique_id = f"{int(time.time())}_{base_name}" 
                 upload_result = cloudinary.uploader.upload(
                     attachment, 
                     folder="chat_attachments", 
-                    resource_type="auto",
-                    public_id=unique_id
+                    resource_type="auto", 
+                    use_filename=True,
+                    unique_filename=True
                 )
                 
             attachment_url = upload_result['secure_url']

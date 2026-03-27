@@ -16,8 +16,6 @@
         .logo-text { font-weight: 700; font-size: 20px; letter-spacing: 1px; }
         .overlay-panel h1 { font-weight: 700; margin: 0 0 15px 0; font-size: 32px; }
         .overlay-panel p { font-size: 16px; line-height: 1.6; margin: 0 0 30px 0; opacity: 0.9; }
-        button.ghost { background-color: transparent; border: 2px solid white; color: white; padding: 12px 45px; font-size: 14px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; border-radius: 50px; cursor: pointer; transition: 0.3s; }
-        button.ghost:hover { background-color: rgba(255,255,255,0.2); }
         .form-container { flex: 1.5; padding: 30px 50px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; overflow-y: auto; }
         .form-container h1 { font-weight: 700; margin: 0 0 20px 0; color: #DC5500; font-size: 28px; }
         .input-group { width: 100%; margin: 10px 0; text-align: left; }
@@ -35,9 +33,49 @@
         .social-container a { border: 1px solid #ddd; border-radius: 50%; display: inline-flex; justify-content: center; align-items: center; margin: 0 8px; height: 45px; width: 45px; text-decoration: none; transition: 0.3s; }
         .social-container a:hover { border-color: #DC5500; background: #fff5e6; }
         @media (max-width: 768px) { .container { flex-direction: column; height: auto; width: 95%; max-height: 95vh; } .overlay-container { padding: 30px 20px; display: none; } .form-container { padding: 30px 20px; } }
+
+        /* --- FLOATING BACK BUTTON --- */
+        .back-home-btn {
+            position: absolute;
+            top: 40px;
+            left: 40px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #DC5500;
+            font-size: 14px;
+            font-weight: 700;
+            text-decoration: none;
+            background: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .back-home-btn i {
+            transition: transform 0.3s ease;
+        }
+
+        .back-home-btn:hover {
+            background: #DC5500;
+            color: white;
+            box-shadow: 0 8px 25px rgba(220, 85, 0, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .back-home-btn:hover i {
+            transform: translateX(-4px);
+        }
     </style>
 </head>
 <body>
+
+<a href="{{ url_for('home') }}" class="back-home-btn">
+    <i class="fas fa-arrow-left"></i> Back to Home
+</a>
+
 <div class="container">
     <div class="overlay-container">
         <div class="logo-area">
@@ -45,9 +83,8 @@
             <span class="logo-text">PRINTAGRAM</span>
         </div>
         <div class="overlay-panel">
-            <h1>Hello, Friend!</h1>
-            <p>Enter your personal details and start your journey with us</p>
-            <a href="{{ url_for('register') }}"><button class="ghost" type="button">Sign Up</button></a>
+            <h1>Welcome Back!</h1>
+            <p>To keep connected with us please login with your personal info.</p>
         </div>
     </div>
     <div class="form-container">
@@ -84,6 +121,11 @@
                 <a href="{{ url_for('google_login') }}"><img src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png" width="24" alt="Google"></a>
                 <a href="{{ url_for('facebook_login') }}"><img src="https://cdn-icons-png.flaticon.com/512/5968/5968764.png" width="24" alt="Facebook"></a>
             </div>
+            
+            <p style="margin-top: 25px; font-size: 14px; color: #666;">
+                Don't have an account yet? 
+                <a href="{{ url_for('register') }}" style="color: #DC5500; font-weight: bold; text-decoration: none;">Sign up here</a>
+            </p>
         </form>
     </div>
 </div>

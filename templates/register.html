@@ -17,8 +17,6 @@
         .logo-text { font-weight: 700; font-size: 20px; letter-spacing: 1px; }
         .overlay-panel h1 { font-weight: 700; margin: 0 0 15px 0; font-size: 32px; }
         .overlay-panel p { font-size: 16px; line-height: 1.6; margin: 0 0 30px 0; opacity: 0.9; }
-        button.ghost { background-color: transparent; border: 2px solid white; color: white; padding: 12px 45px; font-size: 14px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; border-radius: 50px; cursor: pointer; transition: 0.3s; }
-        button.ghost:hover { background-color: rgba(255,255,255,0.2); }
         .form-container { flex: 1.5; padding: 30px 50px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; overflow-y: auto; }
         .form-container h1 { font-weight: 700; margin: 0 0 20px 0; color: #DC5500; font-size: 28px; }
         .input-group { width: 100%; margin: 8px 0; text-align: left; }
@@ -41,9 +39,49 @@
         .validation-item.valid i { color: #2e7d32; }
         #match-error { color: #c62828; font-size: 12px; margin-top: 5px; display: none; margin-left: 5px; font-weight: 600; }
         .iti { width: 100%; }
+
+        /* --- FLOATING BACK BUTTON --- */
+        .back-home-btn {
+            position: absolute;
+            top: 40px;
+            left: 40px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #DC5500;
+            font-size: 14px;
+            font-weight: 700;
+            text-decoration: none;
+            background: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .back-home-btn i {
+            transition: transform 0.3s ease;
+        }
+
+        .back-home-btn:hover {
+            background: #DC5500;
+            color: white;
+            box-shadow: 0 8px 25px rgba(220, 85, 0, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .back-home-btn:hover i {
+            transform: translateX(-4px);
+        }
     </style>
 </head>
 <body>
+
+<a href="{{ url_for('home') }}" class="back-home-btn">
+    <i class="fas fa-arrow-left"></i> Back to Home
+</a>
+
 <div class="container">
     <div class="overlay-container">
         <div class="logo-area">
@@ -51,9 +89,8 @@
             <span class="logo-text">PRINTAGRAM</span>
         </div>
         <div class="overlay-panel">
-            <h1>Welcome Back!</h1>
-            <p>To keep connected with us please login with your personal info</p>
-            <a href="{{ url_for('login') }}"><button class="ghost" type="button">Sign In</button></a>
+            <h1>Hello, Friend!</h1>
+            <p>Enter your personal details and start your journey with us.</p>
         </div>
     </div>
     <div class="form-container">
@@ -110,6 +147,11 @@
                 <a href="{{ url_for('google_login') }}"><img src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png" width="24" alt="Google"></a>
                 <a href="{{ url_for('facebook_login') }}"><img src="https://cdn-icons-png.flaticon.com/512/5968/5968764.png" width="24" alt="Facebook"></a>
             </div>
+            
+            <p style="margin-top: 25px; font-size: 14px; color: #666;">
+                Already have an account? 
+                <a href="{{ url_for('login') }}" style="color: #DC5500; font-weight: bold; text-decoration: none;">Sign in here</a>
+            </p>
         </form>
     </div>
 </div>
@@ -120,7 +162,7 @@
     window.intlTelInput(phoneInput, {
         initialCountry: "ph", 
         separateDialCode: true,
-        autoPlaceholder: "off", // RESTORED: This stops the random '0905' placeholder from showing up!
+        autoPlaceholder: "off",
         utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js",
     });
 
