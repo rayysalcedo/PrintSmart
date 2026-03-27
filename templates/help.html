@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* Hero Section */
+    .contact-hero {
+        background: linear-gradient(rgba(220, 85, 0, 0.85), rgba(220, 85, 0, 0.85)), url('/static/images/PrintagramBG.jpg') center/cover;
+        padding: 80px 20px;
+        text-align: center;
+        color: white;
+    }
+    .contact-hero h1 { font-size: 42px; margin-bottom: 15px; font-weight: 700; }
+    .contact-hero p { font-size: 18px; opacity: 0.9; max-width: 600px; margin: 0 auto; }
+
+    /* Layout Wrapper */
+    .contact-wrapper {
+        max-width: 1200px;
+        margin: -40px auto 60px;
+        padding: 0 20px;
+        display: grid;
+        grid-template-columns: 1fr 1.5fr;
+        gap: 40px;
+        position: relative;
+        z-index: 10;
+    }
+
+    /* Left Side: Contact Cards */
+    .contact-info-cards { display: grid; grid-template-columns: 1fr; gap: 20px; }
+    .info-card {
+        background: white; padding: 30px; border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05); display: flex; align-items: flex-start;
+        gap: 20px; border: 1px solid #eee; transition: 0.3s;
+    }
+    .info-card:hover { transform: translateY(-5px); border-color: #DC5500; }
+    .icon-circle {
+        width: 50px; height: 50px; background: #fff5eb; color: #DC5500;
+        border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;
+    }
+    .info-card h3 { margin: 0 0 5px 0; font-size: 18px; color: #333; }
+    .info-card p { margin: 0; color: #666; font-size: 14px; line-height: 1.5; }
+    .info-card a { color: #DC5500; text-decoration: none; font-weight: 600; transition: 0.2s; }
+    .info-card a:hover { text-decoration: underline; }
+
+    /* Right Side: The Form */
+    .contact-form-card {
+        background: white; padding: 40px; border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #eee;
+    }
+    .contact-form-card h2 { margin-top: 0; margin-bottom: 25px; color: #333; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: #555; }
+    .form-control { width: 100%; padding: 12px 15px; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; font-size: 14px; box-sizing: border-box; transition: 0.3s; }
+    .form-control:focus { outline: none; border-color: #DC5500; box-shadow: 0 0 0 3px rgba(220, 85, 0, 0.1); }
+    .btn-submit { background: #DC5500; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; width: 100%; }
+    .btn-submit:hover { background: #b84700; }
+
+    /* Google Map */
+    .map-section { width: 100%; height: 450px; background: #eee; display: block; margin-top: 40px; }
+
+    @media (max-width: 850px) {
+        .contact-wrapper { grid-template-columns: 1fr; margin-top: 20px; }
+    }
+</style>
+
+<div class="contact-hero">
+    <h1>Printagram Help Center</h1>
+    <p>Need a custom quote, have a question about an order, or looking for our shop? We're here to help.</p>
+</div>
+
+<div class="contact-wrapper">
+    <div class="contact-info-cards">
+        <div class="info-card">
+            <div class="icon-circle"><i class="fas fa-map-marker-alt"></i></div>
+            <div>
+                <h3>Visit Our Shop</h3>
+                <p>National Rd. Panilao<br>Pilar, Bataan, Philippines</p>
+            </div>
+        </div>
+        
+        <div class="info-card">
+            <div class="icon-circle"><i class="fas fa-phone-alt"></i></div>
+            <div>
+                <h3>Call Us</h3>
+                <p>+63 956 527 3414<br><span style="font-size: 12px; color: #999;">Mon-Sat: 8:00 AM - 5:00 PM</span></p>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <div class="icon-circle"><i class="fas fa-envelope"></i></div>
+            <div>
+                <h3>Email Us</h3>
+                <p>printagrambataan2019@gmail.com<br><span style="font-size: 12px; color: #999;">We generally reply within 24-48 hours</span></p>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <div class="icon-circle"><i class="fab fa-facebook-f"></i></div>
+            <div>
+                <h3>Message on Facebook</h3>
+                <p><a href="https://www.facebook.com/PrintagramBataan" target="_blank">@PrintagramBataan</a></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="contact-form-card">
+        
+        {% if session.get('loggedin') and session.get('role') != 'admin' %}
+        <div style="background: #fff5eb; border: 1px dashed #DC5500; border-radius: 8px; padding: 20px; margin-bottom: 25px; text-align: center;">
+            <h3 style="margin: 0 0 8px 0; color: #DC5500; font-size: 16px;"><i class="fas fa-bolt"></i> Need an immediate answer?</h3>
+            <p style="margin: 0; color: #555; font-size: 13px;">Use our <strong>Live Chat</strong> at the bottom right of your screen!<br>Available <strong>8:00 AM - 5:00 PM (Weekdays, PHT)</strong>.</p>
+        </div>
+        {% else %}
+        <div style="background: #f9f9f9; border: 1px dashed #ccc; border-radius: 8px; padding: 20px; margin-bottom: 25px; text-align: center;">
+            <h3 style="margin: 0 0 8px 0; color: #555; font-size: 16px;"><i class="fas fa-info-circle"></i> Registered customers get faster support!</h3>
+            <p style="margin: 0; color: #666; font-size: 13px;">Log in to access our <strong>Live Chat</strong> for real-time assistance (8 AM - 5 PM Weekdays, PHT).</p>
+            <a href="/login" style="display: inline-block; margin-top: 10px; background: #DC5500; color: white; padding: 6px 15px; border-radius: 4px; text-decoration: none; font-size: 12px; font-weight: bold;">Log In Now</a>
+        </div>
+        {% endif %}
+
+        <h2>Submit a Support Ticket</h2>
+        <p style="font-size: 13px; color: #666; margin-bottom: 20px;">Use this form for complex requests. <strong>Email responses may take 24-48 hours.</strong></p>
+
+        <form action="#" method="POST" onsubmit="event.preventDefault(); alert('Ticket submitted successfully! We will email you back within 24-48 hours.');">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>First Name</label>
+                    <input type="text" class="form-control" placeholder="Juan" value="{{ session.get('name', '').split(' ')[0] }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Last Name</label>
+                    <input type="text" class="form-control" placeholder="Dela Cruz" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" class="form-control" placeholder="juan@example.com" required>
+            </div>
+
+            <div class="form-group">
+                <label>Subject / Inquiry Type</label>
+                <select class="form-control" required>
+                    <option value="">Select a topic...</option>
+                    <option value="custom_quote">Request a Custom Quote</option>
+                    <option value="print_issue">Report a Problem with a Print / Order</option>
+                    <option value="bulk_corporate">Partnership / Bulk Corporate Inquiry</option>
+                    <option value="other">Others</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Ticket Details</label>
+                <textarea class="form-control" rows="5" placeholder="Please provide as much detail as possible..." required></textarea>
+            </div>
+
+            <button type="submit" class="btn-submit">Submit Ticket <i class="fas fa-paper-plane" style="margin-left: 8px;"></i></button>
+        </form>
+    </div>
+</div>
+
+<section class="map-section">
+    <iframe 
+        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15444.606351782299!2d120.55118745!3d14.589814499999998!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3396406b0b00709b%3A0x6b642675daeb9b8a!2sPilar%2C%20Bataan!5e0!3m2!1sen!2sph!4v1700000000000!5m2!1sen!2sph" 
+        width="100%" 
+        height="100%" 
+        style="border:0;" 
+        allowfullscreen="" 
+        loading="lazy" 
+        referrerpolicy="no-referrer-when-downgrade">
+    </iframe>
+</section>
+
+{% endblock %}

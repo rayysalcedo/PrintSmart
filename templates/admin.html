@@ -58,9 +58,9 @@
         .chat-sidebar-header { padding: 15px; background: #fff; border-bottom: 1px solid #eee; font-weight: bold; color: #333; position: sticky; top: 0; z-index: 10; }
         .chat-user-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 12px; }
         .chat-user-item:hover { background: #fff5e6; }
-        .chat-user-item.active { background: #DC5500; color: white; border-bottom-color: #DC5500; }
+        .chat-user-item.active-chat { background: #fff5eb; border-left: 4px solid #DC5500; padding-left: 11px; }
         .chat-user-avatar { width: 40px; height: 40px; background: #e0e0e0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #555; font-weight: bold; font-size: 18px; flex-shrink: 0; }
-        .chat-user-item.active .chat-user-avatar { background: white; color: #DC5500; }
+        .chat-user-item.active-chat .chat-user-avatar { background: #DC5500; color: white; }
         .chat-user-info { flex: 1; overflow: hidden; }
         .chat-user-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .chat-user-id { font-size: 11px; opacity: 0.8; margin-top: 2px; }
@@ -394,15 +394,25 @@
                     <div class="chat-sidebar-header">
                         Customers
                     </div>
-                    {% for cust in customers %}
-                    <div class="chat-user-item" onclick="loadUserChat({{ cust.user_id }}, '{{ cust.full_name }}', this)">
-                        <div class="chat-user-avatar">{{ cust.full_name[0] | upper }}</div>
-                        <div class="chat-user-info">
-                            <div class="chat-user-name">{{ cust.full_name }}</div>
-                            <div class="chat-user-id">Customer ID: #{{ cust.user_id }}</div>
+                    <div id="admin-chat-sidebar-list">
+                        {% for cust in customers %}
+                        <div class="chat-user-item" onclick="loadUserChat({{ cust.user_id }}, '{{ cust.full_name }}', this)">
+                            <div class="chat-user-avatar">{{ cust.full_name[0] | upper }}</div>
+                            <div class="chat-user-info">
+                                <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                                    <div class="chat-user-name" style="{% if cust.unread_count > 0 %}font-weight: 800; color: #111;{% endif %}">{{ cust.full_name }}</div>
+                                    {% if cust.latest_time %}<div style="font-size: 10px; color: #999;">{{ cust.latest_time.strftime('%b %d') }}</div>{% endif %}
+                                </div>
+                                <div style="font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; {% if cust.unread_count > 0 %}font-weight: 700; color: #DC5500;{% else %}color: #666;{% endif %}">
+                                    {{ cust.latest_message if cust.latest_message else 'No messages yet' }}
+                                </div>
+                            </div>
+                            {% if cust.unread_count > 0 %}
+                            <div class="unread-badge" style="background: #dc3545; color: white; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; flex-shrink: 0;">{{ cust.unread_count }}</div>
+                            {% endif %}
                         </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
                 </div>
 
                 <div class="chat-main" id="chat-main-panel" style="display: none;">
@@ -411,7 +421,7 @@
                     </div>
                     
                     <div class="admin-chat-messages" id="adminChatMessages">
-                        </div>
+                    </div>
                     
                     <div id="admin-chat-file-name"></div>
                     
@@ -462,7 +472,7 @@
             document.getElementById('page-title').innerText = tabId.charAt(0).toUpperCase() + tabId.slice(1);
         }
 
-        // Dashboard Chart (Using Static Example Data for UI)
+        // Dashboard Chart
         const ctx = document.getElementById('revenueChart').getContext('2d');
         const myChart = new Chart(ctx, {
             type: 'line',
@@ -483,41 +493,44 @@
         // --- CUSTOM ADMIN CHAT JAVASCRIPT ---
         // ==========================================
         let adminChatInterval = null;
-        let adminLastMessageCount = 0;
+        let adminLastMessageCount = -1; // FIX 1: Set to -1 so it forces a UI update even if there are 0 messages
         let currentActiveUserId = null;
 
+        // FIX 2: ADMIN HEARTBEAT - This tells the database the admin is online every 10 seconds
+        setInterval(() => { fetch('/api/heartbeat', { method: 'POST' }); }, 10000);
+        fetch('/api/heartbeat', { method: 'POST' }); // Send one immediately on load
+
         function loadUserChat(userId, userName, element) {
-            // Highlight the active user in the sidebar
-            document.querySelectorAll('.chat-user-item').forEach(el => el.classList.remove('active'));
-            element.classList.add('active');
+            // Highlight active user in sidebar
+            document.querySelectorAll('.chat-user-item').forEach(el => el.classList.remove('active-chat'));
+            if(element) element.classList.add('active-chat');
             
+            // Remove unread badge visually
+            const badge = element ? element.querySelector('.unread-badge') : null;
+            if(badge) badge.remove();
+
             // Switch UI from placeholder to Chat Panel
             document.getElementById('chat-placeholder').style.display = 'none';
             document.getElementById('chat-main-panel').style.display = 'flex';
             
-            // Set Headers and Hidden Inputs
             document.getElementById('active-chat-user-name').innerHTML = `<i class="fas fa-user-circle" style="color: #DC5500; font-size: 24px;"></i> Chatting with: ${userName}`;
             document.getElementById('active_chat_user_id').value = userId;
             
-            // Reset variables for the new conversation
             currentActiveUserId = userId;
-            adminLastMessageCount = 0; 
+            adminLastMessageCount = -1; // Reset to -1 for the new user
             document.getElementById('adminChatMessages').innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;"><i class="fas fa-spinner fa-spin"></i> Loading messages...</div>';
             
-            fetchAdminMessages(); // Fetch instantly
+            fetchAdminMessages();
             
-            // Start Polling every 3 seconds to check for new replies from this specific user
             if(adminChatInterval) clearInterval(adminChatInterval);
             adminChatInterval = setInterval(fetchAdminMessages, 3000);
         }
         
        function fetchAdminMessages() {
             if(!currentActiveUserId) return;
-            // Adds a timestamp to bypass strict browser caching
             fetch(`/api/get_messages?user_id=${currentActiveUserId}&t=` + new Date().getTime())
                 .then(res => res.json())
                 .then(data => {
-                    // Only re-render the screen if the database has a new message
                     if (data.length !== adminLastMessageCount) {
                         renderAdminMessages(data);
                         adminLastMessageCount = data.length;
@@ -543,7 +556,6 @@
                     html += `<div>${msg.message_text}</div>`;
                 }
                 
-                // Display attachments (Images get a preview, PDFs get a download link)
                 if (msg.attachment_url) {
                     if(msg.attachment_url.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null) {
                         html += `<a href="${msg.attachment_url}" target="_blank"><img src="${msg.attachment_url}" style="max-width: 100%; max-height: 200px; border-radius: 8px; margin-top: 5px; border: 1px solid rgba(0,0,0,0.1);"></a>`;
@@ -577,10 +589,19 @@
             const fileInput = document.getElementById('adminChatAttachment');
             const sendBtn = document.getElementById('adminChatSendBtn');
 
-            // Don't send if it's completely empty
             if (!userId || (!textInput.value.trim() && fileInput.files.length === 0)) return;
 
-            // Loading state
+            // FIX: 10MB File Size Shield
+            if (fileInput.files.length > 0) {
+                const fileSizeMB = fileInput.files[0].size / (1024 * 1024);
+                if (fileSizeMB > 10) {
+                    alert("File is too large! Maximum allowed size is 10MB. Please compress your file or send a Drive link.");
+                    fileInput.value = '';
+                    document.getElementById('admin-chat-file-name').innerHTML = '';
+                    return;
+                }
+            }
+
             sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             sendBtn.disabled = true;
 
@@ -601,7 +622,7 @@
                     textInput.value = '';
                     fileInput.value = '';
                     document.getElementById('admin-chat-file-name').innerHTML = '';
-                    fetchAdminMessages(); // Immediately pull the new message down
+                    fetchAdminMessages();
                 } else {
                     alert("Error sending message: " + data.message);
                 }
@@ -611,6 +632,54 @@
                 sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
                 sendBtn.disabled = false;
             });
+        }
+        // ==========================================
+        // --- REAL-TIME SIDEBAR POLLING ---
+        // ==========================================
+        setInterval(updateAdminSidebar, 3000);
+
+        function updateAdminSidebar() {
+            fetch('/api/admin_sidebar?t=' + new Date().getTime())
+            .then(res => res.json())
+            .then(data => {
+                const sidebar = document.getElementById('admin-chat-sidebar-list');
+                if(!sidebar) return;
+                
+                let newHtml = '';
+                data.forEach(cust => {
+                    // Check if this is the person we are currently chatting with
+                    const isActive = (cust.user_id == currentActiveUserId) ? 'active-chat' : '';
+                    
+                    // Build the unread badge if needed
+                    const unreadBadge = cust.unread_count > 0 
+                        ? `<div class="unread-badge" style="background: #dc3545; color: white; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; flex-shrink: 0;">${cust.unread_count}</div>` 
+                        : '';
+                        
+                    // Bold the text if there are unread messages
+                    const nameStyle = cust.unread_count > 0 ? 'font-weight: 800; color: #111;' : 'font-weight: 600;';
+                    const msgStyle = cust.unread_count > 0 ? 'font-weight: 700; color: #DC5500;' : 'color: #666;';
+                    
+                    // Rebuild the HTML for each customer
+                    newHtml += `
+                    <div class="chat-user-item ${isActive}" onclick="loadUserChat(${cust.user_id}, '${cust.full_name}', this)">
+                        <div class="chat-user-avatar">${cust.full_name.charAt(0).toUpperCase()}</div>
+                        <div class="chat-user-info">
+                            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                                <div class="chat-user-name" style="${nameStyle}">${cust.full_name}</div>
+                                <div style="font-size: 10px; color: #999;">${cust.latest_time_str}</div>
+                            </div>
+                            <div style="font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; ${msgStyle}">
+                                ${cust.latest_message}
+                            </div>
+                        </div>
+                        ${unreadBadge}
+                    </div>`;
+                });
+                
+                // Inject the updated list instantly!
+                sidebar.innerHTML = newHtml;
+            })
+            .catch(err => console.error("Sidebar Fetch Error:", err));
         }
     </script>
 </body>

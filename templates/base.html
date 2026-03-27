@@ -15,6 +15,19 @@
     {% block styles %}{% endblock %}
 
 <style>
+    /* --- CHAT TOOLTIP --- */
+    .chat-tooltip {
+        position: absolute; right: 75px; bottom: 12px; background: white; color: #DC5500;
+        padding: 10px 15px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        font-size: 13px; font-weight: 700; white-space: nowrap; pointer-events: none;
+        animation: bounceX 2s infinite; border: 1px solid #eee;
+    }
+    .chat-tooltip::after {
+        content: ''; position: absolute; top: 50%; right: -6px; transform: translateY(-50%);
+        border-width: 6px 0 6px 6px; border-style: solid; border-color: transparent transparent transparent white;
+    }
+    @keyframes bounceX { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-5px); } }
+    
     .site-header { font-family: 'Alexandria', sans-serif !important; }
     
     /* --- FLASH POP-UP UI --- */
@@ -33,9 +46,9 @@
     .footer-brand .brand-text p { color: #DC5500; font-size: 10px; letter-spacing: 2px; margin: 5px 0 0 0; }
     .footer-col h4 { color: #DC5500; margin-bottom: 20px; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
     .footer-col ul { list-style: none; padding: 0; }
-    .footer-col ul li { margin-bottom: 12px; }
-    .footer-col ul li a { color: #bbb; text-decoration: none; transition: 0.3s; font-size: 14px; }
-    .footer-col ul li a:hover { color: #DC5500; padding-left: 5px; }
+    .footer-col ul li { margin-bottom: 12px; display: block; }
+    .footer-col ul li a { color: #bbb; text-decoration: none; transition: transform 0.3s ease, color 0.3s ease; font-size: 14px; display: inline-block; will-change: transform;}
+    .footer-col ul li a:hover { color: #DC5500; transform: translateX(6px); }
     .contact-item strong { color: #DC5500; }
 
     @keyframes slideIn { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
@@ -67,6 +80,10 @@
     .chat-send-btn { background: #DC5500; color: white; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
     .chat-send-btn:hover { background: #c24b00; }
     #chat-file-name { font-size: 10px; color: #DC5500; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+
+    /* BOT PROMPT BUTTONS */
+    .bot-prompt-btn { background: #fff; color: #DC5500; border: 1px solid #ffccaa; padding: 8px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; text-align: left; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+    .bot-prompt-btn:hover { background: #DC5500; color: white; }
 </style>
 
 </head>
@@ -112,7 +129,7 @@
 
             {% if session.get('loggedin') %}
                 <div class="profile-container">
-                    <a href="#" class="icon-btn" onclick="toggleProfileMenu(event)">
+                    <a href="#" class="icon-btn {% if request.path == '/profile' %}active-icon-btn{% endif %}" onclick="toggleProfileMenu(event)">
                         <img src="https://cdn-icons-png.flaticon.com/512/1077/1077114.png" alt="Profile">
                     </a>
                     <div id="profileDropdown" class="profile-dropdown">
@@ -136,33 +153,42 @@
 
     {% if session.get('loggedin') and session.get('role') != 'admin' %}
     <div class="chat-widget-container">
+        
         <div id="chatWindow" class="chat-window">
             <div class="chat-header">
-                <span><i class="fas fa-headset"></i> Support Chat</span>
-                <button onclick="toggleChat()" class="close-chat"><i class="fas fa-times"></i></button>
-            </div>
-            
-            <div id="chatMessages" class="chat-messages">
-                <div style="text-align: center; color: #aaa; font-size: 12px; margin-top: 20px;">
-                    Send us a message! We typically reply within a few minutes.
+                <span id="chatHeaderText"><i class="fas fa-headset"></i> Support Chat</span>
+                <div>
+                    <button onclick="showBotMainMenu()" class="close-chat" style="margin-right: 12px;" title="Options Menu"><i class="fas fa-robot"></i></button>
+                    <button onclick="toggleChat()" class="close-chat"><i class="fas fa-times"></i></button>
                 </div>
             </div>
             
-            <div class="chat-input-area">
+            <div id="chatScrollContainer" class="chat-messages">
+                <div id="chatHistory" style="display: flex; flex-direction: column; gap: 12px;"></div>
+                <div id="botInteractionArea" style="display: flex; flex-direction: column; gap: 12px;"></div>
+            </div>
+            
+            <div class="chat-input-area" style="display: none;">
                 <div id="chat-file-name"></div>
                 <form id="chatForm" class="chat-form-row" onsubmit="sendChatMessage(event)">
                     <label for="chatAttachment" class="chat-file-label" title="Attach Design/Proof">
                         <i class="fas fa-paperclip"></i>
                     </label>
                     <input type="file" id="chatAttachment" style="display: none;" onchange="updateChatFileName(this)">
-                    <input type="text" id="chatInputText" class="chat-input" placeholder="Type a message..." autocomplete="off">
+                    
+                    <input type="text" id="chatInputText" class="chat-input" placeholder="Type a message..." autocomplete="off" oninput="resetIdleTimer()">
+                    
                     <button type="submit" class="chat-send-btn" id="chatSendBtn"><i class="fas fa-paper-plane"></i></button>
                 </form>
             </div>
         </div>
-        <button class="chat-toggle-btn" onclick="toggleChat()">
+
+        <div class="chat-tooltip" id="chatTooltip">Need any help? Contact us here!</div>
+        
+        <button class="chat-toggle-btn" onclick="toggleChat(); document.getElementById('chatTooltip').style.display='none';">
             <i class="fas fa-comment-dots"></i>
         </button>
+
     </div>
     {% endif %}
 
@@ -182,32 +208,33 @@
             <div class="footer-col">
                 <h4>Our Services</h4>
                 <ul>
-                    <li><a href="{{ url_for('services') }}">View All Services</a></li>
-                    <li><a href="{{ url_for('services', _anchor='category-1') }}">Tarpaulin Printing</a></li>
-                    <li><a href="{{ url_for('services', _anchor='category-2') }}">Sintra Boards</a></li>
-                    <li><a href="{{ url_for('services', _anchor='category-3') }}">Sticker Labels</a></li>
-                    <li><a href="{{ url_for('services', _anchor='category-4') }}">Document Printing</a></li>
-                    <li><a href="{{ url_for('services', _anchor='category-5') }}">Photo Printing</a></li>
-                    <li><a href="{{ url_for('services', _anchor='category-6') }}">ID Packages</a></li>
-                    <li><a href="{{ url_for('services', _anchor='category-7') }}">Custom T-Shirts</a></li>
+                    <li><a href="/services">View All Services</a></li>
+                    <li><a href="/order/1">Tarpaulin Printing</a></li>
+                    <li><a href="/order/2">Sintra Boards</a></li>
+                    <li><a href="/order/3">Sticker Labels</a></li>
+                    <li><a href="/order/4">Document Printing</a></li>
+                    <li><a href="/order/5">Photo Printing</a></li>
+                    <li><a href="/order/6">ID Packages</a></li>
+                    <li><a href="/order/7">Custom T-Shirts</a></li>
                 </ul>
             </div>
 
             <div class="footer-col">
                 <h4>Company</h4>
                 <ul>
-                    <li><a href="{{ url_for('about') }}">About Us</a></li>
-                    <li><a href="{{ url_for('about') }}">Our History</a></li>
-                    <li><a href="#">Privacy Policy</a></li>
-                    <li><a href="#">Terms of Service</a></li>
+                    <li><a href="/about">About Us</a></li>
+                    <li><a href="/about#our-story">Our History</a></li>
+                    <li><a href="/privacy">Privacy Policy</a></li>
+                    <li><a href="/terms">Terms of Service</a></li>
                 </ul>
             </div>
+            
             <div class="footer-col">
                 <h4>Support</h4>
                 <ul>
-                    <li><a href="#">Help Center</a></li>
-                    <li><a href="#">Tracking Orders</a></li>
-                    <li><a href="#">Contact Support</a></li>
+                    <li><a href="/help">Help Center</a></li>
+                    <li><a href="/my_orders">Tracking Orders</a></li>
+                    <li><a href="javascript:void(0);" onclick="toggleChat();">Contact Support</a></li>
                     <li><a href="/login">Customer Login</a></li>
                 </ul>
             </div>
@@ -232,41 +259,73 @@
             }
         }
         
-        // Auto-hide flash messages
         setTimeout(() => {
             const msgs = document.querySelectorAll('.flash-message');
             msgs.forEach(m => m.style.display = 'none');
         }, 4000);
 
         // ==========================================
-        // --- CUSTOM LIVE CHAT JAVASCRIPT ---
+        // --- REAL-TIME CHATBOT LOGIC ---
         // ==========================================
         {% if session.get('loggedin') and session.get('role') != 'admin' %}
         let chatInterval = null;
-        let lastMessageCount = 0;
+        let lastMessageCount = -1;
+        let isBotMode = true; 
+        let adminIsOnline = false;
+        
+        let idleTimer = null;
+
+        setInterval(() => {
+            fetch('/api/heartbeat', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                adminIsOnline = data.admin_online;
+                updateChatHeader();
+            });
+        }, 10000);
+
+        function updateChatHeader() {
+            const headerText = document.getElementById('chatHeaderText');
+            if(!headerText) return; 
+            
+            if (isBotMode) {
+                headerText.innerHTML = `<i class="fas fa-headset"></i> Support Chat`;
+                return;
+            }
+            
+            if(adminIsOnline) {
+                headerText.innerHTML = `<i class="fas fa-user-tie"></i> Printagram Staff <span style="color: #2de04f; font-size: 10px; margin-left: 5px; text-shadow: 0 0 5px rgba(45,224,79,0.5);"><i class="fas fa-circle"></i></span> <span style="font-size:10px; font-weight:normal;">Online</span>`;
+            } else {
+                headerText.innerHTML = `<i class="fas fa-user-tie"></i> Printagram Staff <span style="color: #ccc; font-size: 10px; margin-left: 5px;"><i class="fas fa-circle"></i></span> <span style="font-size:10px; font-weight:normal;">Offline</span>`;
+            }
+        }
+        
+        function resetIdleTimer() {
+            if(idleTimer) clearTimeout(idleTimer);
+            
+            if(!isBotMode) {
+                idleTimer = setTimeout(() => {
+                    showBotMainMenu();
+                }, 300000); 
+            }
+        }
 
         function toggleChat() {
             const windowEl = document.getElementById('chatWindow');
             windowEl.classList.toggle('show');
             if (windowEl.classList.contains('show')) {
-                fetchMessages();
-                chatInterval = setInterval(fetchMessages, 3000); // Poll every 3 seconds
+                showBotMainMenu(); 
+                fetchMessages(); 
+                
+                if(chatInterval) clearInterval(chatInterval);
+                chatInterval = setInterval(fetchMessages, 3000);
             } else {
                 clearInterval(chatInterval);
+                if(idleTimer) clearTimeout(idleTimer);
             }
         }
 
-        function updateChatFileName(input) {
-            const nameDisplay = document.getElementById('chat-file-name');
-            if (input.files.length > 0) {
-                nameDisplay.innerHTML = `<i class="fas fa-image"></i> Attached: ${input.files[0].name}`;
-            } else {
-                nameDisplay.innerHTML = "";
-            }
-        }
-
-function fetchMessages() {
-            // Adds a timestamp to bypass strict browser caching
+        function fetchMessages() {
             fetch('/api/get_messages?t=' + new Date().getTime())
                 .then(res => res.json())
                 .then(data => {
@@ -279,68 +338,146 @@ function fetchMessages() {
         }
 
         function renderMessages(messages) {
-            const container = document.getElementById('chatMessages');
-            container.innerHTML = '';
-            
-            if(messages.length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: #aaa; font-size: 12px; margin-top: 20px;">Send us a message! We typically reply within a few minutes.</div>';
-                return;
-            }
+            const historyContainer = document.getElementById('chatHistory');
+            historyContainer.innerHTML = '';
 
-            messages.forEach(msg => {
-                const bubbleClass = msg.is_mine ? 'mine' : 'theirs';
-                let html = `<div class="chat-bubble ${bubbleClass}">`;
-                
-                if (msg.message_text) {
-                    html += `<div>${msg.message_text}</div>`;
-                }
-                if (msg.attachment_url) {
-                    // Check if it's an image to show preview, else show download link
-                    if(msg.attachment_url.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null) {
-                        html += `<a href="${msg.attachment_url}" target="_blank"><img src="${msg.attachment_url}" class="chat-attachment" alt="Attachment"></a>`;
-                    } else {
-                        html += `<a href="${msg.attachment_url}" target="_blank" style="color: inherit; text-decoration: underline; font-weight: bold; display: block; margin-top: 5px;"><i class="fas fa-file-download"></i> Download File</a>`;
+            if(messages.length === 0) {
+                historyContainer.innerHTML = '<div style="text-align: center; color: #aaa; font-size: 10px; margin-bottom: 10px;">End of history</div>';
+            } else {
+                messages.forEach(msg => {
+                    const bubbleClass = msg.is_mine ? 'mine' : 'theirs';
+                    let html = `<div class="chat-bubble ${bubbleClass}">`;
+                    
+                    if (msg.message_text) html += `<div>${msg.message_text}</div>`;
+                    if (msg.attachment_url) {
+                        if(msg.attachment_url.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null) {
+                            html += `<a href="${msg.attachment_url}" target="_blank"><img src="${msg.attachment_url}" class="chat-attachment" alt="Attachment"></a>`;
+                        } else {
+                            html += `<a href="${msg.attachment_url}" target="_blank" style="color: inherit; text-decoration: underline; font-weight: bold; display: block; margin-top: 5px;"><i class="fas fa-file-download"></i> Download File</a>`;
+                        }
                     }
-                }
-                html += `<div class="chat-timestamp">${msg.created_at}</div></div>`;
-                container.innerHTML += html;
-            });
+                    html += `<div class="chat-timestamp">${msg.created_at}</div></div>`;
+                    historyContainer.innerHTML += html;
+                });
+            }
+            scrollToBottom();
+        }
+        
+        function showBotMainMenu() {
+            isBotMode = true;
+            document.querySelector('.chat-input-area').style.display = 'none';
+            updateChatHeader(); 
+
+            const botArea = document.getElementById('botInteractionArea');
+            botArea.innerHTML = `
+                <div style="text-align: center; margin-bottom: 15px; margin-top: 20px; border-top: 1px dashed #eee; padding-top: 15px;">
+                    <div style="width:40px; height:40px; background:#DC5500; color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:20px; margin:0 auto;"><i class="fas fa-robot"></i></div>
+                    <div style="font-size:12px; color:#555; font-weight:bold; margin-top:5px;">PrintaBot</div>
+                </div>
+                <div class="chat-bubble theirs" style="margin-bottom:10px;">
+                    Hi! I'm PrintaBot. How can I help you today? Please select an option:
+                </div>
+                <div id="bot-options" style="display:flex; flex-direction:column; gap:8px;">
+                    <button class="bot-prompt-btn" onclick="simulateBotReply(this, 'To place an order, go to the Services page, select a product, upload your design, and click Add to Cart.')">How do I place an order?</button>
+                    <button class="bot-prompt-btn" onclick="simulateBotReply(this, 'We accept GCash, Maya, and major Credit/Debit cards securely via PayMongo.')">What are your payment methods?</button>
+                    <button class="bot-prompt-btn" onclick="simulateBotReply(this, 'Store pickup is available immediately after printing. External delivery takes 3-7 business days depending on location.')">How long does delivery take?</button>
+                    <button class="bot-prompt-btn" onclick="connectToAgent()" style="border-color: #DC5500; font-weight:bold; color: #DC5500;">Other Concern / Talk to an Agent</button>
+                </div>
+            `;
+            scrollToBottom();
+        }
+
+        function simulateBotReply(btnElem, replyText) {
+            const botArea = document.getElementById('botInteractionArea');
+            const userText = btnElem.innerText;
+
+            botArea.innerHTML = `<div class="chat-bubble mine" style="margin-bottom:10px;"><div>${userText}</div></div>`;
+
+            setTimeout(() => {
+                botArea.innerHTML += `<div class="chat-bubble theirs" style="margin-bottom:15px;"><div>${replyText}</div></div>
+                    <div id="bot-options-2" style="display:flex; flex-direction:column; gap:8px; padding-bottom: 15px;">
+                        <button class="bot-prompt-btn" onclick="showBotMainMenu()" style="border-color: #aaa; color: #555;"><i class="fas fa-undo"></i> Ask another question</button>
+                        <button class="bot-prompt-btn" onclick="connectToAgent()" style="border-color: #DC5500; font-weight:bold;">I still need help (Talk to Agent)</button>
+                    </div>`;
+                scrollToBottom();
+            }, 500);
+        }
+
+       function connectToAgent() {
+            isBotMode = false;
+            resetIdleTimer(); 
+            
+            const botArea = document.getElementById('botInteractionArea');
+            botArea.innerHTML = `<div class="chat-bubble theirs" style="margin-bottom:10px; background: #fff5eb; color:#DC5500; border: 1px solid #ffccaa;"><div><i class="fas fa-spinner fa-spin"></i> Connecting you to a live agent...</div></div>`;
+            scrollToBottom();
+            
+            setTimeout(() => {
+                updateChatHeader(); 
+                
+                // THE FIX: Added an ID and transition so we can fade this message out cleanly
+                botArea.innerHTML = `<div id="greenConnectionMsg" class="chat-bubble theirs" style="margin-bottom:10px; background: #d4edda; color:#155724; border: 1px solid #c3e6cb; transition: opacity 0.5s;"><div><i class="fas fa-check-circle"></i> You are now connected to a Printagram staff. Type your message below.</div></div>`;
+                
+                document.querySelector('.chat-input-area').style.display = 'flex';
+                scrollToBottom();
+                
+                // Automatically fade out and remove the green message after 5 seconds
+                setTimeout(() => {
+                    const greenMsg = document.getElementById('greenConnectionMsg');
+                    if (greenMsg) {
+                        greenMsg.style.opacity = '0';
+                        setTimeout(() => { if(botArea.innerHTML.includes('greenConnectionMsg')) botArea.innerHTML = ''; }, 500);
+                    }
+                }, 5000);
+            }, 1500);
+        }
+
+        function updateChatFileName(input) {
+            const nameDisplay = document.getElementById('chat-file-name');
+            nameDisplay.innerHTML = input.files.length > 0 ? `<i class="fas fa-image"></i> Attached: ${input.files[0].name}` : "";
         }
 
         function scrollToBottom() {
-            const container = document.getElementById('chatMessages');
-            container.scrollTop = container.scrollHeight;
+            const container = document.getElementById('chatScrollContainer');
+            if(container) container.scrollTop = container.scrollHeight;
         }
 
         function sendChatMessage(e) {
             e.preventDefault();
+            resetIdleTimer(); 
+            
+            document.getElementById('botInteractionArea').innerHTML = '';
+            
             const textInput = document.getElementById('chatInputText');
             const fileInput = document.getElementById('chatAttachment');
             const sendBtn = document.getElementById('chatSendBtn');
 
             if (!textInput.value.trim() && fileInput.files.length === 0) return;
 
-            // UI loading state
+            // FIX: 10MB File Size Shield
+            if (fileInput.files.length > 0) {
+                const fileSizeMB = fileInput.files[0].size / (1024 * 1024);
+                if (fileSizeMB > 10) {
+                    alert("File is too large! Maximum allowed size for chat is 10MB. Please compress your file or use a Google Drive link.");
+                    fileInput.value = '';
+                    document.getElementById('chat-file-name').innerHTML = '';
+                    return;
+                }
+            }
+
             sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             sendBtn.disabled = true;
 
             const formData = new FormData();
             formData.append('message_text', textInput.value);
-            if (fileInput.files.length > 0) {
-                formData.append('attachment', fileInput.files[0]);
-            }
+            if (fileInput.files.length > 0) formData.append('attachment', fileInput.files[0]);
 
-            fetch('/api/send_message', {
-                method: 'POST',
-                body: formData
-            })
+            fetch('/api/send_message', { method: 'POST', body: formData })
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {
-                    textInput.value = '';
-                    fileInput.value = '';
+                    textInput.value = ''; fileInput.value = '';
                     document.getElementById('chat-file-name').innerHTML = '';
-                    fetchMessages(); // Immediately fetch new message
+                    fetchMessages(); 
                 }
             })
             .finally(() => {

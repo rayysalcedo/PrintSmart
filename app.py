@@ -308,7 +308,7 @@ def submit_review():
     product_id = request.form.get('product_id')
     rating = request.form.get('rating')
     comment = request.form.get('comment')
-    source_order_id = request.form.get('source_order_id') # NEW: Knows where the request came from
+    source_order_id = request.form.get('source_order_id')
     
     try:
         conn = get_db_connection()
@@ -332,12 +332,11 @@ def submit_review():
     except Exception as e:
         print(f"Review Error: {e}")
         
-    # Smart Redirect: Send them back to wherever they submitted the review from!
     if source_order_id:
         return redirect(url_for('my_order_details', order_id=source_order_id))
     return redirect(url_for('order', product_id=product_id))
 
-# --- SMART CART LOGIC (FIXED) ---
+# --- SMART CART LOGIC ---
 @app.route('/add_to_cart', methods=['POST'])
 def add_to_cart():
     if not session.get('loggedin'):
@@ -570,10 +569,8 @@ def place_order():
         
         # GRAB DELIVERY INFO
         delivery_method = request.form.get('delivery_method', 'Pickup') 
-        # Only save the address if they actually chose Delivery
         shipping_address = request.form.get('shipping_address', '').strip() if delivery_method == 'Delivery' else None
         
-        # 1. Create the order in the DB with the Delivery Method and Address included
         cursor.execute("""
             INSERT INTO orders (user_id, total_amount, payment_status, payment_method, delivery_method, shipping_address, order_status, created_at) 
             VALUES (%s, %s, 'Pending', 'PayMongo', %s, %s, 'Pending', NOW())
@@ -592,7 +589,7 @@ def place_order():
         conn.commit()
         conn.close()
 
-        # 2. GENERATE PAYMONGO CHECKOUT LINK
+        # GENERATE PAYMONGO CHECKOUT LINK
         paymongo_key = os.environ.get('PAYMONGO_SECRET_KEY')
         
         if not paymongo_key:
@@ -645,7 +642,6 @@ def place_order():
     except Exception as e:
         return f"Order Error: {e}"
     
-# --- NEW: PAYMENT SUCCESS CALLBACK ROUTE ---
 @app.route('/payment_success/<int:order_id>')
 def payment_success(order_id):
     if not session.get('loggedin'):
@@ -655,7 +651,6 @@ def payment_success(order_id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Update the order status to Paid!
         cursor.execute("UPDATE orders SET payment_status = 'Paid' WHERE order_id = %s AND user_id = %s", (order_id, session['user_id']))
         conn.commit()
         conn.close()
@@ -663,6 +658,10 @@ def payment_success(order_id):
         return render_template('order_success.html', order_id=order_id)
     except Exception as e:
         return f"Error finalizing payment: {e}"
+
+@app.route('/help')
+def help_page():
+    return render_template('help.html')
     
 # --- AUTHENTICATION & OTP ---
 
@@ -894,12 +893,10 @@ def admin_dashboard():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
-        # FIX: Only count orders that are NOT Cancelled
         cursor.execute("SELECT COUNT(*) as count FROM orders WHERE order_status != 'Cancelled'")
         res_orders = cursor.fetchone()
         total_orders = res_orders['count'] if res_orders else 0
         
-        # FIX: Only sum the revenue for orders that are NOT Cancelled
         cursor.execute("SELECT SUM(total_amount) as revenue FROM orders WHERE order_status != 'Cancelled'")
         res_rev = cursor.fetchone()
         total_revenue = res_rev['revenue'] if res_rev and res_rev['revenue'] else 0
@@ -910,7 +907,6 @@ def admin_dashboard():
         cursor.execute("SELECT * FROM product_variants")
         list_of_variants = cursor.fetchall() or []
 
-        # NEW: Fetch all gallery images ordered by when they were uploaded
         cursor.execute("SELECT * FROM product_images ORDER BY image_id ASC")
         gallery_images = cursor.fetchall() or []
 
@@ -928,7 +924,15 @@ def admin_dashboard():
             """, (order['order_id'],))
             order['safe_items'] = cursor.fetchall() or []
             
-        cursor.execute("SELECT * FROM users WHERE role = 'customer' ORDER BY user_id DESC")
+        cursor.execute("""
+            SELECT u.user_id, u.full_name, u.email, u.phone_number, u.created_at,
+                   (SELECT message_text FROM chat_messages WHERE sender_id = u.user_id OR receiver_id = u.user_id ORDER BY created_at DESC LIMIT 1) as latest_message,
+                   (SELECT created_at FROM chat_messages WHERE sender_id = u.user_id OR receiver_id = u.user_id ORDER BY created_at DESC LIMIT 1) as latest_time,
+                   (SELECT COUNT(*) FROM chat_messages WHERE sender_id = u.user_id AND (is_read = FALSE OR is_read IS NULL)) as unread_count
+            FROM users u
+            WHERE u.role = 'customer'
+            ORDER BY latest_time DESC, u.user_id DESC
+        """)
         customers = cursor.fetchall() or []
         conn.close() 
         
@@ -938,7 +942,6 @@ def admin_dashboard():
             if pid not in variants_map: variants_map[pid] = []
             variants_map[pid].append(v)
             
-        # NEW: Map the gallery images to their specific products
         gallery_map = {}
         for img in gallery_images:
             pid = img['product_id']
@@ -978,12 +981,10 @@ def update_order_status():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # If the admin sets it to 'Out for Delivery', generate the Estimated Delivery Date (+5 Days)
         if new_status == 'Out for Delivery':
             est_date = datetime.now() + timedelta(days=5)
             cursor.execute("UPDATE orders SET order_status = %s, estimated_delivery_date = %s WHERE order_id = %s", (new_status, est_date, order_id))
         else:
-            # FIX: If status is changed to anything else, erase the estimated delivery date so it hides on the frontend
             cursor.execute("UPDATE orders SET order_status = %s, estimated_delivery_date = NULL WHERE order_id = %s", (new_status, order_id))
             
         conn.commit()
@@ -1114,11 +1115,9 @@ def my_order_details(order_id):
     """, (order_id,))
     order_items = cursor.fetchall()
     
-    # Calculate Breakdown
     subtotal = sum(float(item['price_at_time']) for item in order_items)
     processing_fee = float(order['total_amount']) - subtotal
     
-    # Check if items are eligible for review
     if order['order_status'] == 'Completed':
         for item in order_items:
             cursor.execute("SELECT COUNT(*) as count FROM product_reviews WHERE user_id = %s AND product_id = %s", (session['user_id'], item['product_id']))
@@ -1131,7 +1130,6 @@ def my_order_details(order_id):
     conn.close()
     return render_template('order_details.html', order=order, items=order_items, subtotal=subtotal, processing_fee=processing_fee)
 
-# --- NEW: CANCEL ORDER ROUTE ---
 @app.route('/cancel_order', methods=['POST'])
 def cancel_order():
     if not session.get('loggedin'): return redirect(url_for('login'))
@@ -1140,7 +1138,6 @@ def cancel_order():
     reasons = request.form.getlist('reason')
     other_reason = request.form.get('other_reason', '').strip()
     
-    # Compile the cancellation reasons
     final_reasons = [r for r in reasons if r != 'Others']
     if 'Others' in reasons and other_reason:
         final_reasons.append(f"Others: {other_reason}")
@@ -1150,7 +1147,6 @@ def cancel_order():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        # Verify the order belongs to the user AND is still Pending
         cursor.execute("SELECT * FROM orders WHERE order_id = %s AND user_id = %s", (order_id, session['user_id']))
         order = cursor.fetchone()
         
@@ -1172,6 +1168,51 @@ def cancel_order():
 # --- LIVE CHAT API ROUTES ---
 # ==========================================
 
+@app.route('/api/admin_sidebar')
+def admin_sidebar():
+    if session.get('role') != 'admin':
+        return jsonify([])
+        
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT u.user_id, u.full_name,
+                   (SELECT message_text FROM chat_messages WHERE sender_id = u.user_id OR receiver_id = u.user_id ORDER BY created_at DESC LIMIT 1) as latest_message,
+                   (SELECT created_at FROM chat_messages WHERE sender_id = u.user_id OR receiver_id = u.user_id ORDER BY created_at DESC LIMIT 1) as latest_time,
+                   (SELECT COUNT(*) FROM chat_messages WHERE sender_id = u.user_id AND (is_read = FALSE OR is_read IS NULL)) as unread_count
+            FROM users u
+            WHERE u.role = 'customer'
+            ORDER BY latest_time DESC, u.user_id DESC
+        """)
+        customers = cursor.fetchall()
+        conn.close()
+        
+        for c in customers:
+            c['latest_time_str'] = c['latest_time'].strftime('%b %d') if c['latest_time'] else ''
+            c['latest_message'] = c['latest_message'] if c['latest_message'] else 'No messages yet'
+            
+        return jsonify(customers)
+    except Exception as e:
+        print(f"Sidebar Error: {e}")
+        return jsonify([])
+
+@app.route('/api/heartbeat', methods=['POST'])
+def heartbeat():
+    if not session.get('loggedin'): return jsonify({'status': 'error'})
+    user_id = session['user_id']
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("UPDATE users SET last_active = NOW() WHERE user_id = %s", (user_id,))
+    
+    cursor.execute("SELECT COUNT(*) as admin_count FROM users WHERE role = 'admin' AND last_active >= NOW() - INTERVAL 2 MINUTE")
+    admin_online = cursor.fetchone()['admin_count'] > 0
+    
+    conn.commit()
+    conn.close()
+    return jsonify({'admin_online': admin_online})
+
 @app.route('/api/get_messages')
 def get_messages():
     if not session.get('loggedin'):
@@ -1186,17 +1227,20 @@ def get_messages():
         
         if role == 'admin':
             other_user_id = request.args.get('user_id')
-            if not other_user_id:
-                return jsonify([])
-                
-            # THE FIX: Admin fetches ALL messages belonging to this specific customer's thread
+            if not other_user_id: return jsonify([])
+            
+            # MARK AS READ: Clears the unread notification no matter which admin account was originally targeted
+            cursor.execute("UPDATE chat_messages SET is_read = TRUE WHERE sender_id = %s", (other_user_id,))
+            conn.commit()
+            
+            # We just need all messages where the customer is either the sender OR the receiver.
             cursor.execute("""
                 SELECT * FROM chat_messages 
                 WHERE sender_id = %s OR receiver_id = %s
                 ORDER BY created_at ASC
             """, (other_user_id, other_user_id))
         else:
-            # THE FIX: Customer fetches ALL messages in their own thread
+            # Customer Side
             cursor.execute("""
                 SELECT * FROM chat_messages 
                 WHERE sender_id = %s OR receiver_id = %s
@@ -1208,12 +1252,10 @@ def get_messages():
         
         for msg in messages:
             msg['created_at'] = msg['created_at'].strftime('%b %d, %I:%M %p')
-            # Identifies if the message bubble should be orange (mine) or grey (theirs)
             msg['is_mine'] = (msg['sender_id'] == user_id)
             
         return jsonify(messages)
     except Exception as e:
-        print(f"Chat Fetch Error: {e}")
         return jsonify([])
 
 @app.route('/api/send_message', methods=['POST'])
@@ -1234,7 +1276,6 @@ def send_message():
         if role == 'admin':
             receiver_id = request.form.get('receiver_id')
         else:
-            # Ensures the customer always points to the primary admin account
             cursor.execute("SELECT user_id FROM users WHERE role = 'admin' ORDER BY user_id ASC LIMIT 1")
             admin_user = cursor.fetchone()
             receiver_id = admin_user['user_id'] if admin_user else 1
@@ -1244,7 +1285,33 @@ def send_message():
             
         attachment_url = None
         if attachment and attachment.filename != '':
-            upload_result = cloudinary.uploader.upload(attachment, folder="chat_attachments")
+            import time
+            from werkzeug.utils import secure_filename
+            
+            safe_filename = secure_filename(attachment.filename)
+            ext = safe_filename.rsplit('.', 1)[-1].lower() if '.' in safe_filename else ''
+            
+            # THE FIX: ZIPs, DOCX, and other non-media files must be stored as "raw" 
+            # WITH their extensions intact so computers know how to open them.
+            if ext in ['zip', 'rar', '7z', 'docx', 'xlsx', 'txt']:
+                unique_id = f"{int(time.time())}_{safe_filename}" # Keeps the .zip extension!
+                upload_result = cloudinary.uploader.upload(
+                    attachment, 
+                    folder="chat_attachments", 
+                    resource_type="raw",
+                    public_id=unique_id
+                )
+            else:
+                # Images and PDFs use "auto" and safely strip the extension
+                base_name = safe_filename.rsplit('.', 1)[0] if '.' in safe_filename else safe_filename
+                unique_id = f"{int(time.time())}_{base_name}" 
+                upload_result = cloudinary.uploader.upload(
+                    attachment, 
+                    folder="chat_attachments", 
+                    resource_type="auto",
+                    public_id=unique_id
+                )
+                
             attachment_url = upload_result['secure_url']
             
         cursor.execute("""
@@ -1269,26 +1336,15 @@ def admin_delete_customer(user_id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # 1. Delete items sitting in their cart
         cursor.execute("DELETE FROM cart WHERE user_id = %s", (user_id,))
-        
-        # 2. Delete any product reviews they made
         cursor.execute("DELETE FROM product_reviews WHERE user_id = %s", (user_id,))
-        
-        # 3. Delete any chat messages they sent or received
         cursor.execute("DELETE FROM chat_messages WHERE sender_id = %s OR receiver_id = %s", (user_id, user_id))
-        
-        # 4. Delete the actual items inside their orders
         cursor.execute("""
             DELETE oi FROM order_items oi
             INNER JOIN orders o ON oi.order_id = o.order_id
             WHERE o.user_id = %s
         """, (user_id,))
-        
-        # 5. Delete the parent orders
         cursor.execute("DELETE FROM orders WHERE user_id = %s", (user_id,))
-        
-        # 6. Finally, delete the user account
         cursor.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
         
         conn.commit()
@@ -1311,7 +1367,6 @@ def delete_my_account():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Perform the exact same cleanup for the customer doing it themselves
         cursor.execute("DELETE FROM cart WHERE user_id = %s", (user_id,))
         cursor.execute("DELETE FROM product_reviews WHERE user_id = %s", (user_id,))
         cursor.execute("DELETE FROM chat_messages WHERE sender_id = %s OR receiver_id = %s", (user_id, user_id))
@@ -1326,7 +1381,6 @@ def delete_my_account():
         conn.commit()
         conn.close()
         
-        # Log the user out after deletion
         session.clear()
         flash("Your account has been deleted. We're sorry to see you go!", "success")
         return redirect(url_for('home'))
