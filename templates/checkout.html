@@ -66,6 +66,7 @@
     .total-row { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; font-size: 20px; font-weight: 700; color: #DC5500; }
     .btn-complete { width: 100%; padding: 15px; background: #DC5500; color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 20px; transition: 0.3s; }
     .btn-complete:hover { background: #b84700; }
+    .btn-complete:disabled { background: #ccc; cursor: not-allowed; }
     .secure-text { text-align: center; font-size: 11px; color: #888; margin-top: 15px; background: #f9f9f9; padding: 10px; border-radius: 4px; border: 1px dashed #ddd; }
 
     /* --- DELIVERY TOGGLE STYLES --- */
@@ -112,7 +113,7 @@
                     
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <label style="font-size: 13px; color: #555; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 600;">
-                            <input type="checkbox" id="select-all" class="item-checkbox" onclick="toggleSelectAll(this)"> Select All
+                            <input type="checkbox" id="select-all" class="item-checkbox" onclick="toggleSelectAll(this)" checked> Select All
                         </label>
                         <button type="submit" form="bulk-delete-form" id="bulk-delete-btn" class="btn-bulk-delete" style="display: none;" disabled>
                             <i class="fas fa-trash-alt"></i> Delete Selected
@@ -124,7 +125,7 @@
                 <div class="review-item">
                     
                     <div class="item-checkbox-container">
-                        <input type="checkbox" name="cart_ids" value="{{ item.cart_id }}" form="bulk-delete-form" class="item-checkbox single-checkbox" onclick="updateBulkDeleteBtn()">
+                        <input type="checkbox" name="cart_ids" value="{{ item.cart_id }}" data-price="{{ item.total_price }}" form="bulk-delete-form" class="item-checkbox single-checkbox" onclick="updateBulkDeleteBtn()" checked>
                     </div>
 
                     <img src="{{ item.image_path if item.image_path and 'http' in item.image_path else url_for('static', filename=item.image_path if item.image_path else 'images/icon-signage.png') }}" class="item-img">
@@ -197,7 +198,7 @@
             </div>
 
             <form action="/place_order" method="POST" id="main-checkout-form">
-                <input type="hidden" name="grand_total" value="{{ grand_total }}">
+                <input type="hidden" name="grand_total" id="hidden_grand_total" value="{{ grand_total }}">
                 <input type="hidden" name="payment_method" value="PayMongo">
                 
                 <div class="card-box" style="margin-top: 20px;">
@@ -265,11 +266,11 @@
         <div class="right-section">
             <div class="card-box" style="position: sticky; top: 20px;">
                 <div class="section-head">Order Summary</div>
-                <div class="summary-row"><span>Subtotal</span><span>₱{{ "{:,.2f}".format(subtotal) }}</span></div>
-                <div class="summary-row"><span>Processing Fee</span><span>₱{{ "{:,.2f}".format(processing_fee) }}</span></div>
-                <div class="total-row"><span>Total</span><span>₱{{ "{:,.2f}".format(grand_total) }}</span></div>
+                <div class="summary-row"><span>Subtotal</span><span id="summary-subtotal">₱{{ "{:,.2f}".format(subtotal) }}</span></div>
+                <div class="summary-row"><span>Processing Fee</span><span id="summary-fee">₱{{ "{:,.2f}".format(processing_fee) }}</span></div>
+                <div class="total-row"><span>Total</span><span id="summary-total">₱{{ "{:,.2f}".format(grand_total) }}</span></div>
                 
-                <button type="submit" form="main-checkout-form" class="btn-complete">Complete Order <i class="fas fa-arrow-right" style="margin-left: 8px;"></i></button>
+                <button type="submit" form="main-checkout-form" id="main-submit-btn" class="btn-complete">Complete Order <i class="fas fa-arrow-right" style="margin-left: 8px;"></i></button>
                 <div class="secure-text"><i class="fas fa-lock" style="color: #28a745;"></i> Secure checkout with PayMongo</div>
             </div>
         </div>
@@ -278,7 +279,6 @@
 </div>
 
 <script>
-    // Inline Edit Toggle
     function toggleEditMode(cartId) {
         const viewDiv = document.getElementById('view-mode-' + cartId);
         const editDiv = document.getElementById('edit-mode-' + cartId);
@@ -292,7 +292,7 @@
         }
     }
 
-    // BULK DELETE JAVASCRIPT
+    // QA FIX: Dynamic Total Calculations based on Checked items
     function toggleSelectAll(source) {
         const checkboxes = document.querySelectorAll('.single-checkbox');
         checkboxes.forEach(cb => cb.checked = source.checked);
@@ -303,9 +303,19 @@
         const checkboxes = document.querySelectorAll('.single-checkbox');
         const btn = document.getElementById('bulk-delete-btn');
         const selectAllCb = document.getElementById('select-all');
+        const submitBtn = document.getElementById('main-submit-btn');
         
-        const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+        let checkedCount = 0;
+        let subtotal = 0;
+
+        checkboxes.forEach(cb => {
+            if(cb.checked) {
+                checkedCount++;
+                subtotal += parseFloat(cb.getAttribute('data-price'));
+            }
+        });
         
+        // Show/Hide Delete Button
         if (checkedCount > 0) {
             btn.style.display = 'inline-block';
             btn.disabled = false;
@@ -315,15 +325,34 @@
             btn.disabled = true;
         }
         
-        // Auto-check or uncheck "Select All" based on individual clicks
-        if(checkedCount === checkboxes.length && checkboxes.length > 0) {
-            selectAllCb.checked = true;
-        } else {
-            selectAllCb.checked = false;
-        }
+        selectAllCb.checked = (checkedCount === checkboxes.length && checkboxes.length > 0);
+
+        // Update Totals
+        let fee = subtotal > 0 ? 50.00 : 0.00;
+        let grand = subtotal + fee;
+        
+        document.getElementById('summary-subtotal').innerText = '₱' + subtotal.toLocaleString('en-US', {minimumFractionDigits:2});
+        document.getElementById('summary-fee').innerText = '₱' + fee.toLocaleString('en-US', {minimumFractionDigits:2});
+        document.getElementById('summary-total').innerText = '₱' + grand.toLocaleString('en-US', {minimumFractionDigits:2});
+        document.getElementById('hidden_grand_total').value = grand;
+        
+        submitBtn.disabled = (subtotal === 0);
+        submitBtn.style.opacity = (subtotal === 0) ? '0.5' : '1';
     }
 
-    // Toggle Delivery Method Info Boxes & Address Requirement
+    // Connect the selected checkboxes to the Main Checkout Form before submit
+    document.getElementById('main-checkout-form')?.addEventListener('submit', function(e) {
+        document.querySelectorAll('.appended-cart-id').forEach(el => el.remove());
+        document.querySelectorAll('.single-checkbox:checked').forEach(cb => {
+            let inp = document.createElement('input');
+            inp.type = 'hidden';
+            inp.name = 'selected_cart_ids';
+            inp.value = cb.value;
+            inp.className = 'appended-cart-id';
+            this.appendChild(inp);
+        });
+    });
+
     function toggleDeliveryText() {
         const pickupRadio = document.querySelector('input[value="Pickup"]');
         const pickupText = document.getElementById('pickup-text');
@@ -333,11 +362,11 @@
         if (pickupRadio.checked) {
             pickupText.classList.add('active');
             deliveryText.classList.remove('active');
-            addressInput.removeAttribute('required'); // Not required for pickup
+            addressInput.removeAttribute('required'); 
         } else {
             pickupText.classList.remove('active');
             deliveryText.classList.add('active');
-            addressInput.setAttribute('required', 'required'); // Required for delivery
+            addressInput.setAttribute('required', 'required'); 
         }
     }
 </script>

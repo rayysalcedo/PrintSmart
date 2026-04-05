@@ -9,13 +9,12 @@
         padding: 40px; 
         border-radius: 20px; 
         box-shadow: 0 10px 25px rgba(0,0,0,0.05); 
-        margin: 50px auto; /* Centered with margin */
+        margin: 50px auto;
     }
     .header-area { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 20px; }
     .back-btn { text-decoration: none; color: #666; font-weight: 600; display: flex; align-items: center; gap: 8px; }
     .back-btn:hover { color: #DC5500; }
     
-    /* Order Card Style */
     .order-card { 
         display: flex; justify-content: space-between; align-items: center; 
         padding: 20px; border: 1px solid #eee; border-radius: 12px; margin-bottom: 15px; 
@@ -23,10 +22,17 @@
     }
     .order-card:hover { border-color: #DC5500; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(220, 85, 0, 0.1); }
     
-    .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; text-transform: uppercase; }
-    .status-Pending { background: #ffebee; color: #c62828; }
-    .status-Processing { background: #fff3e0; color: #ef6c00; }
-    .status-Completed { background: #e8f5e9; color: #2e7d32; }
+    /* QA FIX: Unified Color Scheme */
+    .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; white-space: nowrap;}
+    
+    .status-Pending { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; } /* Yellow */
+    .status-Processing { background: #cce5ff; color: #004085; border: 1px solid #b8daff; } /* Blue */
+    .status-Ready-for-Pickup, .status-Out-for-Delivery { background: #ffe8cc; color: #e65c00; border: 1px solid #ffcc99; } /* Orange */
+    .status-Completed, .status-Paid { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; } /* Green */
+    .status-Cancelled { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; } /* Red */
+    
+    .btn-pay-now { background: #28a745; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold; display: inline-block; transition: 0.2s; box-shadow: 0 4px 10px rgba(40,167,69,0.2); }
+    .btn-pay-now:hover { background: #218838; transform: scale(1.02); }
 </style>
 
 <div class="orders-container">
@@ -37,23 +43,33 @@
 
     {% if orders %}
         {% for order in orders %}
-        <a href="/my_order_details/{{ order.order_id }}" class="order-card">
-            <div>
-                <h3 style="margin: 0 0 5px 0;">Order #{{ order.order_id }}</h3>
-                <div style="font-size: 13px; color: #888;">Placed on {{ order.created_at.strftime('%B %d, %Y') }}</div>
-            </div>
-            
-            <div style="text-align: right;">
-                <div style="font-size: 18px; font-weight: bold; color: #333; margin-bottom: 5px;">
-                    ₱{{ "{:,.2f}".format(order.total_amount) }}
+        <div class="order-card">
+            <a href="/my_order_details/{{ order.order_id }}" style="display: flex; flex: 1; justify-content: space-between; text-decoration: none; color: inherit;">
+                <div>
+                    <h3 style="margin: 0 0 5px 0;">Transaction ID #{{ order.order_id }}</h3>
+                    <div style="font-size: 13px; color: #888;">Placed on {{ order.created_at.strftime('%B %d, %Y') }}</div>
                 </div>
-                <span class="status-badge status-{{ order.order_status }}">{{ order.order_status }}</span>
-            </div>
+                
+                <div style="text-align: right; padding-right: 20px;">
+                    <div style="font-size: 18px; font-weight: bold; color: #333; margin-bottom: 5px;">
+                        ₱{{ "{:,.2f}".format(order.total_amount) }}
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                        <span class="status-badge status-{{ order.payment_status | replace(' ', '-') }}">Payment: {{ order.payment_status }}</span>
+                        <span class="status-badge status-{{ order.order_status | replace(' ', '-') }}">Fulfillment: {{ order.order_status }}</span>
+                    </div>
+                </div>
+            </a>
             
-            <div style="margin-left: 20px; color: #DC5500;">
-                <i class="fas fa-chevron-right"></i>
+            <div style="border-left: 1px solid #eee; padding-left: 20px; text-align: center; min-width: 120px;">
+                {% if order.payment_status == 'Pending' %}
+                    <a href="/pay_now/{{ order.order_id }}" class="btn-pay-now"><i class="fas fa-credit-card"></i> Pay Now</a>
+                {% else %}
+                    <a href="/my_order_details/{{ order.order_id }}" style="color: #DC5500;"><i class="fas fa-chevron-right" style="font-size: 24px;"></i></a>
+                {% endif %}
             </div>
-        </a>
+        </div>
         {% endfor %}
     {% else %}
         <div style="text-align: center; padding: 50px; color: #aaa;">

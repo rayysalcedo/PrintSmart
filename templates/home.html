@@ -2,105 +2,556 @@
 
 {% block styles %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+    <style>
+        /* --- MODERN E-COMMERCE HOME PAGE STYLES --- */
+        body { background-color: #fcfcfc; }
+
+        /* HERO SECTION */
+        .modern-hero {
+            position: relative;
+            padding: 80px 20px 40px;
+            background: linear-gradient(135deg, #ffffff 0%, #fff5eb 100%);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 80vh;
+            border-bottom: 1px solid #f0e6dd;
+        }
+        .modern-hero-container {
+            max-width: 1200px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 60px;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+        .hero-text-content { max-width: 600px; }
+        .hero-badge {
+            display: inline-block; background: #fff0e6; color: #DC5500;
+            padding: 8px 18px; border-radius: 50px; font-size: 13px; font-weight: 700;
+            letter-spacing: 1px; text-transform: uppercase; margin-bottom: 25px;
+            border: 1px solid #ffd8bf;
+        }
+        .hero-text-content h1 {
+            font-size: 52px; font-weight: 800; color: #222; line-height: 1.1; margin-bottom: 20px;
+        }
+        .hero-text-content h1 span { color: #DC5500; }
+        .hero-text-content p {
+            font-size: 17px; color: #555; line-height: 1.6; margin-bottom: 35px;
+        }
+        .hero-buttons { display: flex; gap: 15px; flex-wrap: wrap; }
+        .btn-main {
+            background: #DC5500; color: white; padding: 15px 35px; border-radius: 8px;
+            font-weight: 700; font-size: 16px; text-decoration: none; transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(220, 85, 0, 0.3); display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-main:hover { background: #b84700; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(220, 85, 0, 0.4); color: white;}
+        .btn-outline {
+            background: white; color: #333; padding: 15px 35px; border-radius: 8px;
+            font-weight: 700; font-size: 16px; text-decoration: none; transition: 0.3s;
+            border: 2px solid #ddd;
+        }
+        .btn-outline:hover { border-color: #DC5500; color: #DC5500; background: #fffaf5; }
+
+        /* --- MODERN HERO SLIDER --- */
+        .hero-slider-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.1);
+            background: white;
+            overflow: hidden;
+            border: 1px solid #f0f0f0;
+        }
+        .hero-slider-track {
+            display: flex;
+            transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+            width: 100%;
+        }
+        .hero-slide {
+            min-width: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .hero-slide-img {
+            width: 100%;
+            height: 380px;
+            background: #f9f9f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+        .hero-slide-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .hero-slide-badge {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: #DC5500;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .hero-slide-content {
+            padding: 30px;
+            background: white;
+        }
+        .hero-slide-content h3 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+            font-weight: 800;
+            color: #222;
+        }
+        .hero-slide-content p {
+            margin: 0 0 20px 0;
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+        }
+        .hero-slide-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .hero-slide-controls {
+            position: absolute;
+            top: 170px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 15px;
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+        .slider-arrow {
+            width: 45px;
+            height: 45px;
+            background: white;
+            color: #DC5500;
+            border: none;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+            pointer-events: auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.3s;
+        }
+        .slider-arrow:hover {
+            background: #DC5500;
+            color: white;
+            transform: scale(1.1);
+        }
+        .slider-dots {
+            position: absolute;
+            bottom: 30px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+        .dot {
+            width: 10px;
+            height: 10px;
+            background: #ddd;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .dot.active {
+            background: #DC5500;
+            width: 25px;
+            border-radius: 10px;
+        }
+
+        /* INTEGRATED TRUST BAR */
+        .trust-container {
+            max-width: 1200px;
+            width: 100%;
+            margin: 60px auto 0;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+            position: relative;
+            z-index: 2;
+            padding-top: 35px;
+            border-top: 1px solid rgba(220, 85, 0, 0.15);
+        }
+        .trust-item { display: flex; align-items: center; gap: 15px; flex: 1; min-width: 200px; }
+        .trust-icon { color: #DC5500; font-size: 24px; flex-shrink: 0; }
+        .trust-text h4 { margin: 0 0 4px 0; font-size: 14px; color: #333; font-weight: 700;}
+        .trust-text p { margin: 0; font-size: 11px; color: #777; }
+
+        /* HOW IT WORKS */
+        .process-section { background: #ffffff; padding: 80px 20px; border-bottom: 1px solid #f0f0f0; }
+        .process-container { max-width: 1200px; margin: 0 auto; text-align: center; }
+        .process-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-top: 50px; position: relative; }
+        .process-step { 
+            position: relative; z-index: 2; background: white; padding: 40px 25px; 
+            border-radius: 16px; box-shadow: 0 5px 25px rgba(0,0,0,0.03); 
+            border: 1px solid #f9f9f9; transition: 0.3s; 
+        }
+        .process-step:hover { transform: translateY(-8px); box-shadow: 0 15px 35px rgba(220, 85, 0, 0.08); border-color: #ffd8bf; }
+        .step-icon { 
+            width: 80px; height: 80px; background: #fff5eb; color: #DC5500; 
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+            font-size: 32px; margin: 0 auto 25px; 
+            box-shadow: 0 0 0 8px white, 0 0 0 12px #fff5eb; transition: 0.3s;
+        }
+        .process-step:hover .step-icon { background: #DC5500; color: white; box-shadow: 0 0 0 8px white, 0 0 0 12px #ffd8bf; }
+        .process-step h4 { font-size: 22px; font-weight: 700; margin-bottom: 12px; color: #222; }
+        .process-step p { color: #666; font-size: 15px; line-height: 1.6; margin: 0; }
+        
+        @media(min-width: 900px) {
+            .process-step:not(:last-child)::after {
+                content: ''; position: absolute; top: 80px; right: -50%; width: 100%; height: 3px;
+                background: dashed 3px #ffd8bf; z-index: -1;
+            }
+        }
+
+        /* SERVICES GRID */
+        .services-section { padding: 80px 20px 60px; max-width: 1200px; margin: 0 auto; }
+        .section-header-modern { text-align: center; margin-bottom: 50px; }
+        .section-header-modern h2 { font-size: 32px; font-weight: 800; color: #222; margin: 0 0 15px 0; }
+        .section-header-modern p { color: #666; max-width: 600px; margin: 0 auto; font-size: 15px; }
+        
+        .print-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 30px; }
+        .print-card {
+            background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.04);
+            border: 1px solid #f0f0f0; transition: 0.3s; display: flex; flex-direction: column; text-decoration: none; color: inherit;
+        }
+        .print-card:hover { transform: translateY(-8px); box-shadow: 0 15px 30px rgba(220, 85, 0, 0.1); border-color: #ffd8bf; }
+        .pc-image { height: 220px; width: 100%; overflow: hidden; background: #f9f9f9; display: flex; align-items: center; justify-content: center; padding: 10px;}
+        .pc-image img { width: 100%; height: 100%; object-fit: contain; transition: 0.5s; border-radius: 8px;}
+        .print-card:hover .pc-image img { transform: scale(1.05); }
+        .pc-content { padding: 25px; flex: 1; display: flex; flex-direction: column; }
+        .pc-tag { font-size: 11px; color: #DC5500; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px;}
+        .pc-content h3 { margin: 0 0 10px 0; font-size: 20px; font-weight: 700; color: #333; }
+        .pc-content p { color: #666; font-size: 13px; line-height: 1.5; margin-bottom: 20px; flex: 1; }
+        .pc-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 15px; margin-top: auto;}
+        .pc-price { font-weight: 800; color: #333; font-size: 16px; }
+        .pc-btn { color: #DC5500; font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 5px; }
+        .print-card:hover .pc-btn { color: #b84700; }
+
+        .site-footer { margin-top: 0 !important; border-top: none; }
+
+        @media (max-width: 900px) {
+            .modern-hero-container { grid-template-columns: 1fr; text-align: center; }
+            .hero-text-content { margin: 0 auto; }
+            .hero-buttons { justify-content: center; }
+            .hero-slider-wrapper { margin-top: 20px; }
+            .trust-container { justify-content: center; text-align: center; }
+            .trust-item { flex-direction: column; gap: 5px; }
+            .process-grid { grid-template-columns: 1fr; gap: 30px; }
+            .process-step:not(:last-child)::after { display: none; }
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
-<section class="hero">
-    <h1>Where Designs Come to Life</h1>
-    <p>High-quality printing for students and businesses.</p>
 
-    <div class="hero-buttons">
-        <a href="{{ url_for('services') }}" class="cta-button">Order Now</a>
-        <a href="{{ url_for('about') }}" class="secondary-button">View About Us</a>
+<section class="modern-hero">
+    <div class="modern-hero-container">
+        
+        <div class="hero-text-content">
+            <div class="hero-badge"><i class="fas fa-crown"></i> Your Premium Print Partner</div>
+            <h1>Custom Printing Made <span>Simple & Fast.</span></h1>
+            <p>From striking business cards to large-format tarpaulins and custom apparel. Upload your designs online and let us bring your ideas to life with professional quality.</p>
+            <div class="hero-buttons">
+                <a href="{{ url_for('services') }}" class="btn-main"><i class="fas fa-shopping-cart"></i> Start Ordering</a>
+                <a href="#how-it-works" class="btn-outline">How it Works</a>
+            </div>
+        </div>
+        
+        <div class="hero-slider-wrapper">
+            <div class="hero-slider-track" id="mainHeroSlider">
+                
+                <div class="hero-slide">
+                    <div class="hero-slide-img">
+                        <div class="hero-slide-badge"><i class="fas fa-fire"></i> Best Seller</div>
+                        <img src="{{ url_for('static', filename='images/product_1.jpg') }}" alt="Tarpaulin Printing">
+                    </div>
+                    <div class="hero-slide-content">
+                        <h3>Tarpaulin Printing</h3>
+                        <p>A burst of heavy-duty color! Durable, sun-proof banners that make your events glow with high-octane energy.</p>
+                        <div class="hero-slide-footer">
+                            <span style="font-weight: 800; color: #333; font-size: 18px;">₱{{ "{:,.2f}".format(prices.get(1, 25.00)) }}/sqft</span>
+                            <a href="{{ url_for('order', product_id=1) }}" class="btn-main" style="padding: 10px 20px; font-size: 14px;">Order Now <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hero-slide">
+                    <div class="hero-slide-img">
+                        <div class="hero-slide-badge" style="background: #111;"><i class="fas fa-star"></i> Featured</div>
+                        <img src="{{ url_for('static', filename='images/product_2.jpg') }}" alt="Sintra Boards">
+                    </div>
+                    <div class="hero-slide-content">
+                        <h3>Sintra Boards</h3>
+                        <p>Fresh, sleek, and sharp. These lightweight boards provide a citrus-crisp finish for your professional displays.</p>
+                        <div class="hero-slide-footer">
+                            <span style="font-weight: 800; color: #333; font-size: 18px;">From ₱{{ "{:,.2f}".format(prices.get(2, 45.00)) }}</span>
+                            <a href="{{ url_for('order', product_id=2) }}" class="btn-main" style="padding: 10px 20px; font-size: 14px;">Order Now <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hero-slide">
+                    <div class="hero-slide-img">
+                        <div class="hero-slide-badge" style="background: #28a745;"><i class="fas fa-tags"></i> Popular</div>
+                        <img src="{{ url_for('static', filename='images/product_3.jpg') }}" alt="Sticker Labels">
+                    </div>
+                    <div class="hero-slide-content">
+                        <h3>Sticker Labels</h3>
+                        <p>Peel away the boring! Squeeze every drop of personality out of your branding with glossy, tangy custom labels.</p>
+                        <div class="hero-slide-footer">
+                            <span style="font-weight: 800; color: #333; font-size: 18px;">₱{{ "{:,.2f}".format(prices.get(3, 30.00)) }}/sheet</span>
+                            <a href="{{ url_for('order', product_id=3) }}" class="btn-main" style="padding: 10px 20px; font-size: 14px;">Order Now <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="hero-slide-controls">
+                <button class="slider-arrow" onclick="moveHeroSlide(-1)"><i class="fas fa-chevron-left"></i></button>
+                <button class="slider-arrow" onclick="moveHeroSlide(1)"><i class="fas fa-chevron-right"></i></button>
+            </div>
+            <div class="slider-dots" id="sliderDots">
+                <div class="dot active" onclick="goToSlide(0)"></div>
+                <div class="dot" onclick="goToSlide(1)"></div>
+                <div class="dot" onclick="goToSlide(2)"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="trust-container">
+        <div class="trust-item">
+            <div class="trust-icon"><i class="fas fa-medal"></i></div>
+            <div class="trust-text">
+                <h4>Premium Quality</h4>
+                <p>Commercial-grade inks & materials</p>
+            </div>
+        </div>
+        <div class="trust-item">
+            <div class="trust-icon"><i class="fas fa-bolt"></i></div>
+            <div class="trust-text">
+                <h4>Fast Turnaround</h4>
+                <p>Quick printing & reliable processing</p>
+            </div>
+        </div>
+        <div class="trust-item">
+            <div class="trust-icon"><i class="fas fa-truck-fast"></i></div>
+            <div class="trust-text">
+                <h4>Nationwide Delivery</h4>
+                <p>Direct to your home or office</p>
+            </div>
+        </div>
+        <div class="trust-item">
+            <div class="trust-icon"><i class="fas fa-shield-halved"></i></div>
+            <div class="trust-text">
+                <h4>Secure Payments</h4>
+                <p>Protected by PayMongo Integration</p>
+            </div>
+        </div>
     </div>
 </section>
 
-<section class="featured-products">
-    <div class="main-container">
-        <div class="section-header">
-            <p>Featured Selection</p>
-            <h2>Our Most <span>Popular</span> Services</h2>
-            <p>Premium quality prints tailored for students and professionals.</p>
-        </div>
-
-        <div class="slider-wrapper">
-            <button class="slide-btn prev" onclick="moveSlide(-1)">&#10094;</button>
-            
-            <div class="slider-window">
-                <div class="product-grid" id="productSlider">
-                    <div class="product-card reveal">
-                        <img src="{{ url_for('static', filename='images/product_1.jpg') }}" alt="Tarpaulin Printing">
-                        <h3>Tarpaulin Printing</h3>
-                        <p>A burst of heavy-duty color! Durable, sun-proof banners that make your events glow with high-octane energy.</p>
-                        <a href="{{ url_for('order', product_id=1) }}" class="btn-order">Order Now</a>
-                    </div>
-
-                    <div class="product-card reveal" style="transition-delay: 0.1s;">
-                        <img src="{{ url_for('static', filename='images/product_2.jpg') }}" alt="Sintra Board">
-                        <h3>Sintra Boards</h3>
-                        <p>Fresh, sleek, and sharp. These lightweight boards provide a citrus-crisp finish for your professional displays.</p>
-                        <a href="{{ url_for('order', product_id=2) }}" class="btn-order">Order Now</a>
-                    </div>
-
-                    <div class="product-card reveal" style="transition-delay: 0.2s;">
-                        <img src="{{ url_for('static', filename='images/product_3.jpg') }}" alt="Sticker Labels">
-                        <h3>Sticker Labels</h3>
-                        <p>Peel away the boring! Squeeze every drop of personality out of your branding with glossy, tangy custom labels.</p>
-                        <a href="{{ url_for('order', product_id=3) }}" class="btn-order">Order Now</a>
-                    </div>
-                </div> 
+<section class="process-section" id="how-it-works">
+    <div class="process-container">
+        <h2 style="font-size: 36px; font-weight: 800; margin-bottom: 15px; color: #222;">Online Ordering Made Easy</h2>
+        <p style="color: #666; margin-bottom: 40px; font-size: 16px;">Get your prints delivered without ever leaving your desk.</p>
+        
+        <div class="process-grid">
+            <div class="process-step">
+                <div class="step-icon"><i class="fas fa-hand-pointer"></i></div>
+                <h4>1. Choose & Customize</h4>
+                <p>Select your desired print product and specify your required dimensions, materials, and quantities.</p>
             </div>
-
-            <button class="slide-btn next" onclick="moveSlide(1)">&#10095;</button>
+            <div class="process-step">
+                <div class="step-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                <h4>2. Upload Design</h4>
+                <p>Attach your artwork files directly to your order. Need help? You can request our layout services.</p>
+            </div>
+            <div class="process-step">
+                <div class="step-icon"><i class="fas fa-box-open"></i></div>
+                <h4>3. Secure Checkout</h4>
+                <p>Pay securely via GCash, Maya, or Card. We'll print it immediately and ship it straight to your door.</p>
+            </div>
         </div>
-    </div> 
+    </div>
+</section>
+
+<section class="services-section">
+    <div class="section-header-modern">
+        <h2>Explore Our Print Catalog</h2>
+        <p>Select a product, customize your size and materials, upload your artwork, and checkout in minutes.</p>
+    </div>
+
+    <div class="print-grid">
+        <a href="{{ url_for('order', product_id=1) }}" class="print-card">
+            <div class="pc-image"><img src="{{ url_for('static', filename='images/product_1.jpg') }}" alt="Tarpaulin"></div>
+            <div class="pc-content">
+                <span class="pc-tag">Large Format</span>
+                <h3>Tarpaulin Printing</h3>
+                <p>Durable, sun-proof banners perfect for events, birthdays, and heavy-duty outdoor business advertising.</p>
+                <div class="pc-footer">
+                    <span class="pc-price">Starts at ₱{{ "{:,.2f}".format(prices.get(1, 25.00)) }}/sqft</span>
+                    <span class="pc-btn">Customize <i class="fas fa-arrow-right"></i></span>
+                </div>
+            </div>
+        </a>
+
+        <a href="{{ url_for('order', product_id=2) }}" class="print-card">
+            <div class="pc-image"><img src="{{ url_for('static', filename='images/product_2.jpg') }}" alt="Sintra Board"></div>
+            <div class="pc-content">
+                <span class="pc-tag">Rigid Displays</span>
+                <h3>Sintra Boards</h3>
+                <p>Sleek, lightweight PVC boards that provide a sharp, premium finish for menus, photos, and professional signs.</p>
+                <div class="pc-footer">
+                    <span class="pc-price">Starts at ₱{{ "{:,.2f}".format(prices.get(2, 45.00)) }}</span>
+                    <span class="pc-btn">Customize <i class="fas fa-arrow-right"></i></span>
+                </div>
+            </div>
+        </a>
+
+        <a href="{{ url_for('order', product_id=3) }}" class="print-card">
+            <div class="pc-image"><img src="{{ url_for('static', filename='images/product_3.jpg') }}" alt="Stickers"></div>
+            <div class="pc-content">
+                <span class="pc-tag">Branding</span>
+                <h3>Custom Sticker Labels</h3>
+                <p>High-quality adhesive labels cut to precision. Perfect for product packaging, giveaways, and brand awareness.</p>
+                <div class="pc-footer">
+                    <span class="pc-price">Starts at ₱{{ "{:,.2f}".format(prices.get(3, 30.00)) }}/sheet</span>
+                    <span class="pc-btn">Customize <i class="fas fa-arrow-right"></i></span>
+                </div>
+            </div>
+        </a>
+
+        <a href="{{ url_for('order', product_id=4) }}" class="print-card">
+            <div class="pc-image"><img src="{{ url_for('static', filename='images/product_4.jpg') }}" alt="Document Printing"></div>
+            <div class="pc-content">
+                <span class="pc-tag">Office & School</span>
+                <h3>Document Printing</h3>
+                <p>Crisp black & white or vibrant full-color document printing for manuals, modules, and business reports.</p>
+                <div class="pc-footer">
+                    <span class="pc-price">Starts at ₱{{ "{:,.2f}".format(prices.get(4, 2.00)) }}/page</span>
+                    <span class="pc-btn">Order Now <i class="fas fa-arrow-right"></i></span>
+                </div>
+            </div>
+        </a>
+
+        <a href="{{ url_for('order', product_id=5) }}" class="print-card">
+            <div class="pc-image"><img src="{{ url_for('static', filename='images/product_5.jpg') }}" alt="Photo Printing"></div>
+            <div class="pc-content">
+                <span class="pc-tag">Photography</span>
+                <h3>Photo Printing</h3>
+                <p>High-resolution prints on premium photo paper to preserve your memories perfectly.</p>
+                <div class="pc-footer">
+                    <span class="pc-price">Starts at ₱{{ "{:,.2f}".format(prices.get(5, 5.00)) }}</span>
+                    <span class="pc-btn">Order Now <i class="fas fa-arrow-right"></i></span>
+                </div>
+            </div>
+        </a>
+
+        <a href="{{ url_for('order', product_id=6) }}" class="print-card">
+            <div class="pc-image"><img src="{{ url_for('static', filename='images/product_6.jpg') }}" alt="ID Picture Packages"></div>
+            <div class="pc-content">
+                <span class="pc-tag">Photography</span>
+                <h3>ID Picture Packages</h3>
+                <p>Studio-quality 1x1, 2x2, and passport-sized photo prints. Includes optional outfit enhancements and softcopies.</p>
+                <div class="pc-footer">
+                    <span class="pc-price">Packages from ₱{{ "{:,.2f}".format(prices.get(6, 60.00)) }}</span>
+                    <span class="pc-btn">Order Now <i class="fas fa-arrow-right"></i></span>
+                </div>
+            </div>
+        </a>
+
+        <a href="{{ url_for('order', product_id=7) }}" class="print-card">
+            <div class="pc-image"><img src="{{ url_for('static', filename='images/product_7.jpg') }}" alt="Custom T-Shirts"></div>
+            <div class="pc-content">
+                <span class="pc-tag">Apparel</span>
+                <h3>Custom T-Shirts</h3>
+                <p>Personalized shirts and polos for uniforms, reunions, or personal wear. High-durability prints on premium fabrics.</p>
+                <div class="pc-footer">
+                    <span class="pc-price">Starts at ₱{{ "{:,.2f}".format(prices.get(7, 250.00)) }}</span>
+                    <span class="pc-btn">Customize <i class="fas fa-arrow-right"></i></span>
+                </div>
+            </div>
+        </a>
+    </div>
+    
+    <div style="text-align: center; margin-top: 60px; margin-bottom: 0;">
+        <a href="{{ url_for('services') }}" class="btn-main" style="border-radius: 8px; padding: 18px 60px; font-size: 18px; letter-spacing: 1px; text-transform: uppercase; box-shadow: 0 10px 25px rgba(220, 85, 0, 0.3);">
+            View Full Services <i class="fas fa-arrow-right" style="margin-left: 10px;"></i>
+        </a>
+    </div>
 </section>
 
 <script>
-let currentIndex = 0;
+// --- HERO SLIDER JAVASCRIPT ---
+let currentSlide = 0;
+const totalSlides = 3;
+let autoSlideInterval;
 
-function moveSlide(direction) {
-    const slider = document.getElementById('productSlider');
-    const cards = document.querySelectorAll('.product-card');
-    const totalCards = cards.length;
+function updateSlider() {
+    const track = document.getElementById('mainHeroSlider');
+    const dots = document.querySelectorAll('.dot');
     
-    // We get the actual width of the card dynamically in case of padding
-    const cardWidth = cards[0].offsetWidth; 
-
-    currentIndex += direction;
-
-    // Loop logic
-    if (currentIndex < 0) {
-        currentIndex = totalCards - 1;
-    } else if (currentIndex >= totalCards) {
-        currentIndex = 0;
-    }
-
-    // Move the slider
-    const offset = -(currentIndex * cardWidth);
-    slider.style.transform = `translateX(${offset}px)`;
-
-    // SCRIPT FIX: Force the current card to be visible if 'reveal' is stuck
-    cards[currentIndex].classList.add('active');
+    track.style.transform = `translateX(-${currentSlide * 100}%)`;
+    
+    dots.forEach(dot => dot.classList.remove('active'));
+    dots[currentSlide].classList.add('active');
 }
 
-// Ensure the first card is visible on load
-document.addEventListener("DOMContentLoaded", function() {
-    const firstCard = document.querySelector('.product-card');
-    if (firstCard) firstCard.classList.add('active');
+function moveHeroSlide(direction) {
+    currentSlide += direction;
+    if (currentSlide >= totalSlides) currentSlide = 0;
+    if (currentSlide < 0) currentSlide = totalSlides - 1;
+    
+    updateSlider();
+    resetAutoSlide();
+}
+
+function goToSlide(index) {
+    currentSlide = index;
+    updateSlider();
+    resetAutoSlide();
+}
+
+function startAutoSlide() {
+    autoSlideInterval = setInterval(() => {
+        moveHeroSlide(1);
+    }, 5000);
+}
+
+function resetAutoSlide() {
+    clearInterval(autoSlideInterval);
+    startAutoSlide();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    startAutoSlide();
 });
-
-// Your existing scroll reveal function (keep this if you still want it)
-function reveal() {
-    var reveals = document.querySelectorAll(".reveal");
-    for (var i = 0; i < reveals.length; i++) {
-        var windowHeight = window.innerHeight;
-        var elementTop = reveals[i].getBoundingClientRect().top;
-        if (elementTop < windowHeight - 100) {
-            reveals[i].classList.add("active");
-        }
-    }
-}
-window.addEventListener("scroll", reveal);
 </script>
 {% endblock %}

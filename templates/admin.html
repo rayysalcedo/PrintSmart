@@ -4,80 +4,153 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin | Printagram</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
-        /* --- GLOBAL & SIDEBAR --- */
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f7fa; margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        
-        .sidebar { width: 260px; background: #ff6600; color: white; display: flex; flex-direction: column; padding: 20px; }
-        .brand { font-size: 24px; font-weight: bold; margin-bottom: 40px; display: flex; align-items: center; gap: 10px; }
-        .brand i { background: white; color: #ff6600; padding: 8px; border-radius: 5px; }
-        
-        .nav-item { padding: 15px; cursor: pointer; border-radius: 8px; margin-bottom: 5px; display: flex; align-items: center; gap: 15px; font-size: 16px; transition: 0.3s; }
-        .nav-item:hover { background: rgba(255,255,255,0.2); }
-        .nav-item.active { background: white; color: #ff6600; font-weight: bold; }
-        
-        .logout-btn { margin-top: auto; background: rgba(0,0,0,0.2); }
+        /* --- GLOBAL VARIABLES & BASE --- */
+        :root {
+            --primary: #DC5500;
+            --primary-hover: #b84700;
+            --primary-light: #fff5eb;
+            --bg-color: #f4f7f9;
+            --surface: #ffffff;
+            --text-dark: #222222;
+            --text-muted: #666666;
+            --border-color: #eaeaea;
+        }
 
-        .main-content { flex: 1; overflow-y: auto; padding: 30px; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .search-bar input { padding: 10px 15px; width: 300px; border: 1px solid #ddd; border-radius: 20px; outline: none; }
+        body { font-family: 'Alexandria', sans-serif; background: var(--bg-color); margin: 0; display: flex; height: 100vh; overflow: hidden; color: var(--text-dark); }
         
-        .view-section { display: none; } 
+        /* --- MODERN SIDEBAR --- */
+        .sidebar { width: 260px; background: var(--surface); display: flex; flex-direction: column; padding: 25px 20px; border-right: 1px solid var(--border-color); z-index: 10; box-shadow: 2px 0 15px rgba(0,0,0,0.02);}
+        .brand { font-size: 22px; font-weight: 800; margin-bottom: 40px; display: flex; align-items: center; gap: 12px; color: var(--text-dark); }
+        .brand i { background: var(--primary-light); color: var(--primary); padding: 8px 10px; border-radius: 8px; font-size: 18px;}
+        
+        .nav-item { padding: 14px 16px; cursor: pointer; border-radius: 10px; margin-bottom: 8px; display: flex; align-items: center; gap: 15px; font-size: 14px; font-weight: 600; transition: 0.3s; color: var(--text-muted); border: 1px solid transparent;}
+        .nav-item:hover { background: #f9f9f9; color: var(--text-dark); }
+        .nav-item.active { background: var(--primary-light); color: var(--primary); border-color: #ffd8bf; }
+        
+        .logout-btn { margin-top: auto; color: #dc3545; }
+        .logout-btn:hover { background: #fff5f5; color: #c82333; }
+
+        /* --- MAIN CONTENT AREA --- */
+        .main-content { flex: 1; overflow-y: auto; padding: 40px; position: relative; }
+        
+        /* Sticky Modern Header */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; background: var(--bg-color); padding-bottom: 15px; position: sticky; top: -40px; z-index: 100; }
+        #page-title { font-size: 28px; font-weight: 800; margin: 0; color: var(--text-dark);}
+        
+        /* QA FIX: Localized Search Bars */
+        .local-search { position: relative; display: inline-block; }
+        .local-search i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #999; font-size: 13px; }
+        .local-search input { padding: 10px 20px 10px 40px; width: 260px; border: 1px solid var(--border-color); border-radius: 30px; outline: none; font-family: inherit; font-size: 13px; background: white; transition: 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.02);}
+        .local-search input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(220,85,0,0.1); width: 300px;}
+        
+        .tab-subtitle { margin: 0; color: var(--text-muted); font-size: 13px; background: white; padding: 12px 18px; border-radius: 8px; border: 1px solid var(--border-color); border-left: 4px solid var(--primary); box-shadow: 0 2px 10px rgba(0,0,0,0.02); font-weight: 500; display: inline-flex; align-items: center; gap: 8px;}
+
+        .view-section { display: none; animation: fadeIn 0.4s ease; } 
         .view-section.active { display: block; } 
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- TOAST NOTIFICATIONS --- */
+        .toast-container { position: fixed; top: 25px; right: 30px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        .toast-msg { 
+            background: white; padding: 14px 20px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 12px; min-width: 250px;
+            animation: slideInRight 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; border-left: 4px solid #ccc;
+            transition: 0.3s;
+        }
+        .toast-success { border-left-color: #28a745; }
+        .toast-error { border-left-color: #dc3545; }
+        .toast-icon.success { color: #28a745; font-size: 18px; }
+        .toast-icon.error { color: #dc3545; font-size: 18px; }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
         /* --- DASHBOARD CARDS --- */
-        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
-        .stat-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; }
-        .stat-card h3 { margin: 0; color: #777; font-size: 14px; font-weight: normal; }
-        .stat-card .value { font-size: 28px; font-weight: bold; margin: 10px 0; color: #333; }
-        .stat-card .trend { font-size: 13px; color: #28a745; }
-        .stat-icon { position: absolute; top: 25px; right: 25px; background: #ff6600; color: white; width: 45px; height: 45px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-bottom: 35px; }
+        .stat-card { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); position: relative; border: 1px solid var(--border-color);}
+        .stat-card h3 { margin: 0; color: var(--text-muted); font-size: 14px; font-weight: 600; }
+        .stat-card .value { font-size: 32px; font-weight: 800; margin: 10px 0; color: var(--text-dark); }
+        .stat-card .trend { font-size: 12px; color: #28a745; font-weight: 600;}
+        .stat-icon { position: absolute; top: 25px; right: 25px; background: var(--primary-light); color: var(--primary); width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .chart-container { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); height: 350px; margin-bottom: 20px; border: 1px solid var(--border-color);}
 
-        .chart-container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); height: 350px; margin-bottom: 20px;}
+        /* --- PRODUCTS & INVENTORY --- */
+        .product-manager-card { background: white; border-radius: 16px; padding: 30px; margin-bottom: 35px; box-shadow: 0 5px 20px rgba(0,0,0,0.03); display: flex; gap: 35px; border: 1px solid var(--border-color); }
+        .pm-image-section { width: 220px; flex-shrink: 0; display: flex; flex-direction: column; gap: 15px; }
+        .img-preview { width: 100%; height: 220px; border-radius: 12px; object-fit: contain; border: 1px solid var(--border-color); background: #fafafa; padding: 10px; box-sizing: border-box;}
+        .pm-info-section { flex: 1; }
+        
+        .btn-upload-gallery { background: white; color: var(--primary); border: 1px solid var(--primary); padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; width: 100%; box-sizing: border-box;}
+        .btn-upload-gallery:hover { background: var(--primary-light); }
+        
+        .gallery-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 5px; }
+        .gallery-thumb { position: relative; width: 45px; height: 45px; border-radius: 6px; overflow: hidden; border: 1px solid #ddd; }
+        .gallery-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .btn-del-img { position: absolute; top: 0; right: 0; background: rgba(220, 53, 69, 0.9); color: white; border: none; width: 16px; height: 16px; font-size: 9px; cursor: pointer; display: flex; align-items: center; justify-content: center; border-bottom-left-radius: 4px; }
 
-        /* --- INVENTORY / PRODUCTS STYLES --- */
-        .product-manager-card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; gap: 20px; }
-        .img-preview { width: 100px; height: 100px; border-radius: 8px; object-fit: cover; border: 1px solid #eee; }
-        .pm-info { flex: 1; }
-        .variant-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
-        .variant-table th { text-align: left; color: #888; border-bottom: 1px solid #eee; padding: 5px; }
-        .variant-table td { padding: 5px; border-bottom: 1px solid #eee; }
-        .input-edit { width: 70px; padding: 5px; border: 1px solid #ddd; border-radius: 4px; }
-        .btn-save { background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+        .admin-guide-box { background: #fafafa; border: 1px solid #eee; border-radius: 10px; padding: 15px 20px; margin-bottom: 25px; }
+        .guide-header { font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;}
+        .guide-content { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+        .guide-content code { background: white; border: 1px solid #ddd; padding: 2px 6px; border-radius: 4px; font-family: monospace; color: #d63384; font-weight: bold;}
 
-        .admin-note-box { background: #f8f9fb; border-left: 3px solid #ff6600; padding: 8px; margin-top: 5px; border-radius: 0 4px 4px 0; font-size: 11px; }
-        .admin-design-tag { color: #4f46e5; font-weight: bold; margin-bottom: 2px; }
-        .admin-special-tag { color: #dc3545; font-weight: bold; margin-bottom: 2px; }
+        /* Modern Table */
+        table { width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 10px; overflow: hidden; border: 1px solid var(--border-color); }
+        th { background: #fafafa; color: var(--text-muted); padding: 14px 18px; font-size: 11px; text-transform: uppercase; font-weight: 700; border-bottom: 1px solid #eee; text-align: left; letter-spacing: 0.5px;}
+        td { padding: 14px 18px; border-bottom: 1px solid #eee; vertical-align: middle; background: #fff; font-size: 13px;}
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafafa; }
+        
+        .variant-name-badge { font-weight: 600; color: var(--text-dark); font-size: 13px; background: #f4f4f4; padding: 6px 12px; border-radius: 6px; display: inline-block; border: 1px solid #ddd;}
+        
+        .input-prefix { display: flex; align-items: center; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; width: 140px; background: white; transition: 0.2s;}
+        .input-prefix span { background: #f9f9f9; padding: 8px 12px; color: var(--text-muted); font-weight: bold; border-right: 1px solid #ddd; font-size: 13px;}
+        .input-prefix input { border: none; outline: none; padding: 8px 10px; width: 100%; font-size: 14px; font-weight: 600; color: var(--text-dark); font-family: inherit;}
+        .input-prefix:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(220,85,0,0.1); }
+        
+        .input-edit { width: 80px; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; font-weight: 600; outline: none; transition: 0.2s; font-family: inherit; color: var(--text-dark);}
+        .input-edit:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(220,85,0,0.1); }
 
-        /* --- NEW: ADMIN LIVE CHAT STYLES --- */
-        .admin-chat-container { display: flex; height: 650px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden; border: 1px solid #eee; }
-        .chat-sidebar { width: 280px; border-right: 1px solid #eee; overflow-y: auto; background: #fcfcfc; }
-        .chat-sidebar-header { padding: 15px; background: #fff; border-bottom: 1px solid #eee; font-weight: bold; color: #333; position: sticky; top: 0; z-index: 10; }
-        .chat-user-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 12px; }
-        .chat-user-item:hover { background: #fff5e6; }
-        .chat-user-item.active-chat { background: #fff5eb; border-left: 4px solid #DC5500; padding-left: 11px; }
-        .chat-user-avatar { width: 40px; height: 40px; background: #e0e0e0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #555; font-weight: bold; font-size: 18px; flex-shrink: 0; }
-        .chat-user-item.active-chat .chat-user-avatar { background: #DC5500; color: white; }
-        .chat-user-info { flex: 1; overflow: hidden; }
-        .chat-user-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .chat-user-id { font-size: 11px; opacity: 0.8; margin-top: 2px; }
+        .btn-save { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; font-family: inherit;}
+        .btn-save:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(220,85,0,0.2); }
+
+        /* --- UNIFIED STATUS BADGE COLORS --- */
+        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; white-space: nowrap; display: inline-block; letter-spacing: 0.5px;}
+        .status-Pending { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; } 
+        .status-Processing { background: #cce5ff; color: #004085; border: 1px solid #b8daff; } 
+        .status-Ready-for-Pickup, .status-Out-for-Delivery { background: #ffe8cc; color: #e65c00; border: 1px solid #ffcc99; } 
+        .status-Completed, .status-Paid { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; } 
+        .status-Cancelled { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; } 
+
+        /* --- ADMIN LIVE CHAT STYLES --- */
+        .admin-chat-container { display: flex; height: 600px; background: white; border-radius: 16px; box-shadow: 0 5px 20px rgba(0,0,0,0.03); overflow: hidden; border: 1px solid var(--border-color); }
+        .chat-sidebar { width: 300px; border-right: 1px solid var(--border-color); overflow-y: auto; background: #fafafa; }
+        .chat-sidebar-header { padding: 20px; background: #fff; border-bottom: 1px solid var(--border-color); font-weight: 700; color: var(--text-dark); position: sticky; top: 0; z-index: 10; }
+        .chat-user-item { padding: 15px 20px; border-bottom: 1px solid #eee; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 12px; }
+        .chat-user-item:hover { background: white; }
+        .chat-user-item.active-chat { background: white; border-left: 4px solid var(--primary); }
+        .chat-user-avatar { width: 42px; height: 42px; background: #e0e0e0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #555; font-weight: bold; font-size: 18px; flex-shrink: 0; }
+        .chat-user-item.active-chat .chat-user-avatar { background: var(--primary-light); color: var(--primary); }
         
         .chat-main { flex: 1; display: flex; flex-direction: column; background: #fff; }
-        .chat-main-header { padding: 20px; border-bottom: 1px solid #eee; background: #fff; font-weight: bold; color: #333; font-size: 16px; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); z-index: 10; }
-        .admin-chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; background: #f9f9f9; }
-        
-        .admin-chat-bubble { max-width: 65%; padding: 12px 18px; border-radius: 18px; font-size: 14px; line-height: 1.5; position: relative; word-wrap: break-word; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .admin-chat-bubble.mine { background: #DC5500; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
-        .admin-chat-bubble.theirs { background: #fff; border: 1px solid #eee; color: #333; align-self: flex-start; border-bottom-left-radius: 4px; }
-        
+        .chat-main-header { padding: 20px; border-bottom: 1px solid #eee; background: #fff; font-weight: 700; color: var(--text-dark); font-size: 16px; display: flex; align-items: center; gap: 10px; z-index: 10; }
+        .admin-chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; background: #fcfcfc; }
+        .admin-chat-bubble { max-width: 65%; padding: 12px 18px; border-radius: 18px; font-size: 14px; line-height: 1.5; position: relative; word-wrap: break-word; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .admin-chat-bubble.mine { background: var(--primary); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .admin-chat-bubble.theirs { background: #fff; border: 1px solid #eee; color: var(--text-dark); align-self: flex-start; border-bottom-left-radius: 4px; }
         .admin-chat-input-area { padding: 20px; border-top: 1px solid #eee; background: #fff; display: flex; gap: 15px; align-items: center; }
-        .admin-chat-input { flex: 1; padding: 14px 20px; border: 1px solid #ddd; border-radius: 30px; outline: none; font-size: 14px; transition: 0.2s; background: #f9f9f9; }
-        .admin-chat-input:focus { border-color: #DC5500; background: #fff; box-shadow: 0 0 0 3px rgba(220, 85, 0, 0.1); }
-        
-        #admin-chat-file-name { font-size: 12px; color: #DC5500; margin-bottom: 5px; margin-left: 20px; font-weight: 600; }
+        .admin-chat-input { flex: 1; padding: 14px 20px; border: 1px solid #ddd; border-radius: 30px; outline: none; font-size: 14px; transition: 0.2s; background: #fafafa; font-family: inherit;}
+        .admin-chat-input:focus { border-color: var(--primary); background: #fff; }
+
+        /* --- PROFILE AND STAFF STYLES --- */
+        .profile-container { background: white; padding: 40px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 5px 20px rgba(0,0,0,0.03); max-width: 800px;}
+        .profile-form-group { margin-bottom: 20px; }
+        .profile-form-group label { display: block; font-size: 14px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; }
+        .profile-form-group input { width: 100%; padding: 12px 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit; box-sizing: border-box; outline: none; transition: 0.2s; }
+        .profile-form-group input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(220,85,0,0.1); }
     </style>
 </head>
 <body>
@@ -90,53 +163,60 @@
         <div class="nav-item active" onclick="switchTab('dashboard', this)">
             <i class="fas fa-th-large"></i> Dashboard
         </div>
-
+        <div class="nav-item" onclick="switchTab('orders', this)">
+            <i class="fas fa-shopping-cart"></i> Orders
+        </div>
+        <div class="nav-item" onclick="switchTab('products', this)">
+            <i class="fas fa-box"></i> Products & Pricing
+        </div>
         <div class="nav-item" onclick="switchTab('customers', this)">
             <i class="fas fa-users"></i> Customers
         </div>
         
-        <div class="nav-item" onclick="switchTab('orders', this)">
-            <i class="fas fa-shopping-cart"></i> Orders
+        {% if role == 'super_admin' %}
+        <div class="nav-item" onclick="switchTab('staff', this)">
+            <i class="fas fa-user-shield"></i> My Staff
         </div>
-        
-        <div class="nav-item" onclick="switchTab('products', this)">
-            <i class="fas fa-box"></i> Products
-        </div>
+        {% endif %}
 
         <div class="nav-item" onclick="switchTab('messages', this)">
             <i class="fas fa-comments"></i> Messages
         </div>
         
-        <div class="nav-item" onclick="switchTab('analytics', this)">
-            <i class="fas fa-chart-line"></i> Analytics
+        <div class="nav-item" onclick="switchTab('profile', this)">
+            <i class="fas fa-user-circle"></i> My Profile
         </div>
 
-        <a href="/logout" style="text-decoration:none; color:white;" class="nav-item logout-btn">
+        <a href="/logout" style="text-decoration:none;" class="nav-item logout-btn">
             <i class="fas fa-sign-out-alt"></i> Logout
         </a>
     </div>
 
     <div class="main-content">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div style="padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 14px;
-                        background: {{ '#d4edda' if category == 'success' else '#f8d7da' }}; 
-                        color: {{ '#155724' if category == 'success' else '#721c24' }}; border: 1px solid {{ '#c3e6cb' if category == 'success' else '#f5c6cb' }};">
-                        <i class="fas {{ 'fa-check-circle' if category == 'success' else 'fa-exclamation-circle' }}"></i> {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+        
+        <div class="toast-container" id="toastContainer">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="toast-msg toast-{{ category }}">
+                            <i class="fas {{ 'fa-check-circle success' if category == 'success' else 'fa-exclamation-circle error' }} toast-icon"></i>
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
         
         <div class="header">
             <h2 id="page-title">Dashboard Overview</h2>
-            <div class="search-bar">
-                <input type="text" placeholder="Search orders, products...">
-            </div>
-            <div style="display:flex; gap:10px; align-items:center;">
-                <i class="fas fa-bell" style="color:#aaa; cursor:pointer;"></i>
-                <div style="width:35px; height:35px; background:#ddd; border-radius:50%;"></div>
+            <div style="display:flex; align-items:center; gap: 15px;">
+                <div style="text-align: right; line-height: 1.2;">
+                    <div style="font-weight: 700; font-size: 14px;">{{ current_admin.full_name }}</div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">{{ current_admin.role | replace('_', ' ') }}</div>
+                </div>
+                <div style="width:40px; height:40px; background:var(--primary-light); color:var(--primary); display:flex; align-items:center; justify-content:center; border-radius:50%; font-weight:bold; font-size:18px;">
+                    {{ current_admin.full_name[0] | upper }}
+                </div>
             </div>
         </div>
 
@@ -148,14 +228,12 @@
                     <div class="trend"><i class="fas fa-arrow-up"></i> Valid Orders Only</div>
                     <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
                 </div>
-
                 <div class="stat-card">
                     <h3>Total Orders</h3>
                     <div class="value">{{ total_orders }}</div>
                     <div class="trend"><i class="fas fa-arrow-up"></i> Valid Orders Only</div>
                     <div class="stat-icon"><i class="fas fa-shopping-cart"></i></div>
                 </div>
-
                 <div class="stat-card">
                     <h3>Active Products</h3>
                     <div class="value">{{ products|length }}</div>
@@ -163,128 +241,58 @@
                     <div class="stat-icon"><i class="fas fa-box"></i></div>
                 </div>
             </div>
-
             <div class="chart-container">
                 <canvas id="revenueChart"></canvas>
             </div>
         </div>
 
-        <div id="products" class="view-section">
-            <h3 style="margin-bottom: 20px; color: #333;">Product Inventory & Galleries</h3>
-            {% for product in products %}
-            <div class="product-manager-card">
-                <div style="text-align:center; width: 150px; flex-shrink: 0;">
-                    <img src="{{ product.image_path if product.image_path and 'http' in product.image_path else url_for('static', filename=product.image_path if product.image_path else 'images/product_' ~ product.product_id ~ '.jpg') }}" class="img-preview" onerror="this.src='{{ url_for('static', filename='images/icon-signage.png') }}'">
-                    
-                    <form action="/admin/upload_product_image" method="POST" enctype="multipart/form-data" style="margin-top:10px; margin-bottom: 15px;">
-                        <input type="hidden" name="product_id" value="{{ product.product_id }}">
-                        <input type="file" name="product_images" id="file-{{product.product_id}}" accept="image/*" multiple style="display:none;" onchange="this.form.submit()">
-                        <label for="file-{{product.product_id}}" style="font-size:12px; color:#ff6600; cursor:pointer; font-weight: bold;">
-                            <i class="fas fa-images"></i> Upload Gallery
-                        </label>
-                    </form>
-
-                    <div style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;">
-                        {% if product.product_id in gallery_map %}
-                            {% for img in gallery_map[product.product_id] %}
-                            <div style="position: relative; width: 40px; height: 40px; border-radius: 4px; overflow: hidden; border: 1px solid #eee; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                <img src="{{ img.image_url }}" style="width: 100%; height: 100%; object-fit: cover;">
-                                <form action="/admin/delete_gallery_image" method="POST">
-                                    <input type="hidden" name="image_id" value="{{ img.image_id }}">
-                                    <button type="submit" style="position: absolute; top: 0; right: 0; background: rgba(220, 53, 69, 0.9); color: white; border: none; width: 14px; height: 14px; font-size: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; border-bottom-left-radius: 4px;" title="Delete Image">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </form>
-                            </div>
-                            {% endfor %}
-                        {% else %}
-                            <span style="font-size: 10px; color: #aaa;">No gallery images yet.</span>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <div class="pm-info">
-                    <h4 style="margin:0;">{{ product.name }}</h4>
-                    <p style="color:#888; font-size:12px; margin-bottom:10px;">{{ product.description }}</p>
-
-                    {% if product.product_id in variants_map %}
-                    <table class="variant-table">
-                        <thead><tr><th>Variant</th><th>Price (₱)</th><th>Stock</th><th>Action</th></tr></thead>
-                        <tbody>
-                            {% for variant in variants_map[product.product_id] %}
-                            <tr>
-                                <form action="/admin/update_variant" method="POST">
-                                    <input type="hidden" name="variant_id" value="{{ variant.variant_id }}">
-                                    <td>{{ variant.variant_name }}</td>
-                                    <td><input type="number" name="price" value="{{ variant.price }}" step="0.01" class="input-edit"></td>
-                                    <td><input type="number" name="stock" value="{{ variant.stock_quantity }}" class="input-edit"></td>
-                                    <td><button type="submit" class="btn-save"><i class="fas fa-check"></i></button></td>
-                                </form>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    {% else %}
-                        <small>No variants configured.</small>
-                    {% endif %}
+        <div id="orders" class="view-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <p class="tab-subtitle"><i class="fas fa-info-circle"></i> View, process, and update the status of customer orders.</p>
+                <div class="local-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search orders..." oninput="filterTable('orders-table', this.value)">
                 </div>
             </div>
-            {% endfor %}
-        </div>
-        
-        <div id="orders" class="view-section">
-            <h3 style="margin-bottom: 20px; color: #333;">Order Management</h3>
+
             {% if orders %}
-            <div style="background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden;">
-                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
-                    <thead style="background-color: #f8f9fa; border-bottom: 2px solid #eee;">
+            <div style="background: white; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); overflow: hidden; border: 1px solid var(--border-color);">
+                <table id="orders-table">
+                    <thead>
                         <tr>
-                            <th style="padding: 15px; color: #555; font-weight: 600;">Order ID</th>
-                            <th style="padding: 15px; color: #555; font-weight: 600;">Customer</th>
-                            <th style="padding: 15px; color: #555; font-weight: 600;">Items Ordered</th>
-                            <th style="padding: 15px; color: #555; font-weight: 600;">Design Files</th>
-                            <th style="padding: 15px; color: #555; font-weight: 600;">Total</th>
-                            <th style="padding: 15px; color: #555; font-weight: 600;">Status</th>
-                            <th style="padding: 15px; color: #555; font-weight: 600;">Action</th>
+                            <th>Order ID</th><th>Customer</th><th>Items Ordered</th><th>Design Files</th><th>Total</th><th>Status</th><th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for order in orders %}
-                        <tr style="border-bottom: 1px solid #eee;">
-                            <td style="padding: 15px;"><strong>#{{ order.order_id }}</strong></td>
-                            
-                            <td style="padding: 15px; min-width: 180px;">
-                                <div style="font-weight: 600; color: #222;">{{ order.full_name }}</div>
-                                <div style="font-size: 12px; color: #888; margin-bottom: 8px;">{{ order.created_at.strftime('%b %d, %Y') }}</div>
+                        <tr>
+                            <td><strong>#{{ order.order_id }}</strong></td>
+                            <td style="min-width: 180px;">
+                                <div style="font-weight: 700;">{{ order.full_name }}</div>
+                                <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">{{ order.created_at.strftime('%b %d, %Y') }}</div>
                                 
                                 {% if order.delivery_method == 'Delivery' %}
-                                    <div style="font-size: 11px; background: #fff5eb; color: #DC5500; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 4px; font-weight: bold;">
-                                        <i class="fas fa-motorcycle"></i> Delivery
-                                    </div>
-                                    <div style="font-size: 11px; color: #555; line-height: 1.4; background: #f9f9f9; padding: 6px; border-radius: 4px; border: 1px solid #eee;">
-                                        <strong>To:</strong> {{ order.shipping_address }}
-                                    </div>
+                                    <div style="font-size: 11px; background: var(--primary-light); color: var(--primary); padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 4px; font-weight: bold;"><i class="fas fa-motorcycle"></i> Delivery</div>
+                                    <div style="font-size: 11px; color: var(--text-muted); line-height: 1.4; background: #f9f9f9; padding: 6px; border-radius: 4px; border: 1px solid #eee;"><strong>To:</strong> {{ order.shipping_address }}</div>
                                 {% else %}
-                                    <div style="font-size: 11px; background: #f0f0f0; color: #555; padding: 4px 8px; border-radius: 4px; display: inline-block; font-weight: bold;">
-                                        <i class="fas fa-store"></i> Store Pickup
-                                    </div>
+                                    <div style="font-size: 11px; background: #f0f0f0; color: var(--text-muted); padding: 4px 8px; border-radius: 4px; display: inline-block; font-weight: bold;"><i class="fas fa-store"></i> Store Pickup</div>
                                 {% endif %}
                             </td>
                             
-                            <td style="padding: 15px; max-width: 300px;">
+                            <td style="max-width: 300px;">
                                 {% for item in order.safe_items %}
-                                <div style="margin-bottom: 15px;">
-                                    <strong style="color: #333;">{{ item.quantity }}x {{ item.product_name }}</strong>
+                                <div style="margin-bottom: 12px;">
+                                    <strong style="color: var(--primary);">{{ item.quantity }}x {{ item.product_name }}</strong>
                                     {% set note_parts = item.item_details.split(' || ') %}
-                                    <div style="font-size: 12px; color: #666; margin-top: 3px;">{{ note_parts[0] }}</div>
+                                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">{{ note_parts[0] }}</div>
                                     {% if note_parts|length > 1 %}
-                                        <div class="admin-note-box">
+                                        <div style="background: #fafafa; border-left: 3px solid var(--primary); padding: 8px; margin-top: 5px; border-radius: 0 4px 4px 0; font-size: 11px;">
                                         {% for p in note_parts[1:] %}
                                             {% if p.startswith('DESIGN: ') %}
-                                                <div class="admin-design-tag"><i class="fas fa-paint-brush"></i> Design Details:</div>
+                                                <div style="color: #4f46e5; font-weight: bold; margin-bottom: 2px;"><i class="fas fa-paint-brush"></i> Design Details:</div>
                                                 <div style="margin-bottom: 6px; color: #444;">{{ p.replace('DESIGN: ', '') }}</div>
                                             {% elif p.startswith('NOTE: ') %}
-                                                <div class="admin-special-tag"><i class="fas fa-exclamation-circle"></i> Special Note:</div>
+                                                <div style="color: #dc3545; font-weight: bold; margin-bottom: 2px;"><i class="fas fa-exclamation-circle"></i> Special Note:</div>
                                                 <div style="color: #444;">{{ p.replace('NOTE: ', '') }}</div>
                                             {% endif %}
                                         {% endfor %}
@@ -293,32 +301,24 @@
                                 </div>
                                 {% endfor %}
                             </td>
-                            <td style="padding: 15px;">
+                            <td>
                                 {% for item in order.safe_items %}
                                     {% if item.file_path %}
                                         {% set files = item.file_path.split(',') %}
                                         {% for f in files %}
-                                            <a href="{{ f if 'http' in f else url_for('static', filename=f) }}" target="_blank" style="display: inline-block; background: #fff0e6; color: #ff6600; padding: 5px 10px; border-radius: 4px; font-size: 11px; text-decoration: none; margin-bottom: 4px; border: 1px solid #ffccaa; font-weight: 600;">
-                                                <i class="fas {{ 'fa-external-link-alt' if 'http' in f else 'fa-download' }}"></i> {{ 'View Design' if 'http' in f else 'Download' }}
-                                            </a><br>
+                                            <a href="{{ f if 'http' in f else url_for('static', filename=f) }}" target="_blank" style="display: inline-block; background: white; color: var(--primary); padding: 5px 10px; border-radius: 4px; font-size: 11px; text-decoration: none; margin-bottom: 4px; border: 1px solid var(--primary); font-weight: 600;"><i class="fas {{ 'fa-external-link-alt' if 'http' in f else 'fa-download' }}"></i> View</a><br>
                                         {% endfor %}
                                     {% else %}
                                         <span style="color:#aaa; font-size: 11px; display: block; margin-bottom: 4px;">No File</span>
                                     {% endif %}
                                 {% endfor %}
                             </td>
-                            <td style="padding: 15px; font-weight: bold; color: #222;">₱{{ "{:,.2f}".format(order.total_amount) }}</td>
-                            
-                            <td style="padding: 15px;">
-                                <span style="padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; white-space: nowrap; background-color: {{ '#d4edda' if order.order_status == 'Completed' else '#cce5ff' if order.order_status == 'Ready for Pickup' else '#ffeeba' if order.order_status == 'Out for Delivery' else '#fff3cd' if order.order_status == 'Processing' else '#f8d7da' if order.order_status == 'Cancelled' else '#e2e3e5' }}; color: {{ '#155724' if order.order_status == 'Completed' else '#004085' if order.order_status == 'Ready for Pickup' else '#856404' if order.order_status == 'Out for Delivery' else '#856404' if order.order_status == 'Processing' else '#721c24' if order.order_status == 'Cancelled' else '#383d41' }};">
-                                    {{ order.order_status }}
-                                </span>
-                            </td>
-                            
-                            <td style="padding: 15px;">
+                            <td style="font-weight: 800; color: #222;">₱{{ "{:,.2f}".format(order.total_amount) }}</td>
+                            <td><span class="status-badge status-{{ order.order_status | replace(' ', '-') }}">{{ order.order_status }}</span></td>
+                            <td>
                                 <form action="/admin/update_order_status" method="POST">
                                     <input type="hidden" name="order_id" value="{{ order.order_id }}">
-                                    <select name="status" onchange="this.form.submit()" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; font-size: 12px; cursor: pointer; background: white; width: 130px;">
+                                    <select name="status" onchange="this.form.submit()" style="padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 12px; cursor: pointer; background: white; width: 130px; font-family: inherit; font-weight: 600;">
                                         <option value="Pending" {{ 'selected' if order.order_status == 'Pending' }}>Pending</option>
                                         <option value="Processing" {{ 'selected' if order.order_status == 'Processing' }}>Processing</option>
                                         <option value="Ready for Pickup" {{ 'selected' if order.order_status == 'Ready for Pickup' }}>Ready for Pickup</option>
@@ -334,48 +334,175 @@
                 </table>
             </div>
             {% else %}
-            <div style="text-align:center; padding: 60px; color: #999; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+            <div style="text-align:center; padding: 60px; color: #999; background: white; border-radius: 12px; border: 1px solid var(--border-color);">
                 <i class="fas fa-clipboard-list" style="font-size: 40px; margin-bottom: 15px; opacity: 0.5;"></i>
                 <p>No orders found in the system yet.</p>
             </div>
             {% endif %}
         </div>
 
+        <div id="products" class="view-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <p class="tab-subtitle"><i class="fas fa-sync-alt"></i> Prices and variants updated here instantly sync to the customer checkout.</p>
+                <div class="local-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search products..." oninput="filterProducts(this.value)">
+                </div>
+            </div>
+
+            {% for product in products %}
+            <div class="product-manager-card">
+                
+                <div class="pm-image-section">
+                    <img src="{{ product.image_path if product.image_path and 'http' in product.image_path else url_for('static', filename=product.image_path if product.image_path else 'images/product_' ~ product.product_id ~ '.jpg') }}" class="img-preview" onerror="this.src='{{ url_for('static', filename='images/icon-signage.png') }}'">
+                    
+                    <form action="/admin/upload_product_image" method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="product_id" value="{{ product.product_id }}">
+                        <input type="file" name="product_images" id="file-{{product.product_id}}" accept="image/*" multiple style="display:none;" onchange="this.form.submit()">
+                        <label for="file-{{product.product_id}}" class="btn-upload-gallery">
+                            <i class="fas fa-camera"></i> Update Gallery
+                        </label>
+                    </form>
+
+                    <div class="gallery-grid">
+                        {% if product.product_id in gallery_map %}
+                            {% for img in gallery_map[product.product_id] %}
+                            <div class="gallery-thumb">
+                                <img src="{{ img.image_url }}">
+                                <form action="/admin/delete_gallery_image" method="POST">
+                                    <input type="hidden" name="image_id" value="{{ img.image_id }}">
+                                    <button type="submit" class="btn-del-img" title="Delete Image"><i class="fas fa-times"></i></button>
+                                </form>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="pm-info-section">
+                    <h4 style="margin: 0 0 5px 0; font-size: 22px; font-weight: 700;">{{ product.name }}</h4>
+                    <p style="color:var(--text-muted); font-size:13px; margin-bottom:20px; line-height: 1.5;">{{ product.description }}</p>
+
+                    <div class="admin-guide-box">
+                        <div class="guide-header"><i class="fas fa-book-open"></i> Booklet Pricing Logic</div>
+                        <div class="guide-content">
+                            {% if product.product_id == 1 %}
+                                <strong>Base Formula:</strong> <code>(Height &times; Width) &times; Variant Price</code><br>
+                                <strong>Variants Needed:</strong> Election Tarp, Ordinary Tarp, Blackout Tarp<br>
+                                <strong>Add-ons:</strong> Layout Fee (+₱150).
+                            {% elif product.product_id == 2 %}
+                                <strong>Standard Formula:</strong> <code>Variant Price &times; Qty</code><br>
+                                <strong>Custom Formula:</strong> <code>(H &times; W) &times; Custom Rate Variant</code><br>
+                                <strong>Variants Needed:</strong> 3MM - 4R, 5MM - A4, 3MM - Custom Rate, etc.<br>
+                                <strong>Add-ons:</strong> Stand (+₱150). Layout Fee (+₱150).
+                            {% elif product.product_id == 3 %}
+                                <strong>Sheet Formula:</strong> <code>Variant Price &times; Qty</code><br>
+                                <strong>Custom Formula:</strong> <code>(H &times; W) &times; Custom Rate Variant</code><br>
+                                <strong>Variants Needed:</strong> A4, A3, Custom Rate<br>
+                                <strong>Add-ons:</strong> Pre-cut Service (+₱50). Sticker Layout (+₱300).
+                            {% elif product.product_id == 4 %}
+                                <strong>Base Formula:</strong> <code>Variant Price &times; Qty</code><br>
+                                <strong>Variants Needed:</strong> Short - Black & White, A4 - Semi Color, Long - Full Color, etc.<br>
+                            {% elif product.product_id == 5 %}
+                                <strong>Base Formula:</strong> <code>Variant Price &times; Qty</code><br>
+                                <strong>Variants Needed:</strong> 2R/Wallet Size, 3R, 4R, 5R, 8R, A4<br>
+                            {% elif product.product_id == 6 %}
+                                <strong>Base Formula:</strong> <code>Variant Price &times; Qty</code><br>
+                                <strong>Variants Needed:</strong> Package A, Package B, Package C...<br>
+                                <strong>Add-ons:</strong> Enhance (+₱50). Softcopy (+₱20).
+                            {% elif product.product_id == 7 %}
+                                <strong>Base Formula:</strong> <code>Variant Price &times; Qty</code><br>
+                                <strong>Variants Needed:</strong> <code>Garment - Fabric - Size</code> (e.g. <em>T-Shirt - CVC Cotton - XS-Small</em>)<br>
+                                <strong>Print Only Variants:</strong> <code>Print Only - A4</code>, <code>Print Only - Logo/Name</code><br>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div style="background: white; border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden;">
+                        {% if product.product_id in variants_map %}
+                        <table>
+                            <thead><tr><th>Variant Name (Exact Match)</th><th>Unit Price</th><th>Stock</th><th>Actions</th></tr></thead>
+                            <tbody>
+                                {% for variant in variants_map[product.product_id] %}
+                                <tr>
+                                    <form action="/admin/update_variant" method="POST" style="display:inline;">
+                                        <input type="hidden" name="variant_id" value="{{ variant.variant_id }}">
+                                        <td><div class="variant-name-badge">{{ variant.variant_name }}</div></td>
+                                        <td>
+                                            <div class="input-prefix">
+                                                <span>₱</span><input type="number" name="price" value="{{ variant.price }}" step="0.01" required>
+                                            </div>
+                                        </td>
+                                        <td><input type="number" name="stock" value="{{ variant.stock_quantity }}" class="input-edit" required></td>
+                                        <td style="display: flex; gap: 8px;">
+                                            <button type="submit" class="btn-save" title="Save Changes"><i class="fas fa-save"></i> Save</button>
+                                    </form>
+                                    <form action="/admin/delete_variant" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this pricing variant?');">
+                                        <input type="hidden" name="variant_id" value="{{ variant.variant_id }}">
+                                        <button type="submit" class="btn-save" style="background: white; color: #dc3545; border: 1px solid #dc3545;" title="Delete"><i class="fas fa-trash"></i></button>
+                                    </form>
+                                        </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}
+                            <div style="padding: 25px; text-align: center; color: var(--text-muted); font-size: 13px;">No pricing variants configured. Add them below!</div>
+                        {% endif %}
+                    </div>
+
+                    <div style="margin-top: 15px; padding: 20px; background: #fafafa; border: 1px dashed #ccc; border-radius: 10px;">
+                        <h5 style="margin: 0 0 12px 0; color: var(--text-dark); font-size: 14px;"><i class="fas fa-plus-circle" style="color: var(--primary);"></i> Create New Pricing Tier</h5>
+                        <form action="/admin/add_variant" method="POST" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <input type="hidden" name="product_id" value="{{ product.product_id }}">
+                            <input type="text" name="variant_name" placeholder="Variant Name (e.g. T-Shirt - CVC Cotton - XS-Small)" required style="flex: 2; min-width: 250px; padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; outline: none; font-family: inherit;">
+                            <div class="input-prefix" style="flex: 1; min-width: 120px;">
+                                <span>₱</span><input type="number" name="price" placeholder="Price" step="0.01" required>
+                            </div>
+                            <input type="number" name="stock" placeholder="Stock" value="100" required style="flex: 1; min-width: 80px; padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; outline: none; font-family: inherit;">
+                            <button type="submit" class="btn-save" style="padding: 10px 20px; font-size: 13px;"><i class="fas fa-plus"></i> Add Tier</button>
+                        </form>
+                    </div>
+
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
         <div id="customers" class="view-section">
-            <h3 style="margin-bottom: 20px; color: #333;">Customer Management</h3>
-            <div style="background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden;">
-                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
-                    <thead style="background-color: #f8f9fa; border-bottom: 2px solid #eee;">
-                        <tr>
-                            <th style="padding: 15px; color: #555;">ID</th>
-                            <th style="padding: 15px; color: #555;">Name</th>
-                            <th style="padding: 15px; color: #555;">Contact Info</th>
-                            <th style="padding: 15px; color: #555;">Joined</th>
-                            <th style="padding: 15px; color: #555;">Admin Action</th>
-                        </tr>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <p class="tab-subtitle"><i class="fas fa-users-cog"></i> Manage registered users, reset passwords, or remove accounts.</p>
+                <div class="local-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search customers..." oninput="filterTable('customers-table', this.value)">
+                </div>
+            </div>
+
+            <div style="background: white; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); overflow: hidden; border: 1px solid var(--border-color);">
+                <table id="customers-table">
+                    <thead>
+                        <tr><th>ID</th><th>Name</th><th>Contact Info</th><th>Joined</th><th>Admin Action</th></tr>
                     </thead>
                     <tbody>
                         {% for cust in customers %}
-                        <tr style="border-bottom: 1px solid #eee;">
-                            <td style="padding: 15px;">#{{ cust.user_id }}</td>
-                            <td style="padding: 15px;"><strong>{{ cust.full_name }}</strong></td>
-                            <td style="padding: 15px;">
-                                <div style="margin-bottom: 4px;"><i class="fas fa-envelope" style="color:#888; width:20px;"></i> {{ cust.email }}</div>
-                                <div><i class="fas fa-phone" style="color:#888; width:20px;"></i> {{ cust.phone_number if cust.phone_number else 'No Phone' }}</div>
+                        <tr>
+                            <td>#{{ cust.user_id }}</td>
+                            <td><strong style="font-size: 14px;">{{ cust.full_name }}</strong></td>
+                            <td>
+                                <div style="margin-bottom: 4px;"><i class="fas fa-envelope" style="color:#aaa; width:20px;"></i> {{ cust.email }}</div>
+                                <div><i class="fas fa-phone" style="color:#aaa; width:20px;"></i> {{ cust.phone_number if cust.phone_number else 'No Phone' }}</div>
                             </td>
-                            <td style="padding: 15px; color: #666;">{{ cust.created_at.strftime('%Y-%m-%d') if cust.created_at else 'N/A' }}</td>
-                            <td style="padding: 15px;">
+                            <td style="color: var(--text-muted);">{{ cust.created_at.strftime('%Y-%m-%d') if cust.created_at else 'N/A' }}</td>
+                            <td>
                                 <div style="display: flex; gap: 15px; align-items: center;">
                                     <form action="/admin/reset_user_password" method="POST" style="display:flex; gap:5px; align-items:center; margin: 0;">
                                         <input type="hidden" name="user_id" value="{{ cust.user_id }}">
-                                        <input type="text" name="new_password" placeholder="New Password" style="padding:5px; border:1px solid #ddd; border-radius:4px; font-size:12px; width:120px;" required>
-                                        <button type="submit" style="background:#ff4444; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:12px;">Reset</button>
+                                        <input type="text" name="new_password" placeholder="New Password" style="padding:6px 10px; border:1px solid #ddd; border-radius:6px; font-size:12px; width:110px; outline:none; font-family:inherit;" required>
+                                        <button type="submit" style="background:#dc3545; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600;">Reset</button>
                                     </form>
 
                                     <form action="{{ url_for('admin_delete_customer', user_id=cust.user_id) }}" method="POST" onsubmit="return confirm('Are you sure? This will permanently remove this customer and their history.');" style="margin: 0;">
-                                        <button type="submit" style="background:transparent; color:#dc3545; border:none; cursor:pointer; font-size:12px; text-decoration:underline;">
-                                            Delete Account
-                                        </button>
+                                        <button type="submit" style="background:transparent; color:#dc3545; border:none; cursor:pointer; font-size:12px; font-weight:600; text-decoration:underline;">Delete</button>
                                     </form>
                                 </div>
                             </td>
@@ -386,13 +513,110 @@
             </div>
         </div>
 
+        {% if role == 'super_admin' %}
+        <div id="staff" class="view-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <p class="tab-subtitle"><i class="fas fa-user-shield"></i> Add or remove administrative staff accounts. Only you (the Super Admin) can see this tab.</p>
+                <div class="local-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search staff..." oninput="filterTable('staff-table', this.value)">
+                </div>
+            </div>
+
+            <div style="background: white; border-radius: 16px; padding: 30px; box-shadow: 0 5px 20px rgba(0,0,0,0.03); border: 1px solid var(--border-color); margin-bottom: 40px;">
+                <h4 style="margin: 0 0 20px 0; font-size: 16px;"><i class="fas fa-user-plus" style="color: var(--primary);"></i> Add New Staff Member</h4>
+                <form action="/admin/add_staff" method="POST" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 15px; align-items: center;">
+                    <input type="text" name="name" placeholder="Full Name" required style="padding: 12px 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; font-family: inherit;">
+                    <input type="email" name="email" placeholder="Email Address" required style="padding: 12px 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; font-family: inherit;">
+                    <input type="password" name="password" placeholder="Temporary Password" required style="padding: 12px 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; font-family: inherit;">
+                    <button type="submit" class="btn-save" style="padding: 12px 25px; font-size: 14px;"><i class="fas fa-plus"></i> Add Staff</button>
+                </form>
+            </div>
+
+            <div style="background: white; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); overflow: hidden; border: 1px solid var(--border-color);">
+                <table id="staff-table">
+                    <thead>
+                        <tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Action</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for staff in staff_members %}
+                        <tr>
+                            <td>#{{ staff.user_id }}</td>
+                            <td><strong style="font-size: 14px;">{{ staff.full_name }}</strong></td>
+                            <td>{{ staff.email }}</td>
+                            <td>
+                                {% if staff.role == 'super_admin' %}
+                                    <span class="status-badge" style="background: #e3f2fd; color: #0d47a1; border: 1px solid #b6d4fe;">Super Admin</span>
+                                {% else %}
+                                    <span class="status-badge" style="background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9;">Admin</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if staff.role != 'super_admin' %}
+                                <form action="/admin/delete_staff/{{ staff.user_id }}" method="POST" onsubmit="return confirm('Remove this staff member?');" style="margin: 0;">
+                                    <button type="submit" class="btn-save" style="background: white; color: #dc3545; border: 1px solid #dc3545;"><i class="fas fa-trash"></i> Remove</button>
+                                </form>
+                                {% else %}
+                                    <span style="color: #999; font-size: 12px;">N/A (Owner)</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <div id="profile" class="view-section">
+            <p class="tab-subtitle"><i class="fas fa-cog"></i> Update your personal admin account details and security settings.</p>
+
+            <div class="profile-container">
+                <form action="/admin/update_profile" method="POST" style="margin-bottom: 40px; border-bottom: 1px solid #eee; padding-bottom: 30px;">
+                    <h4 style="margin: 0 0 20px 0; font-size: 18px;"><i class="fas fa-id-card" style="color: var(--primary);"></i> Personal Information</h4>
+                    <input type="hidden" name="action" value="update_info">
+                    <div class="profile-form-group">
+                        <label>Full Name</label>
+                        <input type="text" name="name" value="{{ current_admin.full_name }}" required>
+                    </div>
+                    <div class="profile-form-group">
+                        <label>Email Address</label>
+                        <input type="email" name="email" value="{{ current_admin.email }}" required>
+                    </div>
+                    <div class="profile-form-group">
+                        <label>Phone Number</label>
+                        <input type="text" name="phone" value="{{ current_admin.phone_number if current_admin.phone_number else '' }}" placeholder="+63 9...">
+                    </div>
+                    <button type="submit" class="btn-save" style="padding: 12px 25px; font-size: 14px;"><i class="fas fa-save"></i> Save Changes</button>
+                </form>
+
+                <form action="/admin/update_profile" method="POST">
+                    <h4 style="margin: 0 0 20px 0; font-size: 18px;"><i class="fas fa-lock" style="color: var(--primary);"></i> Change Password</h4>
+                    <input type="hidden" name="action" value="change_password">
+                    <div class="profile-form-group">
+                        <label>Current Password</label>
+                        <input type="password" name="current_password" required>
+                    </div>
+                    <div class="profile-form-group">
+                        <label>New Password</label>
+                        <input type="password" name="new_password" required>
+                    </div>
+                    <button type="submit" class="btn-save" style="padding: 12px 25px; font-size: 14px;"><i class="fas fa-key"></i> Update Password</button>
+                </form>
+            </div>
+        </div>
+
         <div id="messages" class="view-section">
-            <h3 style="margin-bottom: 20px; color: #333;">Support Inbox</h3>
+            <p class="tab-subtitle" style="margin-bottom: 25px;"><i class="fas fa-comments"></i> Select a customer to view history, send updates, or attach proofs.</p>
             
             <div class="admin-chat-container">
                 <div class="chat-sidebar">
                     <div class="chat-sidebar-header">
                         Customers
+                        <div class="local-search" style="margin-top: 15px; width: 100%;">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Search chats..." style="width: 100%; padding: 10px 15px 10px 38px; box-sizing: border-box;" oninput="filterChats(this.value)">
+                        </div>
                     </div>
                     <div id="admin-chat-sidebar-list">
                         {% for cust in customers %}
@@ -403,7 +627,7 @@
                                     <div class="chat-user-name" style="{% if cust.unread_count > 0 %}font-weight: 800; color: #111;{% endif %}">{{ cust.full_name }}</div>
                                     {% if cust.latest_time %}<div style="font-size: 10px; color: #999;">{{ cust.latest_time.strftime('%b %d') }}</div>{% endif %}
                                 </div>
-                                <div style="font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; {% if cust.unread_count > 0 %}font-weight: 700; color: #DC5500;{% else %}color: #666;{% endif %}">
+                                <div style="font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; {% if cust.unread_count > 0 %}font-weight: 700; color: var(--primary);{% else %}color: #666;{% endif %}">
                                     {{ cust.latest_message if cust.latest_message else 'No messages yet' }}
                                 </div>
                             </div>
@@ -419,58 +643,105 @@
                     <div class="chat-main-header" id="active-chat-user-name">
                         <i class="fas fa-user-circle" style="color: #ccc; font-size: 24px;"></i> Select a customer
                     </div>
-                    
-                    <div class="admin-chat-messages" id="adminChatMessages">
-                    </div>
-                    
+                    <div class="admin-chat-messages" id="adminChatMessages"></div>
                     <div id="admin-chat-file-name"></div>
                     
                     <form class="admin-chat-input-area" onsubmit="sendAdminMessage(event)">
                         <input type="hidden" id="active_chat_user_id">
-                        
-                        <label for="adminChatAttachment" style="cursor: pointer; color: #888; font-size: 22px; padding: 5px; transition: 0.2s;" title="Attach Design/Proof">
-                            <i class="fas fa-paperclip"></i>
-                        </label>
+                        <label for="adminChatAttachment" style="cursor: pointer; color: #888; font-size: 22px; padding: 5px; transition: 0.2s;" title="Attach Design/Proof"><i class="fas fa-paperclip"></i></label>
                         <input type="file" id="adminChatAttachment" style="display: none;" onchange="updateAdminChatFileName(this)">
-                        
                         <input type="text" id="adminChatInputText" class="admin-chat-input" placeholder="Type a reply to the customer..." autocomplete="off">
-                        
-                        <button type="submit" id="adminChatSendBtn" style="background: #DC5500; color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: 0.2s; box-shadow: 0 4px 10px rgba(220, 85, 0, 0.3);">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
+                        <button type="submit" id="adminChatSendBtn" style="background: var(--primary); color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: 0.2s; box-shadow: 0 4px 10px rgba(220, 85, 0, 0.3);"><i class="fas fa-paper-plane"></i></button>
                     </form>
                 </div>
 
                 <div id="chat-placeholder" style="flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; color: #aaa; background: #fafafa;">
-                    <i class="fas fa-envelope-open-text" style="font-size: 60px; margin-bottom: 20px; opacity: 0.3; color: #DC5500;"></i>
-                    <p style="font-size: 16px; font-weight: 500; color: #777;">Select a customer from the left sidebar to start chatting</p>
-                    <p style="font-size: 13px; color: #999; margin-top: 5px;">You can send text updates or attach layout proofs.</p>
+                    <i class="fas fa-envelope-open-text" style="font-size: 60px; margin-bottom: 20px; opacity: 0.3; color: var(--primary);"></i>
+                    <p style="font-size: 16px; font-weight: 600; color: #777;">Select a customer from the sidebar to chat</p>
                 </div>
             </div>
         </div>
 
         <div id="analytics" class="view-section">
-            <h3 style="margin-bottom: 20px; color: #333;">Advanced Analytics</h3>
-            <div style="background: white; padding: 40px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+            <p class="tab-subtitle"><i class="fas fa-chart-pie"></i> View historical performance data and trends.</p>
+            <div style="background: white; padding: 60px; border-radius: 16px; text-align: center; border: 1px solid var(--border-color);">
                 <i class="fas fa-tools" style="font-size: 50px; color: #ddd; margin-bottom: 20px;"></i>
-                <h4 style="color: #666;">Deeper Analytics Coming Soon</h4>
-                <p style="color: #999; font-size: 14px;">This section is reserved for future capstone expansions (e.g., top-selling products, demographic data).</p>
+                <h4 style="color: #666; font-size: 18px;">Deeper Analytics Coming Soon</h4>
+                <p style="color: #999; font-size: 14px;">This section is reserved for future capstone expansions.</p>
             </div>
         </div>
 
     </div> 
     
     <script>
-        // Base Tab Switching Logic
+        // QA FIX: TAB MEMORY LOGIC
         function switchTab(tabId, navItem) {
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
             
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            navItem.classList.add('active');
+            if(navItem) navItem.classList.add('active');
 
-            document.getElementById('page-title').innerText = tabId.charAt(0).toUpperCase() + tabId.slice(1);
+            let titleMap = {
+                'dashboard': 'Dashboard Overview',
+                'orders': 'Order Management',
+                'products': 'Product & Pricing Management',
+                'customers': 'Customer Directory',
+                'staff': 'Staff Management',
+                'profile': 'My Profile',
+                'messages': 'Support Inbox',
+                'analytics': 'Advanced Analytics'
+            };
+            document.getElementById('page-title').innerText = titleMap[tabId] || 'Dashboard';
+            localStorage.setItem('adminActiveTab', tabId);
         }
+
+        // QA FIX: LOCAL SEARCH FUNCTIONS
+        function filterTable(tableId, query) {
+            const lowerQuery = query.toLowerCase();
+            const table = document.getElementById(tableId);
+            if (!table) return;
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                row.style.display = row.innerText.toLowerCase().includes(lowerQuery) ? '' : 'none';
+            });
+        }
+
+        function filterProducts(query) {
+            const lowerQuery = query.toLowerCase();
+            const cards = document.querySelectorAll('.product-manager-card');
+            cards.forEach(card => {
+                card.style.display = card.innerText.toLowerCase().includes(lowerQuery) ? 'flex' : 'none';
+            });
+        }
+
+        function filterChats(query) {
+            const lowerQuery = query.toLowerCase();
+            const items = document.querySelectorAll('.chat-user-item');
+            items.forEach(item => {
+                item.style.display = item.innerText.toLowerCase().includes(lowerQuery) ? 'flex' : 'none';
+            });
+        }
+
+        // INIT ON LOAD
+        document.addEventListener('DOMContentLoaded', () => {
+            let savedTab = localStorage.getItem('adminActiveTab') || 'dashboard';
+            let targetNav = document.querySelector(`.nav-item[onclick*="${savedTab}"]`);
+            if (targetNav) {
+                switchTab(savedTab, targetNav);
+            } else {
+                switchTab('dashboard', document.querySelector('.nav-item'));
+            }
+
+            setTimeout(() => {
+                const toasts = document.querySelectorAll('.toast-msg');
+                toasts.forEach(toast => {
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'translateX(100%)';
+                    setTimeout(() => toast.remove(), 400); 
+                });
+            }, 3500);
+        });
 
         // Dashboard Chart
         const ctx = document.getElementById('revenueChart').getContext('2d');
@@ -481,8 +752,8 @@
                 datasets: [{
                     label: 'Revenue (₱)',
                     data: [12000, 19000, 15000, 25000, 22000, 30000],
-                    borderColor: '#ff6600',
-                    backgroundColor: 'rgba(255, 102, 0, 0.1)',
+                    borderColor: '#DC5500',
+                    backgroundColor: 'rgba(220, 85, 0, 0.1)',
                     fill: true, tension: 0.4
                 }]
             },
@@ -493,31 +764,27 @@
         // --- CUSTOM ADMIN CHAT JAVASCRIPT ---
         // ==========================================
         let adminChatInterval = null;
-        let adminLastMessageCount = -1; // FIX 1: Set to -1 so it forces a UI update even if there are 0 messages
+        let adminLastMessageCount = -1;
         let currentActiveUserId = null;
 
-        // FIX 2: ADMIN HEARTBEAT - This tells the database the admin is online every 10 seconds
         setInterval(() => { fetch('/api/heartbeat', { method: 'POST' }); }, 10000);
-        fetch('/api/heartbeat', { method: 'POST' }); // Send one immediately on load
+        fetch('/api/heartbeat', { method: 'POST' });
 
         function loadUserChat(userId, userName, element) {
-            // Highlight active user in sidebar
             document.querySelectorAll('.chat-user-item').forEach(el => el.classList.remove('active-chat'));
             if(element) element.classList.add('active-chat');
             
-            // Remove unread badge visually
             const badge = element ? element.querySelector('.unread-badge') : null;
             if(badge) badge.remove();
 
-            // Switch UI from placeholder to Chat Panel
             document.getElementById('chat-placeholder').style.display = 'none';
             document.getElementById('chat-main-panel').style.display = 'flex';
             
-            document.getElementById('active-chat-user-name').innerHTML = `<i class="fas fa-user-circle" style="color: #DC5500; font-size: 24px;"></i> Chatting with: ${userName}`;
+            document.getElementById('active-chat-user-name').innerHTML = `<i class="fas fa-user-circle" style="color: var(--primary); font-size: 24px;"></i> Chatting with: ${userName}`;
             document.getElementById('active_chat_user_id').value = userId;
             
             currentActiveUserId = userId;
-            adminLastMessageCount = -1; // Reset to -1 for the new user
+            adminLastMessageCount = -1; 
             document.getElementById('adminChatMessages').innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;"><i class="fas fa-spinner fa-spin"></i> Loading messages...</div>';
             
             fetchAdminMessages();
@@ -591,7 +858,6 @@
 
             if (!userId || (!textInput.value.trim() && fileInput.files.length === 0)) return;
 
-            // FIX: 10MB File Size Shield
             if (fileInput.files.length > 0) {
                 const fileSizeMB = fileInput.files[0].size / (1024 * 1024);
                 if (fileSizeMB > 10) {
@@ -633,12 +899,17 @@
                 sendBtn.disabled = false;
             });
         }
+        
         // ==========================================
         // --- REAL-TIME SIDEBAR POLLING ---
         // ==========================================
         setInterval(updateAdminSidebar, 3000);
 
         function updateAdminSidebar() {
+            // Check if search has text, if so, skip auto-update to avoid resetting filter
+            let searchInput = document.querySelector('#messages .local-search input');
+            if (searchInput && searchInput.value.trim() !== '') return;
+
             fetch('/api/admin_sidebar?t=' + new Date().getTime())
             .then(res => res.json())
             .then(data => {
@@ -647,19 +918,15 @@
                 
                 let newHtml = '';
                 data.forEach(cust => {
-                    // Check if this is the person we are currently chatting with
                     const isActive = (cust.user_id == currentActiveUserId) ? 'active-chat' : '';
                     
-                    // Build the unread badge if needed
                     const unreadBadge = cust.unread_count > 0 
                         ? `<div class="unread-badge" style="background: #dc3545; color: white; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; flex-shrink: 0;">${cust.unread_count}</div>` 
                         : '';
                         
-                    // Bold the text if there are unread messages
                     const nameStyle = cust.unread_count > 0 ? 'font-weight: 800; color: #111;' : 'font-weight: 600;';
-                    const msgStyle = cust.unread_count > 0 ? 'font-weight: 700; color: #DC5500;' : 'color: #666;';
+                    const msgStyle = cust.unread_count > 0 ? 'font-weight: 700; color: var(--primary);' : 'color: #666;';
                     
-                    // Rebuild the HTML for each customer
                     newHtml += `
                     <div class="chat-user-item ${isActive}" onclick="loadUserChat(${cust.user_id}, '${cust.full_name}', this)">
                         <div class="chat-user-avatar">${cust.full_name.charAt(0).toUpperCase()}</div>
@@ -676,7 +943,6 @@
                     </div>`;
                 });
                 
-                // Inject the updated list instantly!
                 sidebar.innerHTML = newHtml;
             })
             .catch(err => console.error("Sidebar Fetch Error:", err));

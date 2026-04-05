@@ -19,12 +19,26 @@
     
     .btn-back { display: inline-block; padding: 12px 25px; background: #333; color: white; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600; transition: 0.3s;}
     .btn-back:hover { background: #555; }
+    
+    /* QA FIX: Added Pay Now button CSS for the Details page */
+    .btn-pay-now { display: inline-block; padding: 12px 25px; background: #28a745; color: white; border: none; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.3s; margin-left: 10px; box-shadow: 0 4px 10px rgba(40,167,69,0.2); }
+    .btn-pay-now:hover { background: #218838; transform: translateY(-2px); }
+
     .btn-cancel-trigger { display: inline-block; padding: 12px 25px; background: white; color: #dc3545; border: 1px solid #dc3545; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.3s; margin-left: 10px;}
     .btn-cancel-trigger:hover { background: #fff5f5; }
 
     /* Note Formatting */
     .formatted-note { font-size: 12px; color: #666; margin-top: 6px; padding-left: 10px; border-left: 2px solid #DC5500; line-height: 1.5; }
     
+    /* Unified Color Scheme */
+    .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; white-space: nowrap; display: inline-block;}
+    
+    .status-Pending { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; } /* Yellow */
+    .status-Processing { background: #cce5ff; color: #004085; border: 1px solid #b8daff; } /* Blue */
+    .status-Ready-for-Pickup, .status-Out-for-Delivery { background: #ffe8cc; color: #e65c00; border: 1px solid #ffcc99; } /* Orange */
+    .status-Completed, .status-Paid { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; } /* Green */
+    .status-Cancelled { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; } /* Red */
+
     /* Modal Styles */
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
     .modal-box { background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
@@ -64,12 +78,14 @@
 
         <div class="top-info">
             <div>
-                <h2 style="margin:0;">Order #{{ order.order_id }}</h2>
+                <h2 style="margin:0;">Transaction ID #{{ order.order_id }}</h2>
                 <div style="color:#888; font-size: 14px; margin-top: 5px;">{{ order.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
             </div>
-            <div style="text-align: right;">
-                <div style="font-weight: bold; text-transform: uppercase; color: #DC5500;">{{ order.order_status }}</div>
-                <div style="font-size: 13px; color: #888; font-weight: 600; margin-top: 4px;"><i class="fas fa-credit-card"></i> {{ order.payment_method }}</div>
+            <div style="text-align: right; display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
+                <span class="status-badge status-{{ order.payment_status }}">Payment: {{ order.payment_status }}</span>
+                <span class="status-badge status-{{ order.order_status }}">Fulfillment: {{ order.order_status }}</span>
+                <span class="status-badge status-{{ order.payment_status | replace(' ', '-') }}">Payment: {{ order.payment_status }}</span>
+                <span class="status-badge status-{{ order.order_status | replace(' ', '-') }}">Fulfillment: {{ order.order_status }}</span>
             </div>
         </div>
 
@@ -157,15 +173,21 @@
             <div class="total-row"><span>Grand Total</span><span>₱{{ "{:,.2f}".format(order.total_amount) }}</span></div>
         </div>
 
-        <div style="text-align: center; margin-top: 40px;">
+        <div style="text-align: center; margin-top: 40px; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
             <a href="/my_orders" class="btn-back">Back to Orders</a>
+            
+            {% if order.payment_status == 'Pending' %}
+                <a href="/pay_now/{{ order.order_id }}" class="btn-pay-now"><i class="fas fa-credit-card"></i> Pay Now</a>
+            {% endif %}
             
             {% if order.order_status == 'Pending' %}
                 <button onclick="openCancelModal()" class="btn-cancel-trigger">Cancel Order</button>
             {% else %}
-                <p style="margin-top: 20px; font-size: 13px; color: #888; background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px dashed #ddd;">
-                    <i class="fas fa-info-circle"></i> Your order is currently <strong>{{ order.order_status }}</strong>, so it can no longer be cancelled.
-                </p>
+                <div style="width: 100%; margin-top: 20px;">
+                    <p style="font-size: 13px; color: #888; background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px dashed #ddd; display: inline-block;">
+                        <i class="fas fa-info-circle"></i> Your order is currently <strong>{{ order.order_status }}</strong>, so it can no longer be cancelled.
+                    </p>
+                </div>
             {% endif %}
         </div>
     </div>
