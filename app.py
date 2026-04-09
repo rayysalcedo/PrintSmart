@@ -132,7 +132,6 @@ def home():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        # Fetch the lowest variant price for every product in the database
         cursor.execute("SELECT product_id, MIN(price) as min_price FROM product_variants GROUP BY product_id")
         min_prices = {row['product_id']: row['min_price'] for row in cursor.fetchall()}
         conn.close()
@@ -153,9 +152,14 @@ def privacy():
 def terms(): 
     return render_template('terms.html')
 
+# ==========================================
+# QA FIX: FORCED HTTPS OVERRIDES FOR RENDER
+# ==========================================
+
 @app.route('/login/google')
 def google_login():
-    redirect_uri = url_for('google_authorize', _external=True)
+    # Forces Render to use HTTPS instead of HTTP for the redirect URI
+    redirect_uri = url_for('google_authorize', _external=True, _scheme='https')
     return google.authorize_redirect(redirect_uri)
 
 @app.route('/authorize/google')
@@ -165,12 +169,15 @@ def google_authorize():
         user_info = google.get('https://www.googleapis.com/oauth2/v3/userinfo').json()
         return social_auth_logic(user_info['email'], user_info['name'], 'google')
     except Exception as e:
-        flash("Google Login Failed.", "error")
+        print(f"GOOGLE CRASH: {str(e)}")
+        # If it fails, this will now print the EXACT reason on the screen
+        flash(f"CRASH REPORT: {str(e)}", "error")
         return redirect(url_for('login'))
 
 @app.route('/login/facebook')
 def facebook_login():
-    redirect_uri = url_for('facebook_authorize', _external=True)
+    # Forces Render to use HTTPS instead of HTTP for the redirect URI
+    redirect_uri = url_for('facebook_authorize', _external=True, _scheme='https')
     return facebook.authorize_redirect(redirect_uri)
 
 @app.route('/authorize/facebook')
@@ -180,8 +187,11 @@ def facebook_authorize():
         user_info = facebook.get('me?fields=id,name,email').json()
         return social_auth_logic(user_info.get('email'), user_info.get('name'), 'facebook')
     except Exception as e:
-        flash("Facebook Login Failed.", "error")
+        print(f"FACEBOOK CRASH: {str(e)}")
+        flash(f"CRASH REPORT: {str(e)}", "error")
         return redirect(url_for('login'))
+
+# ==========================================
 
 @app.route('/services')
 def services():
@@ -284,7 +294,6 @@ def order(product_id=None):
     return render_template('order.html', product=product, variants=variants, gallery=gallery, 
                            reviews=reviews, avg_rating=avg_rating, total_reviews=total_reviews, can_review=can_review)
 
-# --- SUBMIT REVIEW SECURE ROUTE ---
 @app.route('/submit_review', methods=['POST'])
 def submit_review():
     if not session.get('loggedin'):
@@ -322,7 +331,6 @@ def submit_review():
         return redirect(url_for('my_order_details', order_id=source_order_id))
     return redirect(url_for('order', product_id=product_id))
 
-# --- SMART CART LOGIC (FRONTEND SYNCED) ---
 @app.route('/add_to_cart', methods=['POST'])
 def add_to_cart():
     if not session.get('loggedin'):
@@ -345,7 +353,6 @@ def add_to_cart():
         
         file_path_str = ",".join(file_paths) if file_paths else None
 
-        # Pull the exact details & prices calculated by the robust frontend JS
         item_total = float(request.form.get('calculated_total', 0))
         base_specs = request.form.get('item_specs', '')
         design_instructions = request.form.get('instructions', '').strip()
@@ -487,8 +494,6 @@ def checkout():
     except Exception as e:
         return f"Checkout Error: {e}"
 
-
-# --- QA FIX: CHECKOUT ONLY PROCESSES SELECTED CHECKBOXES ---
 @app.route('/place_order', methods=['POST'])
 def place_order():
     if not session.get('loggedin'):
@@ -501,7 +506,6 @@ def place_order():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
-        # Only query the database for the items they explicitly checked
         if not selected_cart_ids:
             cursor.execute("SELECT * FROM cart WHERE user_id = %s", (user_id,))
         else:
@@ -518,7 +522,6 @@ def place_order():
 
         total_amount = float(request.form.get('grand_total'))
         
-        # GRAB DELIVERY INFO
         delivery_method = request.form.get('delivery_method', 'Pickup') 
         shipping_address = request.form.get('shipping_address', '').strip() if delivery_method == 'Delivery' else None
         
@@ -536,7 +539,6 @@ def place_order():
                 VALUES (%s, %s, %s, %s, %s, %s)
             """, (new_order_id, item['product_id'], item['quantity'], item['total_price'], item['item_details'], safe_file_path))
             
-        # ONLY delete the items that were purchased, leaving unselected items in the cart
         if selected_cart_ids:
             format_strings = ','.join(['%s'] * len(selected_cart_ids))
             cursor.execute(f"DELETE FROM cart WHERE user_id = %s AND cart_id IN ({format_strings})", tuple([user_id] + selected_cart_ids))
@@ -546,7 +548,6 @@ def place_order():
         conn.commit()
         conn.close()
 
-        # GENERATE PAYMONGO CHECKOUT LINK
         paymongo_key = os.environ.get('PAYMONGO_SECRET_KEY')
         
         if not paymongo_key:
@@ -599,15 +600,12 @@ def place_order():
     except Exception as e:
         return f"Order Error: {e}"
 
-
-# --- QA FIX: CANCEL ABANDONED PAYMONGO PAYMENTS ---
 @app.route('/cancel_payment/<int:order_id>')
 def cancel_payment(order_id):
     if not session.get('loggedin'): return redirect(url_for('login'))
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        # Deletes the ghost order if it is still pending
         cursor.execute("DELETE FROM order_items WHERE order_id = %s", (order_id,))
         cursor.execute("DELETE FROM orders WHERE order_id = %s AND payment_status = 'Pending'", (order_id,))
         conn.commit()
@@ -617,8 +615,6 @@ def cancel_payment(order_id):
         print(f"Error cancelling payment: {e}")
     return redirect('/checkout')
 
-
-# --- QA FIX: PAY NOW LINK FOR UNSETTLED ORDERS ---
 @app.route('/pay_now/<int:order_id>')
 def pay_now(order_id):
     if not session.get('loggedin'): return redirect(url_for('login'))
@@ -664,7 +660,6 @@ def pay_now(order_id):
             
     except Exception as e: return f"Payment Error: {e}"
 
-
 @app.route('/payment_success/<int:order_id>')
 def payment_success(order_id):
     if not session.get('loggedin'):
@@ -688,7 +683,6 @@ def help_page():
     
 # --- AUTHENTICATION & OTP ---
 
-# QA FIX: UPDATED REGISTRATION ROUTE
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -702,7 +696,6 @@ def register():
             flash("Invalid name. Please use only letters.", "error")
             return redirect(url_for('register'))
             
-        # QA FIX: Strict Philippine 11-digit format starting with 09
         if not phone or not re.match(r'^(?:\+639|09)\d{9}$', phone):
             flash("Invalid phone number. Please use the 11-digit format (e.g., 09123456789).", "error")
             return redirect(url_for('register'))
@@ -718,14 +711,12 @@ def register():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # QA FIX: Separate check for Email
         cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
         if cursor.fetchone():
             conn.close()
             flash("This email address is already linked to an existing account. Please sign in instead.", "error")
             return redirect(url_for('login'))
 
-        # QA FIX: Separate check for Phone
         cursor.execute("SELECT * FROM users WHERE phone_number = %s", (phone,))
         if cursor.fetchone():
             conn.close()
