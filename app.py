@@ -81,7 +81,7 @@ facebook = oauth.register(
     client_kwargs={'scope': 'email public_profile'},
 )
 
-## --- BREVO EMAIL API HELPER ---
+# --- BREVO EMAIL API HELPER ---
 def send_system_email(to_email, subject, body_text):
     api_key = os.environ.get('BREVO_API_KEY')
     if not api_key:
@@ -90,7 +90,7 @@ def send_system_email(to_email, subject, body_text):
     sender_email = "system.printsmart@gmail.com" 
     url = "https://api.brevo.com/v3/smtp/email"
     payload = {
-        "sender": {"name": "Printagram", "email": sender_email}, # <-- CHANGED TO PRINTAGRAM
+        "sender": {"name": "Printagram", "email": sender_email}, 
         "to": [{"email": to_email}],
         "subject": subject,
         "textContent": body_text
@@ -688,6 +688,7 @@ def help_page():
     
 # --- AUTHENTICATION & OTP ---
 
+# QA FIX: UPDATED REGISTRATION ROUTE
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -700,23 +701,36 @@ def register():
         if not name or not re.match(r'^[A-Za-z\s]{2,}$', name):
             flash("Invalid name. Please use only letters.", "error")
             return redirect(url_for('register'))
-        if not phone or not re.match(r'^\+?[0-9]{10,15}$', phone):
-            flash("Invalid phone number.", "error")
+            
+        # QA FIX: Strict Philippine 11-digit format starting with 09
+        if not phone or not re.match(r'^(?:\+639|09)\d{9}$', phone):
+            flash("Invalid phone number. Please use the 11-digit format (e.g., 09123456789).", "error")
             return redirect(url_for('register'))
+            
         if not email or not re.match(r'^[\w\.-]+@[\w\.-]+\.\w{2,}$', email):
             flash("Invalid email format.", "error")
             return redirect(url_for('register'))
+            
         if password != confirm_password:
             flash("Passwords do not match!", "error")
             return redirect(url_for('register'))
 
         conn = get_db_connection()
         cursor = conn.cursor()
+        
+        # QA FIX: Separate check for Email
         cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
         if cursor.fetchone():
             conn.close()
             flash("This email address is already linked to an existing account. Please sign in instead.", "error")
             return redirect(url_for('login'))
+
+        # QA FIX: Separate check for Phone
+        cursor.execute("SELECT * FROM users WHERE phone_number = %s", (phone,))
+        if cursor.fetchone():
+            conn.close()
+            flash("This phone number is already registered to another account.", "error")
+            return redirect(url_for('register'))
 
         hashed_password = generate_password_hash(password)
         try:
