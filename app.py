@@ -20,6 +20,9 @@ import base64
 # 1. LOAD THE SECRETS
 load_dotenv()
 
+# QA FIX: ALLOW HTTP FOR LOCAL OAUTH TESTING
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+
 # --- CLOUDINARY INTEGRATION ---
 cloudinary.config( 
     cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME'), 
@@ -48,12 +51,14 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024 
 
 def get_db_connection():
+    db_password = os.environ.get('MYSQL_PASSWORD') or os.environ.get('DB_PASSWORD') or app.config.get('MYSQL_PASSWORD')
+    
     return mysql.connector.connect(
-        host=app.config['MYSQL_HOST'],
-        user=app.config['MYSQL_USER'],
-        password=app.config['MYSQL_PASSWORD'],
-        database=app.config['MYSQL_DB'],
-        port=app.config.get('MYSQL_PORT', 27072),
+        host=os.environ.get('MYSQL_HOST') or app.config.get('MYSQL_HOST'),
+        user=os.environ.get('MYSQL_USER') or app.config.get('MYSQL_USER'),
+        password=db_password,
+        database=os.environ.get('MYSQL_DB') or app.config.get('MYSQL_DB'),
+        port=int(os.environ.get('MYSQL_PORT') or app.config.get('MYSQL_PORT', 27072)),
         connection_timeout=5  
     )
 
@@ -80,6 +85,36 @@ facebook = oauth.register(
     api_base_url='https://graph.facebook.com/',
     client_kwargs={'scope': 'email public_profile'},
 )
+
+# --- RESTORED: SOCIAL AUTH LOGIC ---
+def social_auth_logic(email, name, provider):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+    user = cursor.fetchone()
+    
+    if user:
+        session['loggedin'] = True
+        session['user_id'] = user[0]
+        session['name'] = user[2] 
+        session['role'] = user[6] if len(user) > 6 else 'customer'
+        flash(f"Logged in with {provider.title()}!", "success")
+    else:
+        assigned_role = 'super_admin' if email == 'system.printsmart@gmail.com' else 'customer'
+        random_pw = secrets.token_hex(16)
+        hashed_password = generate_password_hash(random_pw)
+        cursor.execute("INSERT INTO users (full_name, email, password_hash, role, is_active) VALUES (%s, %s, %s, %s, TRUE)", 
+                       (name, email, hashed_password, assigned_role))
+        conn.commit()
+        session['loggedin'] = True
+        session['user_id'] = cursor.lastrowid
+        session['name'] = name
+        session['role'] = assigned_role
+        flash(f"Account created via {provider.title()}!", "success")
+
+    cursor.close()
+    conn.close()
+    return redirect('/admin') if session['role'] in ['admin', 'super_admin'] else redirect(url_for('home'))
 
 # --- BREVO EMAIL API HELPER ---
 def send_system_email(to_email, subject, body_text):
@@ -108,6 +143,9 @@ def send_system_email(to_email, subject, body_text):
     except Exception as e:
         print(f"REQUEST CRASHED: {e}")
         return False
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
     
 @app.context_processor
 def inject_cart_count():
@@ -152,14 +190,10 @@ def privacy():
 def terms(): 
     return render_template('terms.html')
 
-# ==========================================
-# QA FIX: FORCED HTTPS OVERRIDES FOR RENDER
-# ==========================================
-
 @app.route('/login/google')
 def google_login():
-    # Forces Render to use HTTPS instead of HTTP for the redirect URI
-    redirect_uri = url_for('google_authorize', _external=True, _scheme='https')
+    # Removed the forced https scheme. ProxyFix handles it now!
+    redirect_uri = url_for('google_authorize', _external=True)
     return google.authorize_redirect(redirect_uri)
 
 @app.route('/authorize/google')
@@ -170,14 +204,13 @@ def google_authorize():
         return social_auth_logic(user_info['email'], user_info['name'], 'google')
     except Exception as e:
         print(f"GOOGLE CRASH: {str(e)}")
-        # If it fails, this will now print the EXACT reason on the screen
         flash(f"CRASH REPORT: {str(e)}", "error")
         return redirect(url_for('login'))
 
 @app.route('/login/facebook')
 def facebook_login():
-    # Forces Render to use HTTPS instead of HTTP for the redirect URI
-    redirect_uri = url_for('facebook_authorize', _external=True, _scheme='https')
+    # Removed the forced https scheme.
+    redirect_uri = url_for('facebook_authorize', _external=True)
     return facebook.authorize_redirect(redirect_uri)
 
 @app.route('/authorize/facebook')
