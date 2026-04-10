@@ -82,8 +82,6 @@
                 <div style="color:#888; font-size: 14px; margin-top: 5px;">{{ order.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
             </div>
             <div style="text-align: right; display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
-                <span class="status-badge status-{{ order.payment_status }}">Payment: {{ order.payment_status }}</span>
-                <span class="status-badge status-{{ order.order_status }}">Fulfillment: {{ order.order_status }}</span>
                 <span class="status-badge status-{{ order.payment_status | replace(' ', '-') }}">Payment: {{ order.payment_status }}</span>
                 <span class="status-badge status-{{ order.order_status | replace(' ', '-') }}">Fulfillment: {{ order.order_status }}</span>
             </div>

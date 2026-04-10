@@ -816,22 +816,36 @@
             }
 
             messages.forEach(msg => {
-                const bubbleClass = msg.is_mine ? 'mine' : 'theirs';
-                let html = `<div class="admin-chat-bubble ${bubbleClass}">`;
+                let text = msg.message_text || '';
                 
-                if (msg.message_text) {
-                    html += `<div>${msg.message_text}</div>`;
-                }
-                
-                if (msg.attachment_url) {
-                    if(msg.attachment_url.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null) {
-                        html += `<a href="${msg.attachment_url}" target="_blank"><img src="${msg.attachment_url}" style="max-width: 100%; max-height: 200px; border-radius: 8px; margin-top: 5px; border: 1px solid rgba(0,0,0,0.1);"></a>`;
-                    } else {
-                        html += `<a href="${msg.attachment_url}" target="_blank" style="color: inherit; text-decoration: underline; font-weight: bold; display: block; margin-top: 5px;"><i class="fas fa-file-download"></i> Download Attached File</a>`;
+                // ONLY format PrintaBot's automated replies as system labels
+                if (text.startsWith('PrintaBot:')) {
+                    container.innerHTML += `
+                        <div style="display: flex; justify-content: center; margin: 15px 0; width: 100%;">
+                            <div style="background: #f0f0f0; color: #777; font-size: 11px; padding: 6px 14px; border-radius: 20px; border: 1px solid #e0e0e0; font-weight: 600;">
+                                <i class="fas fa-robot" style="margin-right: 5px; color: #DC5500;"></i> ${text.replace('PrintaBot: ', '')}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Let everything else (including the customer's button clicks) render as normal human chat bubbles!
+                    const bubbleClass = msg.is_mine ? 'mine' : 'theirs';
+                    let html = `<div class="admin-chat-bubble ${bubbleClass}">`;
+                    
+                    if (text) {
+                        html += `<div>${text}</div>`;
                     }
+                    
+                    if (msg.attachment_url) {
+                        if(msg.attachment_url.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null) {
+                            html += `<a href="${msg.attachment_url}" target="_blank"><img src="${msg.attachment_url}" style="max-width: 100%; max-height: 200px; border-radius: 8px; margin-top: 5px; border: 1px solid rgba(0,0,0,0.1);"></a>`;
+                        } else {
+                            html += `<a href="${msg.attachment_url}" target="_blank" style="color: inherit; text-decoration: underline; font-weight: bold; display: block; margin-top: 5px;"><i class="fas fa-file-download"></i> Download Attached File</a>`;
+                        }
+                    }
+                    html += `<div style="font-size: 9px; opacity: 0.7; margin-top: 5px; text-align: right;">${msg.created_at}</div></div>`;
+                    container.innerHTML += html;
                 }
-                html += `<div style="font-size: 9px; opacity: 0.7; margin-top: 5px; text-align: right;">${msg.created_at}</div></div>`;
-                container.innerHTML += html;
             });
         }
         

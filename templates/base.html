@@ -59,9 +59,10 @@
     .chat-window.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
     
     .chat-header { background: #DC5500; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 15px; }
-    .close-chat { background: transparent; border: none; color: white; font-size: 18px; cursor: pointer; }
+    .close-chat { background: transparent; border: none; color: white; font-size: 18px; cursor: pointer; transition: 0.2s;}
+    .close-chat:hover { opacity: 0.8; }
     
-    .chat-messages { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #f9f9f9; }
+    .chat-messages { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #f9f9f9; scroll-behavior: smooth;}
     .chat-bubble { max-width: 80%; padding: 10px 15px; border-radius: 15px; font-size: 13px; line-height: 1.4; word-wrap: break-word; }
     .chat-bubble.mine { background: #DC5500; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
     .chat-bubble.theirs { background: #e9ecef; color: #333; align-self: flex-start; border-bottom-left-radius: 4px; }
@@ -78,7 +79,6 @@
     .chat-send-btn:hover { background: #c24b00; }
     #chat-file-name { font-size: 10px; color: #DC5500; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
 
-    /* BOT PROMPT BUTTONS (QA FIX: Added !important to hover color) */
     .bot-prompt-btn { background: #fff; color: #DC5500; border: 1px solid #ffccaa; padding: 8px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; text-align: left; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
     .bot-prompt-btn:hover { background: #DC5500; color: white !important; }
 </style>
@@ -148,24 +148,24 @@
 
     {% block content %}{% endblock %}
 
-    {% if session.get('role') != 'admin' %}
+    {% if session.get('role') not in ['admin', 'super_admin'] %}
     <div class="chat-widget-container">
         
         <div id="chatWindow" class="chat-window">
+            
             <div class="chat-header">
                 <span id="chatHeaderText"><i class="fas fa-headset"></i> Support Chat</span>
-                <div>
-                    <button onclick="showBotMainMenu()" class="close-chat" style="margin-right: 12px;" title="Options Menu"><i class="fas fa-robot"></i></button>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <button id="endChatBtn" onclick="endLiveChat()" class="close-chat" style="display:none; font-size: 13px;" title="End Live Session"><i class="fas fa-robot"></i> Back to Bot</button>
                     <button onclick="toggleChat()" class="close-chat"><i class="fas fa-times"></i></button>
                 </div>
             </div>
             
             <div id="chatScrollContainer" class="chat-messages">
                 <div id="chatHistory" style="display: flex; flex-direction: column; gap: 12px;"></div>
-                <div id="botInteractionArea" style="display: flex; flex-direction: column; gap: 12px;"></div>
             </div>
             
-            <div class="chat-input-area" style="display: none;">
+            <div class="chat-input-area" style="display: none;" id="chatInputArea">
                 <div id="chat-file-name"></div>
                 <p style="font-size: 9px; color: #888; margin: 0 0 5px 5px;">Max 10MB (JPG, PNG, PDF, ZIP, DOCX)</p>
                 <form id="chatForm" class="chat-form-row" onsubmit="sendChatMessage(event)">
@@ -174,7 +174,7 @@
                     </label>
                     <input type="file" id="chatAttachment" accept=".jpg,.jpeg,.png,.pdf,.docx,.zip,.rar" style="display: none;" onchange="updateChatFileName(this)">
                     
-                    <input type="text" id="chatInputText" class="chat-input" placeholder="Type a message..." autocomplete="off" oninput="resetIdleTimer()">
+                    <input type="text" id="chatInputText" class="chat-input" placeholder="Type a message..." autocomplete="off">
                     
                     <button type="submit" class="chat-send-btn" id="chatSendBtn"><i class="fas fa-paper-plane"></i></button>
                 </form>
@@ -265,12 +265,14 @@
         // ==========================================
         // --- REAL-TIME CHATBOT LOGIC ---
         // ==========================================
-        {% if session.get('role') != 'admin' %}
+        {% if session.get('role') not in ['admin', 'super_admin'] %}
+        
+        // QA FIX: Smart Sessions - Remembers if user is in Bot Mode or Live Mode
+        let isBotMode = sessionStorage.getItem('printagram_bot_mode') !== 'false';
+        
         let chatInterval = null;
         let lastMessageCount = -1;
-        let isBotMode = true; 
         let adminIsOnline = false;
-        let idleTimer = null;
         let chatInitialized = false;
 
         setInterval(() => {
@@ -284,12 +286,16 @@
 
         function updateChatHeader() {
             const headerText = document.getElementById('chatHeaderText');
+            const endBtn = document.getElementById('endChatBtn');
             if(!headerText) return; 
             
             if (isBotMode) {
-                headerText.innerHTML = `<i class="fas fa-headset"></i> Support Chat`;
+                headerText.innerHTML = `<i class="fas fa-headset"></i> PrintaBot Active`;
+                if (endBtn) endBtn.style.display = 'none';
                 return;
             }
+            
+            if (endBtn) endBtn.style.display = 'inline-block';
             
             if(adminIsOnline) {
                 headerText.innerHTML = `<i class="fas fa-user-tie"></i> Printagram Staff <span style="color: #2de04f; font-size: 10px; margin-left: 5px; text-shadow: 0 0 5px rgba(45,224,79,0.5);"><i class="fas fa-circle"></i></span> <span style="font-size:10px; font-weight:normal;">Online</span>`;
@@ -297,32 +303,24 @@
                 headerText.innerHTML = `<i class="fas fa-user-tie"></i> Printagram Staff <span style="color: #ccc; font-size: 10px; margin-left: 5px;"><i class="fas fa-circle"></i></span> <span style="font-size:10px; font-weight:normal;">Offline</span>`;
             }
         }
-        
-        function resetIdleTimer() {
-            if(idleTimer) clearTimeout(idleTimer);
-            if(!isBotMode) {
-                idleTimer = setTimeout(() => {
-                    showBotMainMenu();
-                }, 300000); 
-            }
-        }
 
         function toggleChat() {
             const windowEl = document.getElementById('chatWindow');
             windowEl.classList.toggle('show');
+            
             if (windowEl.classList.contains('show')) {
                 if (!chatInitialized) {
                     fetch('/api/get_messages?t=' + new Date().getTime())
                         .then(res => res.json())
                         .then(data => {
-                            if (data.length > 0) {
-                                isBotMode = false;
-                                document.querySelector('.chat-input-area').style.display = 'flex';
-                                loadBotHistoryVisuals(); 
-                                updateChatHeader();
+                            // Apply the correct UI based on the Session State
+                            if (isBotMode) {
+                                document.getElementById('chatInputArea').style.display = 'none';
                             } else {
-                                showBotMainMenu();
+                                document.getElementById('chatInputArea').style.display = 'flex';
                             }
+                            
+                            updateChatHeader();
                             renderMessages(data);
                             lastMessageCount = data.length;
                             chatInitialized = true;
@@ -338,7 +336,6 @@
                 }
             } else {
                 clearInterval(chatInterval);
-                if(idleTimer) clearTimeout(idleTimer);
             }
         }
 
@@ -354,138 +351,121 @@
                 }).catch(err => console.error('Chat fetch error:', err));
         }
 
-        function loadBotHistoryVisuals() {
-            const botArea = document.getElementById('botInteractionArea');
-            let historyHtml = '';
-            let botHistory = JSON.parse(sessionStorage.getItem('botHistory') || '[]');
-            
-            if (botHistory.length > 0) {
-                historyHtml += `
-                    <div style="text-align: center; margin-bottom: 15px; margin-top: 20px; border-top: 1px dashed #eee; padding-top: 15px;">
-                        <div style="width:40px; height:40px; background:#DC5500; color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:20px; margin:0 auto;"><i class="fas fa-robot"></i></div>
-                        <div style="font-size:12px; color:#555; font-weight:bold; margin-top:5px;">PrintaBot History</div>
-                    </div>
-                `;
-                botHistory.forEach(item => {
-                    let cls = item.type === 'mine' ? 'mine' : 'theirs';
-                    historyHtml += `<div class="chat-bubble ${cls}" style="margin-bottom:10px;"><div>${item.text}</div></div>`;
-                });
-                botArea.innerHTML = historyHtml;
+        function renderMessages(messages) {
+            const historyContainer = document.getElementById('chatHistory');
+            historyContainer.innerHTML = '';
+
+            messages.forEach(msg => {
+                let text = msg.message_text || '';
+                let bubbleClass = msg.is_mine ? 'mine' : 'theirs';
+                let isBotMsg = false;
+                
+                if (text.startsWith('PrintaBot: ')) {
+                    bubbleClass = 'theirs'; 
+                    text = text.replace('PrintaBot: ', ''); 
+                    isBotMsg = true;
+                }
+
+                let html = `<div class="chat-bubble ${bubbleClass}">`;
+                
+                if (isBotMsg) {
+                    html += `<div style="font-size: 10px; color: #DC5500; margin-bottom: 2px; font-weight: bold;"><i class="fas fa-robot"></i> PrintaBot</div>`;
+                }
+
+                if (text) html += `<div>${text}</div>`;
+                
+                if (msg.attachment_url) {
+                    if(msg.attachment_url.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null) {
+                        html += `<a href="${msg.attachment_url}" target="_blank"><img src="${msg.attachment_url}" class="chat-attachment" alt="Attachment"></a>`;
+                    } else {
+                        html += `<a href="${msg.attachment_url}" target="_blank" style="color: inherit; text-decoration: underline; font-weight: bold; display: block; margin-top: 5px;"><i class="fas fa-file-download"></i> Download File</a>`;
+                    }
+                }
+                
+                if (!isBotMsg) {
+                    html += `<div class="chat-timestamp">${msg.created_at}</div>`;
+                }
+                html += `</div>`;
+                
+                historyContainer.innerHTML += html;
+            });
+
+            // QA FIX: If we are in a Bot Session, ALWAYS render the Bot Menu at the bottom!
+            if (isBotMode) {
+                appendBotMenu(messages.length === 0);
             }
         }
 
-        function showBotMainMenu() {
-            isBotMode = true;
-            document.querySelector('.chat-input-area').style.display = 'none';
-            updateChatHeader(); 
-
-            let historyHtml = '';
-            let botHistory = JSON.parse(sessionStorage.getItem('botHistory') || '[]');
-            
-            if (botHistory.length > 0) {
-                historyHtml += `
-                    <div style="text-align: center; margin-bottom: 15px; margin-top: 20px; border-top: 1px dashed #eee; padding-top: 15px;">
-                        <div style="width:40px; height:40px; background:#DC5500; color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:20px; margin:0 auto;"><i class="fas fa-robot"></i></div>
-                        <div style="font-size:12px; color:#555; font-weight:bold; margin-top:5px;">PrintaBot History</div>
-                    </div>
-                `;
-                botHistory.forEach(item => {
-                    let cls = item.type === 'mine' ? 'mine' : 'theirs';
-                    historyHtml += `<div class="chat-bubble ${cls}" style="margin-bottom:10px;"><div>${item.text}</div></div>`;
-                });
-            } else {
-                historyHtml += `
-                    <div style="text-align: center; margin-bottom: 15px; margin-top: 20px; border-top: 1px dashed #eee; padding-top: 15px;">
-                        <div style="width:40px; height:40px; background:#DC5500; color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:20px; margin:0 auto;"><i class="fas fa-robot"></i></div>
-                        <div style="font-size:12px; color:#555; font-weight:bold; margin-top:5px;">PrintaBot</div>
-                    </div>
-                `;
-            }
-
-            const botArea = document.getElementById('botInteractionArea');
-            botArea.innerHTML = `
-                ${historyHtml}
-                <div class="chat-bubble theirs" style="margin-bottom:10px;" id="bot-welcome-msg">
-                    Hi! I'm PrintaBot. How can I help you today? Please select an option:
+        function appendBotMenu(isFirstTime) {
+            const historyContainer = document.getElementById('chatHistory');
+            let html = `
+                <div style="text-align: center; margin-bottom: 15px; margin-top: 10px; border-top: 1px dashed #eee; padding-top: 15px;">
+                    <div style="width:40px; height:40px; background:#DC5500; color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:20px; margin:0 auto;"><i class="fas fa-robot"></i></div>
+                    <div style="font-size:12px; color:#555; font-weight:bold; margin-top:5px;">PrintaBot Menu</div>
                 </div>
-                <div id="bot-options" style="display:flex; flex-direction:column; gap:8px;">
-                    <button class="bot-prompt-btn" onclick="simulateBotReply(this, 'To place an order, go to the Services page, select a product, upload your design, and click Add to Cart.')">How do I place an order?</button>
-                    <button class="bot-prompt-btn" onclick="simulateBotReply(this, 'We accept GCash, Maya, and major Credit/Debit cards securely via PayMongo.')">What are your payment methods?</button>
-                    <button class="bot-prompt-btn" onclick="simulateBotReply(this, 'Store pickup is available immediately after printing. External delivery takes 3-7 business days depending on location.')">How long does delivery take?</button>
+                <div class="chat-bubble theirs" style="margin-bottom:10px;">
+                    ${isFirstTime ? "Hi! I'm PrintaBot. How can I help you today? Please select an option:" : "PrintaBot Menu loaded. How else can I assist you?"}
+                </div>
+                <div style="display:flex; flex-direction:column; gap:8px; padding-bottom: 10px;">
+                    <button class="bot-prompt-btn" onclick="simulateBotReply('How do I place an order?', 'To place an order, go to the Services page, select a product, upload your design, and click Add to Cart.')">How do I place an order?</button>
+                    <button class="bot-prompt-btn" onclick="simulateBotReply('What are your payment methods?', 'We accept GCash, Maya, and major Credit/Debit cards securely via PayMongo.')">What are your payment methods?</button>
+                    <button class="bot-prompt-btn" onclick="simulateBotReply('How long does delivery take?', 'Store pickup is available immediately after printing. External delivery takes 3-7 business days depending on location.')">How long does delivery take?</button>
                     <button class="bot-prompt-btn" onclick="connectToAgent()" style="border-color: #DC5500; font-weight:bold;">Other Concern / Talk to an Agent</button>
                 </div>
             `;
+            historyContainer.insertAdjacentHTML('beforeend', html);
             scrollToBottom();
         }
 
-        function simulateBotReply(btnElem, replyText) {
-            const botArea = document.getElementById('botInteractionArea');
-            const userText = btnElem.innerText;
-
-            const opts1 = document.getElementById('bot-options');
-            const opts2 = document.getElementById('bot-options-2');
-            const welcome = document.getElementById('bot-welcome-msg');
-            const header = document.getElementById('bot-welcome-header');
-            if (opts1) opts1.remove();
-            if (opts2) opts2.remove();
-            if (welcome) welcome.remove();
-            if (header) header.remove();
-
-            botArea.insertAdjacentHTML('beforeend', `<div class="chat-bubble mine" style="margin-bottom:10px;"><div>${userText}</div></div>`);
-
-            let botHistory = JSON.parse(sessionStorage.getItem('botHistory') || '[]');
-            botHistory.push({ type: 'mine', text: userText });
-            botHistory.push({ type: 'theirs', text: replyText });
-            sessionStorage.setItem('botHistory', JSON.stringify(botHistory));
-
-            setTimeout(() => {
-                botArea.insertAdjacentHTML('beforeend', `
-                    <div class="chat-bubble theirs" style="margin-bottom:15px;"><div>${replyText}</div></div>
-                    <div id="bot-options-2" style="display:flex; flex-direction:column; gap:8px; padding-bottom: 15px;">
-                        <button class="bot-prompt-btn" onclick="showBotMainMenu()" style="border-color: #aaa; color: #555;"><i class="fas fa-undo"></i> Ask another question</button>
-                        <button class="bot-prompt-btn" onclick="connectToAgent()" style="border-color: #DC5500; font-weight:bold;">I still need help (Talk to Agent)</button>
-                    </div>`);
-                scrollToBottom();
-            }, 500);
+        function simulateBotReply(userText, replyText) {
+            // Because they clicked a bot prompt, we KEEP them in the Bot Session
+            // We just log the interaction to the DB and redraw the UI
+            const container = document.getElementById('chatHistory');
+            const btns = container.querySelectorAll('.bot-prompt-btn');
+            btns.forEach(b => b.parentElement.remove());
+            
+            sendToDB(userText, "PrintaBot: " + replyText);
         }
 
-       function connectToAgent() {
+        function connectToAgent() {
+            // Switching to Live Session
             isBotMode = false;
-            resetIdleTimer(); 
+            sessionStorage.setItem('printagram_bot_mode', 'false');
+            document.getElementById('chatInputArea').style.display = 'flex';
+            updateChatHeader();
             
-            const botArea = document.getElementById('botInteractionArea');
-            
-            const opts1 = document.getElementById('bot-options');
-            const opts2 = document.getElementById('bot-options-2');
-            const welcome = document.getElementById('bot-welcome-msg');
-            const header = document.getElementById('bot-welcome-header');
-            if (opts1) opts1.remove();
-            if (opts2) opts2.remove();
-            if (welcome) welcome.remove();
-            if (header) header.remove();
+            const container = document.getElementById('chatHistory');
+            const btns = container.querySelectorAll('.bot-prompt-btn');
+            btns.forEach(b => b.parentElement.remove());
 
-            botArea.insertAdjacentHTML('beforeend', `<div id="orangeSpinner" class="chat-bubble theirs" style="margin-bottom:10px; background: #fff5eb; color:#DC5500; border: 1px solid #ffccaa;"><div><i class="fas fa-spinner fa-spin"></i> Connecting you to a live agent...</div></div>`);
-            scrollToBottom();
-            
-            setTimeout(() => {
-                updateChatHeader(); 
-                
-                const spinner = document.getElementById('orangeSpinner');
-                if(spinner) spinner.remove();
+            sendToDB("I need to talk to a live agent.", "PrintaBot: An agent will be with you shortly. Please type your specific concern below!");
+        }
 
-                botArea.insertAdjacentHTML('beforeend', `<div id="greenConnectionMsg" class="chat-bubble theirs" style="margin-bottom:10px; background: #d4edda; color:#155724; border: 1px solid #c3e6cb; transition: opacity 0.5s;"><div><i class="fas fa-check-circle"></i> You are now connected to a Printagram staff. Type your message below.</div></div>`);
-                
-                document.querySelector('.chat-input-area').style.display = 'flex';
-                scrollToBottom();
-                
-                setTimeout(() => {
-                    const greenMsg = document.getElementById('greenConnectionMsg');
-                    if (greenMsg) {
-                        greenMsg.style.opacity = '0';
-                        setTimeout(() => { greenMsg.remove(); }, 500);
-                    }
-                }, 5000);
-            }, 1500);
+        function endLiveChat() {
+            // Switching BACK to Bot Session
+            isBotMode = true;
+            sessionStorage.setItem('printagram_bot_mode', 'true');
+            document.getElementById('chatInputArea').style.display = 'none';
+            updateChatHeader();
+            
+            sendToDB("I have ended the live chat session.", "PrintaBot: Live chat session closed.");
+        }
+
+        function sendToDB(userText, botText) {
+            const fd1 = new FormData();
+            fd1.append('message_text', userText);
+            
+            fetch('/api/send_message', { method: 'POST', body: fd1 })
+            .then(() => {
+                if(botText) {
+                    const fd2 = new FormData();
+                    fd2.append('message_text', botText);
+                    return fetch('/api/send_message', { method: 'POST', body: fd2 });
+                }
+            })
+            .then(() => {
+                fetchMessages(); 
+            });
         }
 
         function updateChatFileName(input) {
@@ -500,7 +480,6 @@
 
         function sendChatMessage(e) {
             e.preventDefault();
-            resetIdleTimer(); 
             
             const textInput = document.getElementById('chatInputText');
             const fileInput = document.getElementById('chatAttachment');
@@ -544,35 +523,6 @@
                 sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
                 sendBtn.disabled = false;
             });
-        }
-
-        function renderMessages(messages) {
-            const historyContainer = document.getElementById('chatHistory');
-            historyContainer.innerHTML = '';
-
-            if(messages.length === 0) {
-                let botHistory = JSON.parse(sessionStorage.getItem('botHistory') || '[]');
-                if (botHistory.length === 0) {
-                    historyContainer.innerHTML = '<div style="text-align: center; color: #aaa; font-size: 10px; margin-bottom: 10px;">End of history</div>';
-                }
-            } else {
-                messages.forEach(msg => {
-                    const bubbleClass = msg.is_mine ? 'mine' : 'theirs';
-                    let html = `<div class="chat-bubble ${bubbleClass}">`;
-                    
-                    if (msg.message_text) html += `<div>${msg.message_text}</div>`;
-                    if (msg.attachment_url) {
-                        if(msg.attachment_url.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null) {
-                            html += `<a href="${msg.attachment_url}" target="_blank"><img src="${msg.attachment_url}" class="chat-attachment" alt="Attachment"></a>`;
-                        } else {
-                            html += `<a href="${msg.attachment_url}" target="_blank" style="color: inherit; text-decoration: underline; font-weight: bold; display: block; margin-top: 5px;"><i class="fas fa-file-download"></i> Download File</a>`;
-                        }
-                    }
-                    html += `<div class="chat-timestamp">${msg.created_at}</div></div>`;
-                    historyContainer.innerHTML += html;
-                });
-            }
-            scrollToBottom();
         }
         {% endif %}
     </script>

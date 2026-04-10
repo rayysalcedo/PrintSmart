@@ -153,7 +153,8 @@ def inject_cart_count():
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            cursor.execute("SELECT SUM(quantity) FROM cart WHERE user_id = %s", (session['user_id'],))
+            # QA FIX: Changed from SUM(quantity) to COUNT(*) to track unique items
+            cursor.execute("SELECT COUNT(*) FROM cart WHERE user_id = %s", (session['user_id'],))
             result = cursor.fetchone()
             count = int(result[0]) if result and result[0] else 0
             cursor.close()
@@ -397,6 +398,8 @@ def add_to_cart():
         if special_instructions: 
             final_details += f" || NOTE: {special_instructions}"
         
+        # ... (keep the existing file paths and item details logic above this) ...
+        
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
@@ -404,12 +407,18 @@ def add_to_cart():
             VALUES (%s, %s, %s, %s, %s, %s)
         """, (user_id, product_id, qty, item_total, final_details, file_path_str))
         conn.commit()
+        
+        # QA FIX: Grab the exact ID of the newly added item for isolation
+        new_cart_id = cursor.lastrowid
+        
         cursor.close()
         conn.close()
 
         flash('Successfully added to your Printagram cart!', 'success')
+        
         if request.form.get('action') == 'buy_now': 
-            return redirect('/checkout')
+            # QA FIX: Pass the ID to the checkout route
+            return redirect(url_for('checkout', buy_now=new_cart_id))
         else: 
             return redirect(request.referrer or url_for('services'))
             
@@ -496,16 +505,31 @@ def bulk_remove_from_cart():
 @app.route('/checkout')
 def checkout():
     user_id = session.get('user_id', 1)
+    # QA FIX: Check if we are coming from a "Buy Now" click
+    buy_now_id = request.args.get('buy_now') 
+    
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        query = """
-            SELECT c.*, p.name as product_name, p.image_path 
-            FROM cart c
-            JOIN products p ON c.product_id = p.product_id
-            WHERE c.user_id = %s
-        """
-        cursor.execute(query, (user_id,))
+        
+        # QA FIX: If 'buy_now' is triggered, isolate that item. Otherwise, load the full cart.
+        if buy_now_id:
+            query = """
+                SELECT c.*, p.name as product_name, p.image_path 
+                FROM cart c
+                JOIN products p ON c.product_id = p.product_id
+                WHERE c.user_id = %s AND c.cart_id = %s
+            """
+            cursor.execute(query, (user_id, buy_now_id))
+        else:
+            query = """
+                SELECT c.*, p.name as product_name, p.image_path 
+                FROM cart c
+                JOIN products p ON c.product_id = p.product_id
+                WHERE c.user_id = %s
+            """
+            cursor.execute(query, (user_id,))
+            
         cart_items = cursor.fetchall()
         subtotal = 0.0
         for item in cart_items:
@@ -520,9 +544,11 @@ def checkout():
                     item['design_note'] = p.replace('DESIGN: ', '', 1)
                 elif p.startswith('NOTE: '):
                     item['special_note'] = p.replace('NOTE: ', '', 1)
+        
         processing_fee = 50.00 if cart_items else 0.00
         grand_total = subtotal + processing_fee
         conn.close()
+        
         return render_template('checkout.html', cart_items=cart_items, subtotal=subtotal, processing_fee=processing_fee, grand_total=grand_total)
     except Exception as e:
         return f"Checkout Error: {e}"
@@ -633,17 +659,32 @@ def place_order():
     except Exception as e:
         return f"Order Error: {e}"
 
+# --- QA FIX: CANCEL ABANDONED PAYMONGO PAYMENTS ---
 @app.route('/cancel_payment/<int:order_id>')
 def cancel_payment(order_id):
     if not session.get('loggedin'): return redirect(url_for('login'))
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
+        
+        # QA FIX: Fetch the abandoned order items to restore them to the cart
+        cursor.execute("SELECT * FROM order_items WHERE order_id = %s", (order_id,))
+        abandoned_items = cursor.fetchall()
+        
+        if abandoned_items:
+            for item in abandoned_items:
+                cursor.execute("""
+                    INSERT INTO cart (user_id, product_id, quantity, total_price, item_details, file_path) 
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (session['user_id'], item['product_id'], item['quantity'], item['price_at_time'], item['item_details'], item['file_path']))
+
+        # Now safely delete the ghost order since items are back in the cart
         cursor.execute("DELETE FROM order_items WHERE order_id = %s", (order_id,))
         cursor.execute("DELETE FROM orders WHERE order_id = %s AND payment_status = 'Pending'", (order_id,))
+        
         conn.commit()
         conn.close()
-        flash("Payment cancelled. You can review your cart and try again.", "error")
+        flash("Payment cancelled. Your items have been safely returned to your cart.", "error")
     except Exception as e:
         print(f"Error cancelling payment: {e}")
     return redirect('/checkout')
@@ -729,8 +770,8 @@ def register():
             flash("Invalid name. Please use only letters.", "error")
             return redirect(url_for('register'))
             
-        if not phone or not re.match(r'^(?:\+639|09)\d{9}$', phone):
-            flash("Invalid phone number. Please use the 11-digit format (e.g., 09123456789).", "error")
+        if not phone or not re.match(r'^(?:\+639|09|9)\d{9}$', phone):
+            flash("Invalid phone number. Please use a valid 10 or 11-digit mobile number.", "error")
             return redirect(url_for('register'))
             
         if not email or not re.match(r'^[\w\.-]+@[\w\.-]+\.\w{2,}$', email):
