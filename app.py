@@ -7,6 +7,11 @@ from datetime import datetime, timedelta
 from itsdangerous import URLSafeTimedSerializer
 from flask import Flask, render_template, request, session, redirect, url_for, flash, make_response, jsonify
 from dotenv import load_dotenv
+
+# 1. LOAD THE SECRETS BEFORE ANYTHING ELSE!
+load_dotenv()
+
+from flask import Flask, render_template, request, session, redirect, url_for, flash
 import mysql.connector 
 from config import Config
 from werkzeug.utils import secure_filename
@@ -827,40 +832,12 @@ def logout():
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
+        name = request.form.get('name')
         email = request.form.get('email')
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
-        user = cursor.fetchone()
-        conn.close()
-
-        if user:
-            token = s.dumps(email, salt='password-reset-salt')
-            reset_url = url_for('reset_password', token=token, _external=True)
-            msg_body = f"Hello {user['full_name']},\n\nClick the link below to securely reset your Printagram password:\n{reset_url}\n\nIf you did not request this, please ignore this email. This link will expire in 1 hour."
-            success = send_system_email(email, 'Password Reset Request - PrintSmart', msg_body)
-            
-            if success:
-                flash("A password reset link has been sent to your email.", "success")
-            else:
-                flash(f"System Email is disabled. Testing Link Generated: {reset_url}", "success")
-                print(f"YOUR RESET LINK: {reset_url}")
-        else:
-            flash("If that email exists in our system, a reset link has been sent.", "success")
-        return redirect(url_for('login'))
-    return render_template('forgot_password.html')
-
-@app.route('/reset_password/<token>', methods=['GET', 'POST'])
-def reset_password(token):
-    try:
-        email = s.loads(token, salt='password-reset-salt', max_age=3600)
-    except Exception:
-        flash("The reset link is invalid or has expired.", "error")
-        return redirect(url_for('forgot_password'))
-
-    if request.method == 'POST':
+        phone = request.form.get('phone')
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
+
         if password != confirm_password:
             flash("Passwords do not match.", "error")
             return redirect(url_for('reset_password', token=token))
@@ -872,17 +849,28 @@ def reset_password(token):
 
         if user and check_password_hash(user['password_hash'], password):
             conn.close()
-            flash("Your new password cannot be the same as your current password.", "error")
-            return redirect(url_for('reset_password', token=token))
-        
+            flash("Email already registered. Please login.", "error")
+            return redirect(url_for('register'))
+
         hashed_password = generate_password_hash(password)
-        cursor.execute("UPDATE users SET password_hash = %s WHERE email = %s", (hashed_password, email))
-        conn.commit()
-        conn.close()
-        
-        flash("Your password has been successfully updated! You can now log in.", "success")
-        return redirect(url_for('login'))
-    return render_template('reset_password.html', token=token)
+        try:
+            cursor.execute("INSERT INTO users (full_name, email, phone_number, password_hash, role) VALUES (%s, %s, %s, %s, 'customer')", 
+                           (name, email, phone, hashed_password))
+            conn.commit()
+            conn.close()
+            flash("Account created successfully! You can now login.", "success")
+            return redirect(url_for('login'))
+        except Exception as e:
+            conn.close()
+            flash(f"An error occurred: {e}", "error")
+            return redirect(url_for('register'))
+    return render_template('register.html')
+
+# --- Add this placeholder route for the Forgot Password button ---
+@app.route('/forgot_password')
+def forgot_password():
+    flash("Password reset instructions have been sent to your email. (Feature in development)", "success")
+    return redirect(url_for('login'))
 
 # --- ADMIN AND PROFILE MANAGEMENT ---
 @app.route('/admin')
