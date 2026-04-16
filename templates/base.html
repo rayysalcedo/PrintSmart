@@ -15,42 +15,11 @@
     {% block styles %}{% endblock %}
 
 <style>
-    .chat-tooltip {
-        position: absolute; right: 75px; bottom: 12px; background: white; color: #DC5500;
-        padding: 10px 15px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        font-size: 13px; font-weight: 700; white-space: nowrap; pointer-events: none;
-        animation: bounceX 2s infinite; border: 1px solid #eee;
-    }
-    .chat-tooltip::after {
-        content: ''; position: absolute; top: 50%; right: -6px; transform: translateY(-50%);
-        border-width: 6px 0 6px 6px; border-style: solid; border-color: transparent transparent transparent white;
-    }
+    /* --- CHATBOT STYLES --- */
+    .chat-tooltip { position: absolute; right: 75px; bottom: 12px; background: white; color: #DC5500; padding: 10px 15px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-size: 13px; font-weight: 700; white-space: nowrap; pointer-events: none; animation: bounceX 2s infinite; border: 1px solid #eee; }
+    .chat-tooltip::after { content: ''; position: absolute; top: 50%; right: -6px; transform: translateY(-50%); border-width: 6px 0 6px 6px; border-style: solid; border-color: transparent transparent transparent white; }
     @keyframes bounceX { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-5px); } }
     
-    .site-header { font-family: 'Alexandria', sans-serif !important; }
-    
-    .active-icon-btn img, .icon-btn:hover img { filter: brightness(0) invert(1) !important; }
-
-    .flash-container { position: fixed; top: 100px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
-    .flash-message { min-width: 280px; padding: 16px 24px; border-radius: 8px; background: white; color: #333; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 12px; font-family: 'Alexandria', sans-serif; font-size: 14px; border-left: 5px solid #DC5500; animation: slideIn 0.4s ease forwards; }
-
-    .header-logo .brand-link { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-    .header-brand-text { display: flex; flex-direction: column; justify-content: center; }
-    .header-brand-text .brand-name { font-weight: 800; color: #222222; font-size: 22px; line-height: 1; margin-bottom: 2px; }
-    .header-brand-text .brand-tagline { color: #DC5500; font-size: 10px; letter-spacing: 2px; font-weight: 600; }
-
-    .site-footer { background-color: #1a1a1a; color: #ffffff; padding-top: 60px; margin-top: 50px; }
-    .footer-brand .brand-text h3 { font-weight: 700; color: #ffffff; margin: 0; }
-    .footer-brand .brand-text p { color: #DC5500; font-size: 10px; letter-spacing: 2px; margin: 5px 0 0 0; }
-    .footer-col h4 { color: #DC5500; margin-bottom: 20px; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
-    .footer-col ul { list-style: none; padding: 0; }
-    .footer-col ul li { margin-bottom: 12px; display: block; }
-    .footer-col ul li a { color: #bbb; text-decoration: none; transition: transform 0.3s ease, color 0.3s ease; font-size: 14px; display: inline-block; will-change: transform;}
-    .footer-col ul li a:hover { color: #DC5500; transform: translateX(6px); }
-    .contact-item strong { color: #DC5500; }
-
-    @keyframes slideIn { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
-
     .chat-widget-container { position: fixed; bottom: 30px; right: 30px; z-index: 10000; font-family: 'Alexandria', sans-serif; }
     .chat-toggle-btn { width: 60px; height: 60px; border-radius: 50%; background: #DC5500; color: white; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 5px 15px rgba(220, 85, 0, 0.4); transition: 0.3s; display: flex; align-items: center; justify-content: center; }
     .chat-toggle-btn:hover { transform: scale(1.05); background: #c24b00; }
@@ -81,6 +50,31 @@
 
     .bot-prompt-btn { background: #fff; color: #DC5500; border: 1px solid #ffccaa; padding: 8px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; text-align: left; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
     .bot-prompt-btn:hover { background: #DC5500; color: white !important; }
+
+    /* --- SITE STYLES --- */
+    .site-header { font-family: 'Alexandria', sans-serif !important; }
+    .active-icon-btn img, .icon-btn:hover img { filter: brightness(0) invert(1) !important; }
+
+    .flash-container { position: fixed; top: 100px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+    .flash-message { min-width: 280px; padding: 16px 24px; border-radius: 8px; background: white; color: #333; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 12px; font-family: 'Alexandria', sans-serif; font-size: 14px; border-left: 5px solid #DC5500; animation: slideIn 0.4s ease forwards; }
+
+    .header-logo .brand-link { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .header-brand-text { display: flex; flex-direction: column; justify-content: center; }
+    .header-brand-text .brand-name { font-weight: 800; color: #222222; font-size: 22px; line-height: 1; margin-bottom: 2px; }
+    .header-brand-text .brand-tagline { color: #DC5500; font-size: 10px; letter-spacing: 2px; font-weight: 600; }
+
+    .site-footer { background-color: #1a1a1a; color: #ffffff; padding-top: 60px; margin-top: 50px; }
+    .footer-brand .brand-text h3 { font-weight: 700; color: #ffffff; margin: 0; }
+    .footer-brand .brand-text p { color: #DC5500; font-size: 10px; letter-spacing: 2px; margin: 5px 0 0 0; }
+    .footer-col h4 { color: #DC5500; margin-bottom: 20px; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
+    .footer-col ul { list-style: none; padding: 0; }
+    .footer-col ul li { margin-bottom: 12px; display: block; }
+    .footer-col ul li a { color: #bbb; text-decoration: none; transition: transform 0.3s ease, color 0.3s ease; font-size: 14px; display: inline-block; will-change: transform;}
+    .footer-col ul li a:hover { color: #DC5500; transform: translateX(6px); }
+    .contact-item strong { color: #DC5500; }
+
+    @keyframes slideIn { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
+
 </style>
 
 </head>
@@ -132,10 +126,15 @@
                     <div id="profileDropdown" class="profile-dropdown">
                         <div class="dropdown-header">
                             <strong>{{ session.get('name') }}</strong>
-                            <span>{{ session.get('role', 'Customer') }}</span>
+                            <span>{{ session.get('role', 'Customer') | replace('_', ' ') }}</span>
                         </div>
                         <a href="{{ url_for('profile') }}" class="dropdown-item"><i class="fa-solid fa-user-gear"></i> Manage Account</a>
                         <a href="/my_orders" class="dropdown-item"><i class="fas fa-box-open"></i> My Orders</a>
+                        
+                        {% if session.get('role') in ['admin', 'super_admin'] %}
+                        <a href="/admin" class="dropdown-item" style="border-top: 1px solid #eee;"><i class="fas fa-shield-alt"></i> Admin Dashboard</a>
+                        {% endif %}
+
                         <div class="dropdown-divider"></div>
                         <a href="{{ url_for('logout') }}" class="dropdown-item logout-item"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
                     </div>
@@ -174,7 +173,7 @@
                     </label>
                     <input type="file" id="chatAttachment" accept=".jpg,.jpeg,.png,.pdf,.docx,.zip,.rar" style="display: none;" onchange="updateChatFileName(this)">
                     
-                    <input type="text" id="chatInputText" class="chat-input" placeholder="Type a message..." autocomplete="off">
+                    <input type="text" id="chatInputText" class="chat-input" placeholder="Type a message..." autocomplete="off" oninput="resetIdleTimer()">
                     
                     <button type="submit" class="chat-send-btn" id="chatSendBtn"><i class="fas fa-paper-plane"></i></button>
                 </form>
@@ -249,11 +248,18 @@
     </footer>
 
     <script>
-        function toggleProfileMenu(e) { e.preventDefault(); document.getElementById('profileDropdown').classList.toggle('show'); }
+        // QA FIX: Restored original robust window.onclick logic
+        function toggleProfileMenu(e) {
+            e.preventDefault();
+            document.getElementById('profileDropdown').classList.toggle('show');
+        }
+
         window.onclick = function(event) {
             if (!event.target.closest('.profile-container')) {
                 const dropdowns = document.getElementsByClassName("profile-dropdown");
-                for (let i = 0; i < dropdowns.length; i++) { dropdowns[i].classList.remove('show'); }
+                for (let i = 0; i < dropdowns.length; i++) {
+                    dropdowns[i].classList.remove('show');
+                }
             }
         }
         
@@ -267,19 +273,25 @@
         // ==========================================
         {% if session.get('role') not in ['admin', 'super_admin'] %}
         
-        // QA FIX: Smart Sessions - Remembers if user is in Bot Mode or Live Mode
         let isBotMode = sessionStorage.getItem('printagram_bot_mode') !== 'false';
         
         let chatInterval = null;
         let lastMessageCount = -1;
         let adminIsOnline = false;
         let chatInitialized = false;
+        let offlineWarningShown = false; 
+
+        let idleTimer = null;
+        const IDLE_TIMEOUT_MS = 5 * 60 * 1000; 
 
         setInterval(() => {
             fetch('/api/heartbeat', { method: 'POST' })
             .then(res => res.json())
             .then(data => {
                 adminIsOnline = data.admin_online;
+                if (adminIsOnline) {
+                    offlineWarningShown = false;
+                }
                 updateChatHeader();
             });
         }, 10000);
@@ -290,7 +302,7 @@
             if(!headerText) return; 
             
             if (isBotMode) {
-                headerText.innerHTML = `<i class="fas fa-headset"></i> PrintaBot Active`;
+                headerText.innerHTML = `<i class="fas fa-headset"></i> Support Chat`;
                 if (endBtn) endBtn.style.display = 'none';
                 return;
             }
@@ -313,7 +325,6 @@
                     fetch('/api/get_messages?t=' + new Date().getTime())
                         .then(res => res.json())
                         .then(data => {
-                            // Apply the correct UI based on the Session State
                             if (isBotMode) {
                                 document.getElementById('chatInputArea').style.display = 'none';
                             } else {
@@ -390,7 +401,6 @@
                 historyContainer.innerHTML += html;
             });
 
-            // QA FIX: If we are in a Bot Session, ALWAYS render the Bot Menu at the bottom!
             if (isBotMode) {
                 appendBotMenu(messages.length === 0);
             }
@@ -398,19 +408,26 @@
 
         function appendBotMenu(isFirstTime) {
             const historyContainer = document.getElementById('chatHistory');
-            let html = `
-                <div style="text-align: center; margin-bottom: 15px; margin-top: 10px; border-top: 1px dashed #eee; padding-top: 15px;">
-                    <div style="width:40px; height:40px; background:#DC5500; color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:20px; margin:0 auto;"><i class="fas fa-robot"></i></div>
-                    <div style="font-size:12px; color:#555; font-weight:bold; margin-top:5px;">PrintaBot Menu</div>
-                </div>
-                <div class="chat-bubble theirs" style="margin-bottom:10px;">
-                    ${isFirstTime ? "Hi! I'm PrintaBot. How can I help you today? Please select an option:" : "PrintaBot Menu loaded. How else can I assist you?"}
-                </div>
-                <div style="display:flex; flex-direction:column; gap:8px; padding-bottom: 10px;">
+            let html = '';
+
+            if (isFirstTime) {
+                html += `
+                    <div style="text-align: center; margin-bottom: 15px; margin-top: 10px;">
+                        <div style="width:40px; height:40px; background:#DC5500; color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:20px; margin:0 auto;"><i class="fas fa-robot"></i></div>
+                        <div style="font-size:12px; color:#555; font-weight:bold; margin-top:5px;">PrintaBot</div>
+                    </div>
+                    <div class="chat-bubble theirs" style="margin-bottom:10px;">
+                        Hi! I'm PrintaBot. How can I help you today? Please select an option:
+                    </div>
+                `;
+            }
+
+            html += `
+                <div style="display:flex; flex-direction:column; gap:8px; padding-bottom: 10px; margin-top: 5px;">
                     <button class="bot-prompt-btn" onclick="simulateBotReply('How do I place an order?', 'To place an order, go to the Services page, select a product, upload your design, and click Add to Cart.')">How do I place an order?</button>
                     <button class="bot-prompt-btn" onclick="simulateBotReply('What are your payment methods?', 'We accept GCash, Maya, and major Credit/Debit cards securely via PayMongo.')">What are your payment methods?</button>
                     <button class="bot-prompt-btn" onclick="simulateBotReply('How long does delivery take?', 'Store pickup is available immediately after printing. External delivery takes 3-7 business days depending on location.')">How long does delivery take?</button>
-                    <button class="bot-prompt-btn" onclick="connectToAgent()" style="border-color: #DC5500; font-weight:bold;">Other Concern / Talk to an Agent</button>
+                    <button class="bot-prompt-btn" onclick="connectToAgent()" style="border-color: #DC5500; font-weight:bold; color: #DC5500;"><i class="fas fa-user-headset"></i> Talk to a Live Agent</button>
                 </div>
             `;
             historyContainer.insertAdjacentHTML('beforeend', html);
@@ -418,31 +435,56 @@
         }
 
         function simulateBotReply(userText, replyText) {
-            // Because they clicked a bot prompt, we KEEP them in the Bot Session
-            // We just log the interaction to the DB and redraw the UI
             const container = document.getElementById('chatHistory');
             const btns = container.querySelectorAll('.bot-prompt-btn');
             btns.forEach(b => b.parentElement.remove());
-            
             sendToDB(userText, "PrintaBot: " + replyText);
         }
 
-        function connectToAgent() {
-            // Switching to Live Session
-            isBotMode = false;
-            sessionStorage.setItem('printagram_bot_mode', 'false');
-            document.getElementById('chatInputArea').style.display = 'flex';
+        function resetIdleTimer() {
+            if (idleTimer) clearTimeout(idleTimer);
+            if (!isBotMode) {
+                idleTimer = setTimeout(() => {
+                    autoCloseLiveChat();
+                }, IDLE_TIMEOUT_MS);
+            }
+        }
+
+        function autoCloseLiveChat() {
+            if (isBotMode) return; 
+            
+            isBotMode = true;
+            sessionStorage.setItem('printagram_bot_mode', 'true');
+            document.getElementById('chatInputArea').style.display = 'none';
             updateChatHeader();
             
+            const fdBot = new FormData();
+            fdBot.append('message_text', "PrintaBot: Your live session has automatically ended due to 5 minutes of inactivity. If you still need help, feel free to select an option below!");
+            fetch('/api/send_message', { method: 'POST', body: fdBot }).then(() => fetchMessages());
+        }
+
+        function connectToAgent() {
             const container = document.getElementById('chatHistory');
             const btns = container.querySelectorAll('.bot-prompt-btn');
             btns.forEach(b => b.parentElement.remove());
 
-            sendToDB("I need to talk to a live agent.", "PrintaBot: An agent will be with you shortly. Please type your specific concern below!");
+            if (adminIsOnline) {
+                isBotMode = false;
+                sessionStorage.setItem('printagram_bot_mode', 'false');
+                document.getElementById('chatInputArea').style.display = 'flex';
+                updateChatHeader();
+                resetIdleTimer(); 
+                sendToDB("I need to talk to a live agent.", "PrintaBot: An agent will be with you shortly. Please type your specific concern below!");
+            } else {
+                const offlineMsg = "Our staff is currently offline or away from their desk. Please submit a support ticket so we can get back to you via email!";
+                const ticketBtn = `<br><br><a href="/help" style="display:inline-block; background:#DC5500; color:white; padding:8px 15px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:12px; margin-top:5px;"><i class="fas fa-envelope"></i> Submit Support Ticket</a>`;
+                sendToDB("I need to talk to a live agent.", "PrintaBot: " + offlineMsg + ticketBtn);
+            }
         }
 
         function endLiveChat() {
-            // Switching BACK to Bot Session
+            if (idleTimer) clearTimeout(idleTimer); 
+
             isBotMode = true;
             sessionStorage.setItem('printagram_bot_mode', 'true');
             document.getElementById('chatInputArea').style.display = 'none';
@@ -480,6 +522,7 @@
 
         function sendChatMessage(e) {
             e.preventDefault();
+            resetIdleTimer(); 
             
             const textInput = document.getElementById('chatInputText');
             const fileInput = document.getElementById('chatAttachment');
@@ -510,7 +553,20 @@
                 if (data.status === 'success') {
                     textInput.value = ''; fileInput.value = '';
                     document.getElementById('chat-file-name').innerHTML = '';
-                    fetchMessages(); 
+                    
+                    if (!isBotMode && !adminIsOnline && !offlineWarningShown) {
+                        const offlineMsg = "Our staff is currently offline or away from their desk. Please submit a support ticket so we can get back to you via email!";
+                        const ticketBtn = `<br><br><a href="/help" style="display:inline-block; background:#DC5500; color:white; padding:8px 15px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:12px; margin-top:5px;"><i class="fas fa-envelope"></i> Submit Support Ticket</a>`;
+
+                        const fdBot = new FormData();
+                        fdBot.append('message_text', "PrintaBot: " + offlineMsg + ticketBtn);
+                        
+                        fetch('/api/send_message', { method: 'POST', body: fdBot }).then(() => fetchMessages());
+                        offlineWarningShown = true; 
+                    } else {
+                        fetchMessages(); 
+                    }
+                    
                 } else {
                     alert("Message failed to send: " + data.message);
                 }

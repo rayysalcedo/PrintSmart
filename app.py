@@ -754,6 +754,40 @@ def payment_success(order_id):
 @app.route('/help')
 def help_page():
     return render_template('help.html')
+
+# --- SUBMIT SUPPORT TICKET ---
+@app.route('/submit_ticket', methods=['POST'])
+def submit_ticket():
+    first_name = request.form.get('first_name')
+    last_name = request.form.get('last_name')
+    email = request.form.get('email')
+    subject = request.form.get('subject')
+    details = request.form.get('details')
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Grab all Admin and Super Admin emails
+        cursor.execute("SELECT email FROM users WHERE role IN ('admin', 'super_admin')")
+        admins = cursor.fetchall()
+        conn.close()
+        
+        # Prepare the email
+        email_subject = f"New Support Ticket: {subject}"
+        email_body = f"You have received a new support ticket from Printagram.\n\nFrom: {first_name} {last_name}\nEmail: {email}\nInquiry Type: {subject}\n\nDetails:\n{details}\n\nPlease reply directly to the customer's email address to assist them."
+        
+        # Send to all staff
+        for admin in admins:
+            if admin['email']:
+                send_system_email(admin['email'], email_subject, email_body)
+                
+        flash("Ticket submitted successfully! We will email you back within 24-48 hours.", "success")
+    except Exception as e:
+        print(f"Error submitting ticket: {e}")
+        flash("An error occurred while submitting your ticket. Please try again.", "error")
+        
+    return redirect(url_for('help_page'))
     
 # --- AUTHENTICATION & OTP ---
 
@@ -1412,7 +1446,59 @@ def cancel_order():
         
     return redirect(url_for('my_order_details', order_id=order_id))
 
-
+# --- REAL-TIME ADMIN NOTIFICATIONS API ---
+# --- REAL-TIME ADMIN NOTIFICATIONS API ---
+@app.route('/api/admin_notifications_data')
+def admin_notifications_data():
+    if session.get('role') not in ['admin', 'super_admin']: 
+        return jsonify({})
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # QA FIX: Added CAST(created_at AS CHAR) to allow chronological sorting in JS
+        cursor.execute("""
+            SELECT o.order_id, u.full_name, o.order_status, CAST(o.created_at AS CHAR) as created_at
+            FROM orders o
+            JOIN users u ON o.user_id = u.user_id
+            WHERE o.order_status = 'Pending' 
+            ORDER BY o.order_id DESC
+        """)
+        pending_orders = cursor.fetchall()
+        
+        cursor.execute("""
+            SELECT o.order_id, u.full_name, o.order_status 
+            FROM orders o
+            JOIN users u ON o.user_id = u.user_id
+            WHERE o.order_status = 'Cancelled' 
+            ORDER BY o.order_id DESC LIMIT 5
+        """)
+        cancelled_orders = cursor.fetchall()
+        
+        # QA FIX: Added CAST(created_at AS CHAR) to allow chronological sorting in JS
+        cursor.execute("""
+            SELECT c.message_id, c.message_text, u.full_name, c.sender_id, CAST(c.created_at AS CHAR) as created_at
+            FROM chat_messages c
+            JOIN users u ON c.sender_id = u.user_id
+            WHERE u.role IN ('customer', 'guest') AND (c.is_read = FALSE OR c.is_read IS NULL)
+            ORDER BY c.message_id DESC
+        """)
+        unread_chats = cursor.fetchall()
+        
+        conn.close()
+        return jsonify({
+            'pending_orders': pending_orders,
+            'cancelled_orders': cancelled_orders,
+            'unread_chats': unread_chats
+        })
+    except Exception as e:
+        print(f"Notification System Error: {e}")
+        return jsonify({
+            'pending_orders': [],
+            'cancelled_orders': [],
+            'unread_chats': []
+        })
+    
 # ==========================================
 # --- LIVE CHAT API ROUTES ---
 # ==========================================
@@ -1438,7 +1524,12 @@ def admin_sidebar():
         conn.close()
         
         for c in customers:
-            c['latest_time_str'] = c['latest_time'].strftime('%b %d') if c['latest_time'] else ''
+            if c['latest_time']:
+                local_time = c['latest_time'] + timedelta(hours=8)
+                c['latest_time_str'] = local_time.strftime('%b %d, %I:%M %p')
+            else:
+                c['latest_time_str'] = ''
+                
             c['latest_message'] = c['latest_message'] if c['latest_message'] else 'No messages yet'
             
         return jsonify(customers)
@@ -1451,8 +1542,8 @@ def heartbeat():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Check if ANY admin is online
-    cursor.execute("SELECT COUNT(*) as admin_count FROM users WHERE role IN ('admin', 'super_admin') AND last_active >= NOW() - INTERVAL 2 MINUTE")
+    # QA FIX: Extended the offline threshold to 5 minutes
+    cursor.execute("SELECT COUNT(*) as admin_count FROM users WHERE role IN ('admin', 'super_admin') AND last_active >= NOW() - INTERVAL 5 MINUTE")
     admin_online = cursor.fetchone()['admin_count'] > 0
     
     # If the user (or guest) has a session ID, update their activity tracker
@@ -1500,7 +1591,8 @@ def get_messages():
         conn.close()
         
         for msg in messages:
-            msg['created_at'] = msg['created_at'].strftime('%b %d, %I:%M %p')
+            local_time = msg['created_at'] + timedelta(hours=8)
+            msg['created_at'] = local_time.strftime('%b %d, %I:%M %p')
             msg['is_mine'] = (msg['sender_id'] == session.get('user_id'))
             
         return jsonify(messages)
@@ -1621,6 +1713,31 @@ def admin_delete_customer(user_id):
         flash("Customer account and all related data have been permanently deleted.", "success")
     except Exception as e:
         flash(f"Error deleting account: {e}", "error")
+        
+    return redirect(url_for('admin_dashboard'))
+# --- RESET CUSTOMER PASSWORD (ADMIN SIDE) ---
+@app.route('/admin/reset_user_password', methods=['POST'])
+def admin_reset_user_password():
+    if 'role' not in session or session['role'] not in ['admin', 'super_admin']:
+        return redirect(url_for('login'))
+        
+    user_id = request.form.get('user_id')
+    new_password = request.form.get('new_password')
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Hash the new password securely
+        hashed_password = generate_password_hash(new_password)
+        
+        cursor.execute("UPDATE users SET password_hash = %s WHERE user_id = %s", (hashed_password, user_id))
+        conn.commit()
+        conn.close()
+        
+        flash(f"Password has been successfully reset for User #{user_id}.", "success")
+    except Exception as e:
+        flash(f"Error resetting password: {e}", "error")
         
     return redirect(url_for('admin_dashboard'))
 

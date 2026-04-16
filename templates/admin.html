@@ -32,9 +32,6 @@
         .nav-item { padding: 14px 16px; cursor: pointer; border-radius: 10px; margin-bottom: 8px; display: flex; align-items: center; gap: 15px; font-size: 14px; font-weight: 600; transition: 0.3s; color: var(--text-muted); border: 1px solid transparent;}
         .nav-item:hover { background: #f9f9f9; color: var(--text-dark); }
         .nav-item.active { background: var(--primary-light); color: var(--primary); border-color: #ffd8bf; }
-        
-        .logout-btn { margin-top: auto; color: #dc3545; }
-        .logout-btn:hover { background: #fff5f5; color: #c82333; }
 
         /* --- MAIN CONTENT AREA --- */
         .main-content { flex: 1; overflow-y: auto; padding: 40px; position: relative; }
@@ -65,8 +62,10 @@
         }
         .toast-success { border-left-color: #28a745; }
         .toast-error { border-left-color: #dc3545; }
+        .toast-info { border-left-color: #0d47a1; }
         .toast-icon.success { color: #28a745; font-size: 18px; }
         .toast-icon.error { color: #dc3545; font-size: 18px; }
+        .toast-icon.info { color: #0d47a1; font-size: 18px; }
         @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
         /* --- DASHBOARD CARDS --- */
@@ -151,13 +150,56 @@
         .profile-form-group label { display: block; font-size: 14px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; }
         .profile-form-group input { width: 100%; padding: 12px 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit; box-sizing: border-box; outline: none; transition: 0.2s; }
         .profile-form-group input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(220,85,0,0.1); }
+
+        /* --- ADMIN HEADER UI WIDGETS --- */
+        .admin-profile-wrapper { 
+            position: relative; display: flex; align-items: center; gap: 15px; 
+            cursor: pointer; user-select: none; 
+            padding: 6px 10px 6px 20px; border-radius: 50px; 
+            transition: all 0.3s ease; border: 1px solid transparent;
+        }
+        .admin-profile-wrapper:hover {
+            background: white; border-color: #ddd; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        
+        .admin-profile-dropdown {
+            position: absolute; top: 110%; right: 0; background: white; width: 230px;
+            border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden; opacity: 0; visibility: hidden; transform: translateY(10px);
+            transition: all 0.3s ease; z-index: 1000; border: 1px solid #eee;
+        }
+        .admin-profile-dropdown.show { opacity: 1; visibility: visible; transform: translateY(0); }
+        .apd-header { background: var(--primary); color: white; padding: 20px; }
+        .apd-header strong { display: block; font-size: 15px; margin-bottom: 3px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .apd-header span { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; }
+        .apd-item { display: flex; align-items: center; gap: 12px; padding: 15px 20px; color: #555; text-decoration: none; font-size: 14px; font-weight: 600; transition: 0.2s; }
+        .apd-item:hover { background: #f9f9f9; color: var(--primary); }
+        .apd-item i { color: #888; font-size: 16px; transition: 0.2s; width: 16px; text-align: center;}
+        .apd-item:hover i { color: var(--primary); }
+        .apd-logout { border-top: 1px solid #eee; color: #dc3545; background: #fffafb; }
+        .apd-logout i { color: #dc3545; }
+        .apd-logout:hover { background: #fff5f5; color: #c82333; }
+
+        /* --- NOTIFICATION DROPDOWN STYLES --- */
+        .notif-item { display: flex; gap: 12px; padding: 15px 20px; border-bottom: 1px solid #eee; transition: 0.2s; text-decoration: none; color: inherit; cursor: pointer; align-items: flex-start;}
+        .notif-item:hover { background: #fafafa; border-left: 3px solid var(--primary); padding-left: 17px; }
+        .notif-icon { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+        .notif-icon.order { background: var(--primary-light); color: var(--primary); }
+        .notif-icon.chat { background: #e3f2fd; color: #0d47a1; }
+        .notif-text h5 { margin: 0 0 4px 0; font-size: 13px; color: #333; }
+        .notif-text p { margin: 0; font-size: 11px; color: #777; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+        
+        /* QA FIX: Added 'Dismiss' button for notifications */
+        .notif-dismiss { color: #ccc; font-size: 12px; display: flex; align-items: center; justify-content: center; transition: 0.2s; width: 24px; height: 24px; border-radius: 50%; }
+        .notif-dismiss:hover { color: #dc3545; background: #ffeeee; }
     </style>
 </head>
 <body>
 
     <div class="sidebar">
         <div class="brand">
-            <i class="fas fa-print"></i> Printagram
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Printagram Logo" style="height: 32px; width: 32px; object-fit: contain; background: white; border-radius: 6px; padding: 2px;"> 
+            Printagram
         </div>
         
         <div class="nav-item active" onclick="switchTab('dashboard', this)">
@@ -182,14 +224,6 @@
         <div class="nav-item" onclick="switchTab('messages', this)">
             <i class="fas fa-comments"></i> Messages
         </div>
-        
-        <div class="nav-item" onclick="switchTab('profile', this)">
-            <i class="fas fa-user-circle"></i> My Profile
-        </div>
-
-        <a href="/logout" style="text-decoration:none;" class="nav-item logout-btn">
-            <i class="fas fa-sign-out-alt"></i> Logout
-        </a>
     </div>
 
     <div class="main-content">
@@ -209,14 +243,53 @@
         
         <div class="header">
             <h2 id="page-title">Dashboard Overview</h2>
-            <div style="display:flex; align-items:center; gap: 15px;">
-                <div style="text-align: right; line-height: 1.2;">
-                    <div style="font-weight: 700; font-size: 14px;">{{ current_admin.full_name }}</div>
-                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">{{ current_admin.role | replace('_', ' ') }}</div>
+            <div style="display:flex; align-items:center; gap: 20px;">
+                
+                <div class="admin-profile-wrapper" id="notifWrapper" onclick="toggleNotifications(event)" style="padding: 6px 10px; border-radius: 50px;">
+                    <div style="position: relative; cursor: pointer;" title="Notifications">
+                        <i class="fas fa-bell" id="bellIcon" style="font-size: 20px; color: var(--text-muted); transition: 0.2s;"></i>
+                        <span id="notifBadge" style="display: none; position: absolute; top: -6px; right: -6px; background: #dc3545; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; align-items: center; justify-content: center; font-weight: bold; border: 2px solid var(--bg-color);">0</span>
+                    </div>
+                    
+                    <div class="admin-profile-dropdown" id="notificationDropdown" style="width: 320px; right: -10px; top: 120%;">
+                        <div class="apd-header" style="background: #333; padding: 15px 20px;">
+                            <strong style="font-size: 14px;">Notifications</strong>
+                            <span id="notifSubtext" style="color: #aaa; text-transform: none; letter-spacing: 0;">You have 0 pending actions</span>
+                        </div>
+                        <div id="notifList" style="max-height: 350px; overflow-y: auto; background: white;">
+                            <div style="padding: 25px; text-align: center; color: #888; font-size: 13px;"><i class="fas fa-spinner fa-spin" style="margin-bottom: 10px;"></i><br>Connecting to server...</div>
+                        </div>
+                    </div>
                 </div>
-                <div style="width:40px; height:40px; background:var(--primary-light); color:var(--primary); display:flex; align-items:center; justify-content:center; border-radius:50%; font-weight:bold; font-size:18px;">
-                    {{ current_admin.full_name[0] | upper }}
+                
+                <div style="width: 1px; height: 30px; background: var(--border-color);"></div>
+                
+                <div class="admin-profile-wrapper" id="profWrapper" onclick="toggleAdminProfile(event)">
+                    <div style="text-align: right; line-height: 1.2;">
+                        <div style="font-weight: 700; font-size: 14px; color: var(--text-dark);">{{ current_admin.full_name }}</div>
+                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">{{ current_admin.role | replace('_', ' ') }}</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width:40px; height:40px; background:var(--primary-light); color:var(--primary); display:flex; align-items:center; justify-content:center; border-radius:50%; font-weight:bold; font-size:18px;">
+                            {{ current_admin.full_name[0] | upper }}
+                        </div>
+                        <i class="fas fa-chevron-down" style="color: #aaa; font-size: 12px;"></i>
+                    </div>
+
+                    <div class="admin-profile-dropdown" id="adminProfileDropdown">
+                        <div class="apd-header">
+                            <strong>{{ current_admin.full_name }}</strong>
+                            <span>{{ current_admin.role | replace('_', ' ') }}</span>
+                        </div>
+                        <a href="#" class="apd-item" onclick="switchTab('profile', null); toggleAdminProfile(event);">
+                            <i class="fa-solid fa-user-gear"></i> Manage Account
+                        </a>
+                        <a href="/logout" class="apd-item apd-logout">
+                            <i class="fa-solid fa-right-from-bracket"></i> Logout
+                        </a>
+                    </div>
                 </div>
+
             </div>
         </div>
 
@@ -696,6 +769,30 @@
             localStorage.setItem('adminActiveTab', tabId);
         }
 
+        // QA FIX: ADMIN PROFILE & NOTIFICATION LOGIC
+        function toggleAdminProfile(e) {
+            e.stopPropagation();
+            document.getElementById('adminProfileDropdown').classList.toggle('show');
+            const notifDrop = document.getElementById('notificationDropdown');
+            if(notifDrop) notifDrop.classList.remove('show');
+        }
+
+        function toggleNotifications(e) {
+            e.stopPropagation();
+            document.getElementById('notificationDropdown').classList.toggle('show');
+            const profDrop = document.getElementById('adminProfileDropdown');
+            if(profDrop) profDrop.classList.remove('show');
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(e) {
+            const profDrop = document.getElementById('adminProfileDropdown');
+            if (profDrop && !e.target.closest('#profWrapper')) profDrop.classList.remove('show');
+            
+            const notifDrop = document.getElementById('notificationDropdown');
+            if (notifDrop && !e.target.closest('#notifWrapper')) notifDrop.classList.remove('show');
+        });
+
         // QA FIX: LOCAL SEARCH FUNCTIONS
         function filterTable(tableId, query) {
             const lowerQuery = query.toLowerCase();
@@ -726,11 +823,17 @@
         // INIT ON LOAD
         document.addEventListener('DOMContentLoaded', () => {
             let savedTab = localStorage.getItem('adminActiveTab') || 'dashboard';
-            let targetNav = document.querySelector(`.nav-item[onclick*="${savedTab}"]`);
-            if (targetNav) {
-                switchTab(savedTab, targetNav);
+            
+            // If the saved tab is 'profile', we don't have a sidebar nav-item for it anymore
+            if (savedTab === 'profile') {
+                switchTab('profile', null);
             } else {
-                switchTab('dashboard', document.querySelector('.nav-item'));
+                let targetNav = document.querySelector(`.nav-item[onclick*="${savedTab}"]`);
+                if (targetNav) {
+                    switchTab(savedTab, targetNav);
+                } else {
+                    switchTab('dashboard', document.querySelector('.nav-item'));
+                }
             }
 
             setTimeout(() => {
@@ -741,6 +844,10 @@
                     setTimeout(() => toast.remove(), 400); 
                 });
             }, 3500);
+            
+            // Start Notification Engine
+            fetchNotifications();
+            setInterval(fetchNotifications, 5000);
         });
 
         // Dashboard Chart
@@ -759,6 +866,150 @@
             },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, title: { display: true, text: 'Monthly Revenue Trends (Example)' } } }
         });
+
+        // ==========================================
+        // --- REAL-TIME NOTIFICATION ENGINE ---
+        // ==========================================
+        let knownPendingOrders = new Set();
+        let knownCancelledOrders = new Set();
+        let knownChats = new Set();
+        let isFirstNotifLoad = true;
+
+        // QA FIX: Local Storage Array to remember dismissed orders across refreshes
+        let dismissedOrders = JSON.parse(sessionStorage.getItem('printagram_dismissed_orders') || '[]');
+
+        function dismissNotification(type, id, event) {
+            event.stopPropagation(); // Prevents the dropdown from navigating to the page
+            if (type === 'order') {
+                if (!dismissedOrders.includes(id)) {
+                    dismissedOrders.push(id);
+                    sessionStorage.setItem('printagram_dismissed_orders', JSON.stringify(dismissedOrders));
+                }
+            }
+            fetchNotifications(); // Visually clear it instantly
+        }
+
+        function fetchNotifications() {
+            fetch('/api/admin_notifications_data')
+            .then(res => res.json())
+            .then(data => {
+                if(!data.pending_orders) return;
+                
+                let allNotifs = [];
+
+                // 1. Process Pending Orders
+                data.pending_orders.forEach(o => {
+                    // Fire a pop-up toast if it's a brand new order!
+                    if (!isFirstNotifLoad && !knownPendingOrders.has(o.order_id)) {
+                        showCustomToast(`New Order #${o.order_id} placed by ${o.full_name}!`, 'success');
+                    }
+                    knownPendingOrders.add(o.order_id);
+                    
+                    // QA FIX: Only add to dropdown if it hasn't been manually dismissed
+                    if (!dismissedOrders.includes(o.order_id)) {
+                        allNotifs.push({
+                            type: 'order',
+                            time: new Date(o.created_at || 0).getTime(),
+                            html: `
+                                <div class="notif-item" onclick="switchTab('orders', null); document.getElementById('notificationDropdown').classList.remove('show');">
+                                    <div class="notif-icon order"><i class="fas fa-box"></i></div>
+                                    <div class="notif-text" style="flex: 1;">
+                                        <h5>New Order #${o.order_id}</h5>
+                                        <p>${o.full_name} is waiting for processing.</p>
+                                    </div>
+                                    <div class="notif-dismiss" onclick="dismissNotification('order', ${o.order_id}, event)" title="Dismiss">
+                                        <i class="fas fa-times"></i>
+                                    </div>
+                                </div>
+                            `
+                        });
+                    }
+                });
+                
+                // 2. Process Cancelled Orders (Silent track, pop-up only)
+                data.cancelled_orders.forEach(o => {
+                    if (!isFirstNotifLoad && !knownCancelledOrders.has(o.order_id)) {
+                        showCustomToast(`Order #${o.order_id} was cancelled by ${o.full_name}.`, 'error');
+                    }
+                    knownCancelledOrders.add(o.order_id);
+                });
+
+                // 3. Process Unread Chats
+                data.unread_chats.forEach(c => {
+                    // Pop-up only if the admin isn't CURRENTLY looking at that specific chat
+                    if (!isFirstNotifLoad && !knownChats.has(c.message_id)) {
+                        if (currentActiveUserId != c.sender_id) {
+                            showCustomToast(`New message from ${c.full_name}`, 'info');
+                        }
+                    }
+                    knownChats.add(c.message_id);
+
+                    // Chats naturally "dismiss" when read, so no X button needed.
+                    allNotifs.push({
+                        type: 'chat',
+                        time: new Date(c.created_at || 0).getTime(),
+                        html: `
+                            <div class="notif-item" onclick="switchTab('messages', null); loadUserChat(${c.sender_id}, '${c.full_name}', null); document.getElementById('notificationDropdown').classList.remove('show');">
+                                <div class="notif-icon chat"><i class="fas fa-comment"></i></div>
+                                <div class="notif-text" style="flex: 1;">
+                                    <h5>Message from ${c.full_name}</h5>
+                                    <p>${c.message_text}</p>
+                                </div>
+                                <div style="width: 24px;"></div> </div>
+                        `
+                    });
+                });
+                
+                // QA FIX: Sort all notifications by Timestamp (Newest First)
+                allNotifs.sort((a, b) => b.time - a.time);
+
+                let totalVisible = allNotifs.length;
+                let badge = document.getElementById('notifBadge');
+                let bell = document.getElementById('bellIcon');
+                
+                if (totalVisible > 0) {
+                    badge.style.display = 'flex';
+                    badge.innerText = totalVisible;
+                    bell.style.color = 'var(--primary)';
+                } else {
+                    badge.style.display = 'none';
+                    bell.style.color = 'var(--text-muted)';
+                }
+                
+                document.getElementById('notifSubtext').innerText = `You have ${totalVisible} pending action(s)`;
+                
+                let notifHtml = allNotifs.map(n => n.html).join('');
+                
+                if (notifHtml === '') {
+                    notifHtml = '<div style="padding: 25px; text-align: center; color: #aaa; font-size: 13px;"><i class="fas fa-check-circle" style="font-size: 30px; margin-bottom: 10px; opacity: 0.5;"></i><br>You are all caught up!</div>';
+                }
+                
+                document.getElementById('notifList').innerHTML = notifHtml;
+                isFirstNotifLoad = false;
+            })
+            .catch(err => console.error("Notification Fetch Error:", err));
+        }
+
+        // --- Custom Toast Function ---
+        function showCustomToast(msg, type) {
+            const container = document.getElementById('toastContainer');
+            
+            let icon = '';
+            if(type === 'success') icon = 'fa-check-circle success';
+            else if(type === 'error') icon = 'fa-exclamation-circle error';
+            else icon = 'fa-info-circle info';
+            
+            const toast = document.createElement('div');
+            toast.className = `toast-msg toast-${type}`;
+            toast.innerHTML = `<i class="fas ${icon} toast-icon"></i><span>${msg}</span>`;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => toast.remove(), 400);
+            }, 5000);
+        }
 
         // ==========================================
         // --- CUSTOM ADMIN CHAT JAVASCRIPT ---
@@ -820,10 +1071,12 @@
                 
                 // ONLY format PrintaBot's automated replies as system labels
                 if (text.startsWith('PrintaBot:')) {
+                    // QA FIX: Strip HTML tags so the admin doesn't get clickable customer buttons
+                    let cleanBotText = text.replace('PrintaBot: ', '').replace(/<[^>]*>?/gm, ' ');
                     container.innerHTML += `
                         <div style="display: flex; justify-content: center; margin: 15px 0; width: 100%;">
                             <div style="background: #f0f0f0; color: #777; font-size: 11px; padding: 6px 14px; border-radius: 20px; border: 1px solid #e0e0e0; font-weight: 600;">
-                                <i class="fas fa-robot" style="margin-right: 5px; color: #DC5500;"></i> ${text.replace('PrintaBot: ', '')}
+                                <i class="fas fa-robot" style="margin-right: 5px; color: #DC5500;"></i> ${cleanBotText}
                             </div>
                         </div>
                     `;
@@ -941,6 +1194,9 @@
                     const nameStyle = cust.unread_count > 0 ? 'font-weight: 800; color: #111;' : 'font-weight: 600;';
                     const msgStyle = cust.unread_count > 0 ? 'font-weight: 700; color: var(--primary);' : 'color: #666;';
                     
+                    // QA FIX: Strip HTML tags so the button doesn't render in the sidebar preview
+                    let safePreviewText = cust.latest_message ? cust.latest_message.replace(/<[^>]*>?/gm, ' ') : 'No messages yet';
+                    
                     newHtml += `
                     <div class="chat-user-item ${isActive}" onclick="loadUserChat(${cust.user_id}, '${cust.full_name}', this)">
                         <div class="chat-user-avatar">${cust.full_name.charAt(0).toUpperCase()}</div>
@@ -950,7 +1206,7 @@
                                 <div style="font-size: 10px; color: #999;">${cust.latest_time_str}</div>
                             </div>
                             <div style="font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; ${msgStyle}">
-                                ${cust.latest_message}
+                                ${safePreviewText}
                             </div>
                         </div>
                         ${unreadBadge}

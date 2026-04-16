@@ -104,53 +104,53 @@
 
     <div class="contact-form-card">
         
-        {% if session.get('loggedin') and session.get('role') != 'admin' %}
-        <div style="background: #fff5eb; border: 1px dashed #DC5500; border-radius: 8px; padding: 20px; margin-bottom: 25px; text-align: center;">
-            <h3 style="margin: 0 0 8px 0; color: #DC5500; font-size: 16px;"><i class="fas fa-bolt"></i> Need an immediate answer?</h3>
-            <p style="margin: 0; color: #555; font-size: 13px;">Use our <strong>Live Chat</strong> at the bottom right of your screen!<br>Available <strong>8:00 AM - 5:00 PM (Weekdays, PHT)</strong>.</p>
-        </div>
-        {% else %}
-        <div style="background: #f9f9f9; border: 1px dashed #ccc; border-radius: 8px; padding: 20px; margin-bottom: 25px; text-align: center;">
-            <h3 style="margin: 0 0 8px 0; color: #555; font-size: 16px;"><i class="fas fa-info-circle"></i> Registered customers get faster support!</h3>
-            <p style="margin: 0; color: #666; font-size: 13px;">Log in to access our <strong>Live Chat</strong> for real-time assistance (8 AM - 5 PM Weekdays, PHT).</p>
-            <a href="/login" style="display: inline-block; margin-top: 10px; background: #DC5500; color: white; padding: 6px 15px; border-radius: 4px; text-decoration: none; font-size: 12px; font-weight: bold;">Log In Now</a>
-        </div>
-        {% endif %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div style="padding: 15px; border-radius: 8px; font-size: 14px; font-weight: 600; margin-bottom: 20px;
+                        background: {{ '#d4edda' if category == 'success' else '#f8d7da' }}; 
+                        color: {{ '#155724' if category == 'success' else '#721c24' }}; border: 1px solid {{ '#c3e6cb' if category == 'success' else '#f5c6cb' }};">
+                        <i class="fas {{ 'fa-check-circle' if category == 'success' else 'fa-exclamation-circle' }}"></i> {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
 
         <h2>Submit a Support Ticket</h2>
         <p style="font-size: 13px; color: #666; margin-bottom: 20px;">Use this form for complex requests. <strong>Email responses may take 24-48 hours.</strong></p>
 
-        <form action="#" method="POST" onsubmit="event.preventDefault(); alert('Ticket submitted successfully! We will email you back within 24-48 hours.');">
+        <form action="/submit_ticket" method="POST">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                 <div class="form-group">
                     <label>First Name</label>
-                    <input type="text" class="form-control" placeholder="Juan" value="{{ session.get('name', '').split(' ')[0] }}" required>
+                    <input type="text" name="first_name" class="form-control" placeholder="Juan" value="{{ session.get('name', '').split(' ')[0] }}" required>
                 </div>
                 <div class="form-group">
                     <label>Last Name</label>
-                    <input type="text" class="form-control" placeholder="Dela Cruz" required>
+                    <input type="text" name="last_name" class="form-control" placeholder="Dela Cruz" required>
                 </div>
             </div>
             
             <div class="form-group">
                 <label>Email Address</label>
-                <input type="email" class="form-control" placeholder="juan@example.com" required>
+                <input type="email" name="email" class="form-control" placeholder="juan@example.com" required>
             </div>
 
             <div class="form-group">
                 <label>Subject / Inquiry Type</label>
-                <select class="form-control" required>
+                <select name="subject" class="form-control" required>
                     <option value="">Select a topic...</option>
-                    <option value="custom_quote">Request a Custom Quote</option>
-                    <option value="print_issue">Report a Problem with a Print / Order</option>
-                    <option value="bulk_corporate">Partnership / Bulk Corporate Inquiry</option>
-                    <option value="other">Others</option>
+                    <option value="Request a Custom Quote">Request a Custom Quote</option>
+                    <option value="Report a Problem with a Print / Order">Report a Problem with a Print / Order</option>
+                    <option value="Partnership / Bulk Corporate Inquiry">Partnership / Bulk Corporate Inquiry</option>
+                    <option value="General Inquiry / Others">Others</option>
                 </select>
             </div>
 
             <div class="form-group">
                 <label>Ticket Details</label>
-                <textarea class="form-control" rows="5" placeholder="Please provide as much detail as possible..." required></textarea>
+                <textarea name="details" class="form-control" rows="5" placeholder="Please provide as much detail as possible..." required></textarea>
             </div>
 
             <button type="submit" class="btn-submit">Submit Ticket <i class="fas fa-paper-plane" style="margin-left: 8px;"></i></button>
