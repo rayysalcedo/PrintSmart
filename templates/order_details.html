@@ -20,7 +20,6 @@
     .btn-back { display: inline-block; padding: 12px 25px; background: #333; color: white; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600; transition: 0.3s;}
     .btn-back:hover { background: #555; }
     
-    /* QA FIX: Added Pay Now button CSS for the Details page */
     .btn-pay-now { display: inline-block; padding: 12px 25px; background: #28a745; color: white; border: none; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.3s; margin-left: 10px; box-shadow: 0 4px 10px rgba(40,167,69,0.2); }
     .btn-pay-now:hover { background: #218838; transform: translateY(-2px); }
 
@@ -33,11 +32,11 @@
     /* Unified Color Scheme */
     .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; white-space: nowrap; display: inline-block;}
     
-    .status-Pending { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; } /* Yellow */
-    .status-Processing { background: #cce5ff; color: #004085; border: 1px solid #b8daff; } /* Blue */
-    .status-Ready-for-Pickup, .status-Out-for-Delivery { background: #ffe8cc; color: #e65c00; border: 1px solid #ffcc99; } /* Orange */
-    .status-Completed, .status-Paid { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; } /* Green */
-    .status-Cancelled { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; } /* Red */
+    .status-Pending { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; } 
+    .status-Processing { background: #cce5ff; color: #004085; border: 1px solid #b8daff; } 
+    .status-Ready-for-Pickup, .status-Out-for-Delivery { background: #ffe8cc; color: #e65c00; border: 1px solid #ffcc99; } 
+    .status-Completed, .status-Paid { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; } 
+    .status-Cancelled { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; } 
 
     /* Modal Styles */
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
@@ -79,28 +78,36 @@
         <div class="top-info">
             <div>
                 <h2 style="margin:0;">Transaction ID #{{ order.order_id }}</h2>
-                <div style="color:#888; font-size: 14px; margin-top: 5px;">{{ order.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+                <div style="color:#888; font-size: 14px; margin-top: 5px;">{{ order.created_at.strftime('%B %d, %Y at %I:%M %p') }}</div>
             </div>
             <div style="text-align: right; display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
                 <span class="status-badge status-{{ order.payment_status | replace(' ', '-') }}">Payment: {{ order.payment_status }}</span>
-                <span class="status-badge status-{{ order.order_status | replace(' ', '-') }}">Fulfillment: {{ order.order_status }}</span>
+                <span class="status-badge status-{{ order.order_status | replace(' ', '-') }}">Status: {{ order.order_status }}</span>
             </div>
         </div>
 
         <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #DC5500;">
-            {% if order.delivery_method == 'Delivery' %}
-                <h4 style="margin: 0 0 10px 0; color: #333; font-size: 16px;"><i class="fas fa-motorcycle" style="color: #DC5500;"></i> External Delivery</h4>
-                <p style="margin: 0 0 12px 0; color: #555; font-size: 14px; line-height: 1.5;"><strong>Shipping Address:</strong><br>{{ order.shipping_address }}</p>
-                {% if order.estimated_delivery_date %}
-                <div style="background: #fff5eb; padding: 10px 15px; border-radius: 6px; border: 1px dashed #ffccaa; display: inline-block;">
-                    <strong style="color: #DC5500; font-size: 13px;"><i class="fas fa-calendar-check"></i> Estimated Arrival:</strong>
-                    <span style="color: #333; font-size: 13px; font-weight: 700; margin-left: 5px;">{{ order.estimated_delivery_date.strftime('%B %d, %Y') }}</span>
+            <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+                <div style="flex: 1; min-width: 250px;">
+                    <h4 style="margin: 0 0 10px 0; color: #333; font-size: 16px;"><i class="fas fa-clipboard-list" style="color: #DC5500;"></i> Order Information</h4>
+                    <div style="color: #555; font-size: 13px; line-height: 1.6; white-space: pre-line;">{{ order.shipping_address }}</div>
                 </div>
-                {% endif %}
-            {% else %}
-                <h4 style="margin: 0 0 10px 0; color: #333; font-size: 16px;"><i class="fas fa-store" style="color: #888;"></i> Store Pickup</h4>
-                <p style="margin: 0; color: #555; font-size: 14px; line-height: 1.5;"><strong>Pickup Location:</strong><br>National Rd. Panilao, Pilar, Bataan</p>
-            {% endif %}
+                
+                <div style="flex: 1; min-width: 250px;">
+                    {% if order.delivery_method == 'Delivery' %}
+                        <h4 style="margin: 0 0 10px 0; color: #333; font-size: 16px;"><i class="fas fa-motorcycle" style="color: #DC5500;"></i> External Delivery</h4>
+                        {% if order.estimated_delivery_date %}
+                        <div style="background: #fff5eb; padding: 10px 15px; border-radius: 6px; border: 1px dashed #ffccaa; display: inline-block; margin-top: 10px;">
+                            <strong style="color: #DC5500; font-size: 13px;"><i class="fas fa-calendar-check"></i> Estimated Arrival:</strong>
+                            <span style="color: #333; font-size: 13px; font-weight: 700; margin-left: 5px;">{{ order.estimated_delivery_date.strftime('%B %d, %Y') }}</span>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <h4 style="margin: 0 0 10px 0; color: #333; font-size: 16px;"><i class="fas fa-store" style="color: #888;"></i> Store Pickup</h4>
+                        <p style="margin: 0; color: #555; font-size: 13px; line-height: 1.5;"><strong>Pickup Location:</strong><br>National Rd. Panilao, Pilar, Bataan</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
 
         <h3 style="border-bottom: 1px solid #eee; padding-bottom: 10px;">Items Ordered</h3>
@@ -174,11 +181,11 @@
         <div style="text-align: center; margin-top: 40px; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
             <a href="/my_orders" class="btn-back">Back to Orders</a>
             
-            {% if order.payment_status == 'Pending' %}
+            {% if 'ending' in order.payment_status|lower %}
                 <a href="/pay_now/{{ order.order_id }}" class="btn-pay-now"><i class="fas fa-credit-card"></i> Pay Now</a>
             {% endif %}
             
-            {% if order.order_status == 'Pending' %}
+            {% if 'ending' in order.order_status|lower %}
                 <button onclick="openCancelModal()" class="btn-cancel-trigger">Cancel Order</button>
             {% else %}
                 <div style="width: 100%; margin-top: 20px;">
@@ -194,7 +201,7 @@
 <div id="cancelModal" class="modal-overlay">
     <div class="modal-box">
         <h3>Cancel Order</h3>
-        <p style="font-size: 13px; color: #666; margin-bottom: 20px;">Please let us know why you are cancelling this order. A refund will be processed via PayMongo.</p>
+        <p style="font-size: 13px; color: #666; margin-bottom: 20px;">Please let us know why you are cancelling this order. If you have already paid, a refund will be processed automatically.</p>
         
         <form action="/cancel_order" method="POST">
             <input type="hidden" name="order_id" value="{{ order.order_id }}">

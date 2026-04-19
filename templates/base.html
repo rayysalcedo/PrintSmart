@@ -110,8 +110,8 @@
             <a href="{{ url_for('about') }}" class="nav-link {{ 'active-btn' if request.endpoint == 'about' else '' }}">About Us</a>
         </nav>
 
-        <div class="header-icons">
-            <a href="/checkout" class="icon-btn {{ 'active-icon-btn' if request.path == '/checkout' else '' }}">
+       <div class="header-icons">
+            <a href="/cart" class="icon-btn {{ 'active-icon-btn' if request.path == '/cart' else '' }}">
                 <img src="https://cdn-icons-png.flaticon.com/512/3144/3144456.png" alt="Cart">
                 {% if cart_count > 0 %}
                 <span class="cart-badge">{{ cart_count }}</span>

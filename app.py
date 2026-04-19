@@ -16,6 +16,7 @@ from authlib.integrations.flask_client import OAuth
 import cloudinary
 import cloudinary.uploader
 import base64
+from threading import Timer
 
 # 1. LOAD THE SECRETS
 load_dotenv()
@@ -144,6 +145,44 @@ def send_system_email(to_email, subject, body_text):
         print(f"REQUEST CRASHED: {e}")
         return False
 
+def delayed_payment_reminder(order_id, contact_name, email, total_amount, pay_url):
+    try:
+        print(f"Checking payment status for Order #{order_id}...")
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("SELECT payment_status FROM orders WHERE order_id = %s", (order_id,))
+        order = cursor.fetchone()
+        
+        if order and order['payment_status'] == 'Pending':
+            cursor.execute("""
+                SELECT oi.*, p.name as product_name 
+                FROM order_items oi 
+                JOIN products p ON oi.product_id = p.product_id 
+                WHERE oi.order_id = %s
+            """, (order_id,))
+            items = cursor.fetchall()
+            
+            subject = f"Action Required: Complete your Printagram Order #{order_id}"
+            body = f"Hello {contact_name},\n\nWe noticed you haven't completed the payment for your order #{order_id}. Don't worry, your items are safely saved!\n\n"
+            body += "ORDER SUMMARY:\n"
+            
+            for item in items:
+                body += f"- {item['quantity']}x {item['product_name']} (₱{float(item['price_at_time']):,.2f})\n"
+                clean_details = item['item_details'].replace(' || ', ' | ')
+                body += f"  Details: {clean_details}\n"
+                
+            body += f"\nTotal Due: ₱{total_amount:,.2f}\n\n"
+            body += f"Click the link below to securely pay via GCash, Maya, or Card and finalize your order:\n{pay_url}\n\n"
+            body += "If you no longer wish to proceed, you can cancel the order directly from your dashboard."
+            
+            send_system_email(email, subject, body)
+            print(f"Reminder email successfully sent for Order #{order_id}")
+            
+        conn.close()
+    except Exception as e:
+        print(f"Background Email Error: {e}")
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
     
@@ -153,7 +192,6 @@ def inject_cart_count():
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            # QA FIX: Changed from SUM(quantity) to COUNT(*) to track unique items
             cursor.execute("SELECT COUNT(*) FROM cart WHERE user_id = %s", (session['user_id'],))
             result = cursor.fetchone()
             count = int(result[0]) if result and result[0] else 0
@@ -193,7 +231,6 @@ def terms():
 
 @app.route('/login/google')
 def google_login():
-    # Removed the forced https scheme. ProxyFix handles it now!
     redirect_uri = url_for('google_authorize', _external=True)
     return google.authorize_redirect(redirect_uri)
 
@@ -210,7 +247,6 @@ def google_authorize():
 
 @app.route('/login/facebook')
 def facebook_login():
-    # Removed the forced https scheme.
     redirect_uri = url_for('facebook_authorize', _external=True)
     return facebook.authorize_redirect(redirect_uri)
 
@@ -224,8 +260,6 @@ def facebook_authorize():
         print(f"FACEBOOK CRASH: {str(e)}")
         flash(f"CRASH REPORT: {str(e)}", "error")
         return redirect(url_for('login'))
-
-# ==========================================
 
 @app.route('/services')
 def services():
@@ -285,7 +319,7 @@ def order(product_id=None):
             cursor.execute("SELECT * FROM product_variants WHERE product_id = %s", (product_id,))
             variants = cursor.fetchall()
 
-            cursor.execute("SELECT image_url FROM product_images WHERE product_id = %s", (product_id,))
+            cursor.execute("SELECT image_url FROM product_images WHERE product_id = %s ORDER BY image_id ASC", (product_id,))
             gallery_rows = cursor.fetchall()
             gallery = [row['image_url'] for row in gallery_rows]
 
@@ -398,8 +432,6 @@ def add_to_cart():
         if special_instructions: 
             final_details += f" || NOTE: {special_instructions}"
         
-        # ... (keep the existing file paths and item details logic above this) ...
-        
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
@@ -408,19 +440,15 @@ def add_to_cart():
         """, (user_id, product_id, qty, item_total, final_details, file_path_str))
         conn.commit()
         
-        # QA FIX: Grab the exact ID of the newly added item for isolation
         new_cart_id = cursor.lastrowid
-        
         cursor.close()
         conn.close()
 
-        flash('Successfully added to your Printagram cart!', 'success')
-        
         if request.form.get('action') == 'buy_now': 
-            # QA FIX: Pass the ID to the checkout route
             return redirect(url_for('checkout', buy_now=new_cart_id))
         else: 
-            return redirect(request.referrer or url_for('services'))
+            flash('Successfully added to your Printagram cart!', 'success')
+            return redirect(url_for('cart'))
             
     except Exception as e:
         flash(f"Error: {e}", 'error')
@@ -464,7 +492,7 @@ def update_cart_item():
         conn.close()
     except Exception as e:
         flash(f"Error updating item: {e}", "error")
-    return redirect('/checkout')
+    return redirect('/cart')
 
 @app.route('/remove_from_cart/<int:cart_id>')
 def remove_from_cart(cart_id):
@@ -478,7 +506,7 @@ def remove_from_cart(cart_id):
         flash("Item removed from cart.", "success")
     except Exception as e:
         print(f"Error removing item: {e}")
-    return redirect('/checkout')
+    return redirect('/cart')
 
 @app.route('/bulk_remove_from_cart', methods=['POST'])
 def bulk_remove_from_cart():
@@ -486,7 +514,7 @@ def bulk_remove_from_cart():
     cart_ids = request.form.getlist('cart_ids')
     if not cart_ids:
         flash("No items were selected for deletion.", "error")
-        return redirect('/checkout')
+        return redirect('/cart')
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -500,37 +528,27 @@ def bulk_remove_from_cart():
     except Exception as e:
         print(f"Error bulk removing items: {e}")
         flash("Error removing selected items.", "error")
-    return redirect('/checkout')
+    return redirect('/cart')
 
-@app.route('/checkout')
-def checkout():
-    user_id = session.get('user_id', 1)
-    # QA FIX: Check if we are coming from a "Buy Now" click
-    buy_now_id = request.args.get('buy_now') 
-    
+@app.route('/cart')
+def cart():
+    if not session.get('loggedin'):
+        return redirect(url_for('login'))
+        
+    user_id = session['user_id']
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        
-        # QA FIX: If 'buy_now' is triggered, isolate that item. Otherwise, load the full cart.
-        if buy_now_id:
-            query = """
-                SELECT c.*, p.name as product_name, p.image_path 
-                FROM cart c
-                JOIN products p ON c.product_id = p.product_id
-                WHERE c.user_id = %s AND c.cart_id = %s
-            """
-            cursor.execute(query, (user_id, buy_now_id))
-        else:
-            query = """
-                SELECT c.*, p.name as product_name, p.image_path 
-                FROM cart c
-                JOIN products p ON c.product_id = p.product_id
-                WHERE c.user_id = %s
-            """
-            cursor.execute(query, (user_id,))
-            
+        query = """
+            SELECT c.*, p.name as product_name, 
+                   COALESCE((SELECT image_url FROM product_images WHERE product_id = p.product_id ORDER BY image_id ASC LIMIT 1), p.image_path) as image_path 
+            FROM cart c
+            JOIN products p ON c.product_id = p.product_id
+            WHERE c.user_id = %s
+        """
+        cursor.execute(query, (user_id,))
         cart_items = cursor.fetchall()
+        
         subtotal = 0.0
         for item in cart_items:
             subtotal += float(item['total_price'])
@@ -549,7 +567,82 @@ def checkout():
         grand_total = subtotal + processing_fee
         conn.close()
         
-        return render_template('checkout.html', cart_items=cart_items, subtotal=subtotal, processing_fee=processing_fee, grand_total=grand_total)
+        return render_template('cart.html', cart_items=cart_items, subtotal=subtotal, processing_fee=processing_fee, grand_total=grand_total)
+    except Exception as e:
+        return f"Cart Error: {e}"
+
+@app.route('/checkout', methods=['GET', 'POST'])
+def checkout():
+    if not session.get('loggedin'):
+        flash("Please log in to checkout.", "error")
+        return redirect(url_for('login'))
+        
+    user_id = session['user_id']
+    buy_now_id = request.args.get('buy_now')
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        selected_ids = []
+        if request.method == 'POST':
+            selected_ids = request.form.getlist('selected_cart_ids')
+            
+        if buy_now_id:
+            query = """
+                SELECT c.*, p.name as product_name, 
+                       COALESCE((SELECT image_url FROM product_images WHERE product_id = p.product_id ORDER BY image_id ASC LIMIT 1), p.image_path) as image_path 
+                FROM cart c
+                JOIN products p ON c.product_id = p.product_id
+                WHERE c.user_id = %s AND c.cart_id = %s
+            """
+            cursor.execute(query, (user_id, buy_now_id))
+        elif selected_ids:
+            format_strings = ','.join(['%s'] * len(selected_ids))
+            query = f"""
+                SELECT c.*, p.name as product_name, 
+                       COALESCE((SELECT image_url FROM product_images WHERE product_id = p.product_id ORDER BY image_id ASC LIMIT 1), p.image_path) as image_path 
+                FROM cart c
+                JOIN products p ON c.product_id = p.product_id
+                WHERE c.user_id = %s AND c.cart_id IN ({format_strings})
+            """
+            cursor.execute(query, tuple([user_id] + selected_ids))
+        else:
+            conn.close()
+            flash("No items selected for checkout.", "error")
+            return redirect('/cart')
+            
+        checkout_items = cursor.fetchall()
+        
+        if not checkout_items:
+            conn.close()
+            flash("No valid items found for checkout.", "error")
+            return redirect('/cart')
+
+        subtotal = 0.0
+        for item in checkout_items:
+            subtotal += float(item['total_price'])
+            item['file_list'] = item['file_path'].split(',') if item['file_path'] else []
+            parts = item['item_details'].split(' || ')
+            item['specs'] = parts[0]
+            item['design_note'] = ''
+            item['special_note'] = ''
+            for p in parts[1:]:
+                if p.startswith('DESIGN: '):
+                    item['design_note'] = p.replace('DESIGN: ', '', 1)
+                elif p.startswith('NOTE: '):
+                    item['special_note'] = p.replace('NOTE: ', '', 1)
+        
+        processing_fee = 50.00 if checkout_items else 0.00
+        grand_total = subtotal + processing_fee
+        
+        cursor.execute("SELECT full_name, email, phone_number FROM users WHERE user_id = %s", (user_id,))
+        user_info = cursor.fetchone()
+        
+        conn.close()
+        
+        return render_template('checkout.html', checkout_items=checkout_items, subtotal=subtotal, processing_fee=processing_fee, grand_total=grand_total, user_info=user_info)
+        
     except Exception as e:
         return f"Checkout Error: {e}"
 
@@ -559,17 +652,27 @@ def place_order():
         return redirect(url_for('login'))
         
     user_id = session['user_id']
-    selected_cart_ids = request.form.getlist('selected_cart_ids')
+    selected_cart_ids = request.form.getlist('checkout_cart_ids')
     
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
         if not selected_cart_ids:
-            cursor.execute("SELECT * FROM cart WHERE user_id = %s", (user_id,))
+            cursor.execute("""
+                SELECT c.*, p.name as product_name 
+                FROM cart c 
+                JOIN products p ON c.product_id = p.product_id 
+                WHERE c.user_id = %s
+            """, (user_id,))
         else:
             format_strings = ','.join(['%s'] * len(selected_cart_ids))
-            query = f"SELECT * FROM cart WHERE user_id = %s AND cart_id IN ({format_strings})"
+            query = f"""
+                SELECT c.*, p.name as product_name 
+                FROM cart c 
+                JOIN products p ON c.product_id = p.product_id 
+                WHERE c.user_id = %s AND c.cart_id IN ({format_strings})
+            """
             cursor.execute(query, tuple([user_id] + selected_cart_ids))
             
         cart_items = cursor.fetchall()
@@ -577,17 +680,41 @@ def place_order():
         if not cart_items: 
             conn.close()
             flash("No valid items selected for checkout.", "error")
-            return redirect('/checkout')
+            return redirect('/cart')
 
         total_amount = float(request.form.get('grand_total'))
-        
         delivery_method = request.form.get('delivery_method', 'Pickup') 
-        shipping_address = request.form.get('shipping_address', '').strip() if delivery_method == 'Delivery' else None
+        contact_name = request.form.get('contact_name', '').strip()
+        contact_email = request.form.get('contact_email', '').strip()
+        contact_phone = request.form.get('contact_phone', '').strip()
+        deadline = request.form.get('target_deadline', '').strip()
+        
+        try:
+            deadline_dt = datetime.strptime(deadline, '%Y-%m-%d')
+            deadline_str = deadline_dt.strftime('%B %d, %Y')
+        except:
+            deadline_str = deadline
+
+        full_details = f"Contact: {contact_name}\nEmail: {contact_email}\nPhone: {contact_phone}\nTarget Deadline: {deadline_str}"
+        
+        if delivery_method == 'Delivery':
+            street = request.form.get('addr_street', '').strip()
+            brgy = request.form.get('addr_brgy', '').strip()
+            city = request.form.get('addr_city', '').strip()
+            province = request.form.get('addr_province', '').strip()
+            zip_code = request.form.get('addr_zip', '').strip()
+            landmark = request.form.get('addr_landmark', '').strip()
+            
+            formatted_addr = f"{street}, Brgy. {brgy}\n{city}, {province} {zip_code}"
+            if landmark:
+                formatted_addr += f"\nLandmark: {landmark}"
+                
+            full_details += f"\n\nDelivery Address:\n{formatted_addr}"
         
         cursor.execute("""
             INSERT INTO orders (user_id, total_amount, payment_status, payment_method, delivery_method, shipping_address, order_status, created_at) 
             VALUES (%s, %s, 'Pending', 'PayMongo', %s, %s, 'Pending', NOW())
-        """, (user_id, total_amount, delivery_method, shipping_address))
+        """, (user_id, total_amount, delivery_method, full_details))
         conn.commit() 
         new_order_id = cursor.lastrowid
 
@@ -603,6 +730,16 @@ def place_order():
             cursor.execute(f"DELETE FROM cart WHERE user_id = %s AND cart_id IN ({format_strings})", tuple([user_id] + selected_cart_ids))
         else:
             cursor.execute("DELETE FROM cart WHERE user_id = %s", (user_id,))
+            
+        cursor.execute("SELECT email FROM users WHERE user_id = %s", (user_id,))
+        user_account = cursor.fetchone()
+        
+        if user_account and user_account['email']:
+            pay_url = url_for('pay_now', order_id=new_order_id, _external=True)
+            Timer(3600.0, delayed_payment_reminder, args=(
+                new_order_id, contact_name, user_account['email'], total_amount, pay_url
+            )).start()
+            print(f"Background timer started for Order #{new_order_id}. Will check payment status in 1 hour.")
             
         conn.commit()
         conn.close()
@@ -654,40 +791,16 @@ def place_order():
         else:
             flash(f"Payment API Error. Please try again.", "error")
             print(f"PAYMONGO ERROR: {api_data}")
-            return redirect('/checkout')
+            return redirect('/cart')
 
     except Exception as e:
         return f"Order Error: {e}"
 
-# --- QA FIX: CANCEL ABANDONED PAYMONGO PAYMENTS ---
 @app.route('/cancel_payment/<int:order_id>')
 def cancel_payment(order_id):
     if not session.get('loggedin'): return redirect(url_for('login'))
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        
-        # QA FIX: Fetch the abandoned order items to restore them to the cart
-        cursor.execute("SELECT * FROM order_items WHERE order_id = %s", (order_id,))
-        abandoned_items = cursor.fetchall()
-        
-        if abandoned_items:
-            for item in abandoned_items:
-                cursor.execute("""
-                    INSERT INTO cart (user_id, product_id, quantity, total_price, item_details, file_path) 
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                """, (session['user_id'], item['product_id'], item['quantity'], item['price_at_time'], item['item_details'], item['file_path']))
-
-        # Now safely delete the ghost order since items are back in the cart
-        cursor.execute("DELETE FROM order_items WHERE order_id = %s", (order_id,))
-        cursor.execute("DELETE FROM orders WHERE order_id = %s AND payment_status = 'Pending'", (order_id,))
-        
-        conn.commit()
-        conn.close()
-        flash("Payment cancelled. Your items have been safely returned to your cart.", "error")
-    except Exception as e:
-        print(f"Error cancelling payment: {e}")
-    return redirect('/checkout')
+    flash("Payment incomplete. You can complete your payment at any time via the secure link sent to your email, or directly from your Orders dashboard.", "info")
+    return redirect(url_for('my_order_details', order_id=order_id))
 
 @app.route('/pay_now/<int:order_id>')
 def pay_now(order_id):
@@ -741,13 +854,51 @@ def payment_success(order_id):
         
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
         
-        cursor.execute("UPDATE orders SET payment_status = 'Paid' WHERE order_id = %s AND user_id = %s", (order_id, session['user_id']))
-        conn.commit()
+        cursor.execute("SELECT payment_status FROM orders WHERE order_id = %s", (order_id,))
+        current_status = cursor.fetchone()
+        
+        if current_status and current_status['payment_status'] != 'Paid':
+            cursor.execute("UPDATE orders SET payment_status = 'Paid' WHERE order_id = %s AND user_id = %s", (order_id, session['user_id']))
+            
+            cursor.execute("""
+                SELECT o.*, u.full_name, u.email 
+                FROM orders o 
+                JOIN users u ON o.user_id = u.user_id 
+                WHERE o.order_id = %s
+            """, (order_id,))
+            order = cursor.fetchone()
+            
+            cursor.execute("""
+                SELECT oi.*, p.name 
+                FROM order_items oi 
+                JOIN products p ON oi.product_id = p.product_id 
+                WHERE oi.order_id = %s
+            """, (order_id,))
+            items = cursor.fetchall()
+            
+            conn.commit()
+            
+            if order and order['email']:
+                subject = f"Printagram Order Confirmation - #{order_id}"
+                body = f"Hello {order['full_name']},\n\nYour payment was successful! Your order #{order_id} has been received and our team will begin processing it shortly.\n\n"
+                body += "ORDER SUMMARY:\n"
+                
+                for item in items:
+                    body += f"- {item['quantity']}x {item['name']} (₱{item['price_at_time']:,.2f})\n"
+                    clean_details = item['item_details'].replace(' || ', ' | ')
+                    body += f"  Details: {clean_details}\n"
+                
+                body += f"\nTotal Paid: ₱{order['total_amount']:,.2f}\n"
+                body += f"Delivery Method: {order['delivery_method']}\n\n"
+                body += "We will notify you again once your order is ready for pickup or out for delivery.\n\nThank you for choosing Printagram!"
+                
+                send_system_email(order['email'], subject, body)
+        
         conn.close()
-        
         return render_template('order_success.html', order_id=order_id)
+        
     except Exception as e:
         return f"Error finalizing payment: {e}"
 
@@ -755,7 +906,6 @@ def payment_success(order_id):
 def help_page():
     return render_template('help.html')
 
-# --- SUBMIT SUPPORT TICKET ---
 @app.route('/submit_ticket', methods=['POST'])
 def submit_ticket():
     first_name = request.form.get('first_name')
@@ -768,16 +918,13 @@ def submit_ticket():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
-        # Grab all Admin and Super Admin emails
         cursor.execute("SELECT email FROM users WHERE role IN ('admin', 'super_admin')")
         admins = cursor.fetchall()
         conn.close()
         
-        # Prepare the email
         email_subject = f"New Support Ticket: {subject}"
         email_body = f"You have received a new support ticket from Printagram.\n\nFrom: {first_name} {last_name}\nEmail: {email}\nInquiry Type: {subject}\n\nDetails:\n{details}\n\nPlease reply directly to the customer's email address to assist them."
         
-        # Send to all staff
         for admin in admins:
             if admin['email']:
                 send_system_email(admin['email'], email_subject, email_body)
@@ -789,8 +936,6 @@ def submit_ticket():
         
     return redirect(url_for('help_page'))
     
-# --- AUTHENTICATION & OTP ---
-
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -1020,7 +1165,7 @@ def reset_password(token):
         return redirect(url_for('login'))
     return render_template('reset_password.html', token=token)
 
-# --- ADMIN AND PROFILE MANAGEMENT ---
+# --- QA FIX: ADDED TIMEZONE OFFSETS TO ALL QUERIES ---
 @app.route('/admin')
 def admin_dashboard():
     if 'role' not in session or session['role'] not in ['admin', 'super_admin']:
@@ -1053,8 +1198,13 @@ def admin_dashboard():
         """)
         orders = cursor.fetchall() or []
         for order in orders:
+            if order.get('created_at'):
+                order['created_at'] += timedelta(hours=8)
+                
             cursor.execute("""
-                SELECT oi.*, p.name as product_name FROM order_items oi
+                SELECT oi.*, p.name as product_name,
+                       COALESCE((SELECT image_url FROM product_images WHERE product_id = p.product_id ORDER BY image_id ASC LIMIT 1), p.image_path) as image_path
+                FROM order_items oi
                 JOIN products p ON oi.product_id = p.product_id
                 WHERE oi.order_id = %s
             """, (order['order_id'],))
@@ -1096,7 +1246,6 @@ def admin_dashboard():
     except Exception as e:
         return f"DB Error: {e}"
 
-# --- NEW: ADMIN PROFILE ROUTES ---
 @app.route('/admin/update_profile', methods=['POST'])
 def admin_update_profile():
     if 'role' not in session or session['role'] not in ['admin', 'super_admin']: return redirect('/login')
@@ -1123,7 +1272,6 @@ def admin_update_profile():
     except Exception as e: flash(f"Error: {e}", "error")
     return redirect('/admin')
 
-# --- NEW: STAFF MANAGEMENT ROUTES ---
 @app.route('/admin/add_staff', methods=['POST'])
 def add_staff():
     if session.get('role') != 'super_admin': return "Access Denied", 403
@@ -1228,14 +1376,12 @@ def update_order_status():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
-        # 1. Update the status in the database
         if new_status == 'Out for Delivery':
             est_date = datetime.now() + timedelta(days=5)
             cursor.execute("UPDATE orders SET order_status = %s, estimated_delivery_date = %s WHERE order_id = %s", (new_status, est_date, order_id))
         else:
             cursor.execute("UPDATE orders SET order_status = %s, estimated_delivery_date = NULL WHERE order_id = %s", (new_status, order_id))
             
-        # 2. Fetch the customer's name and email for the notification
         cursor.execute("""
             SELECT o.order_id, u.email, u.full_name 
             FROM orders o 
@@ -1247,12 +1393,10 @@ def update_order_status():
         conn.commit()
         conn.close()
 
-        # 3. Send the Email Notification
         if order_info and order_info['email']:
             subject = f"Printagram Order Update: #{order_id} is now {new_status}"
             body_text = f"Hello {order_info['full_name']},\n\nYour Printagram order #{order_id} has been updated to: {new_status}.\n\n"
             
-            # Add dynamic context based on the specific status
             if new_status == 'Processing':
                 body_text += "Great news! Our team is currently preparing and printing your items. We'll notify you as soon as they are ready."
             elif new_status == 'Ready for Pickup':
@@ -1266,7 +1410,6 @@ def update_order_status():
             
             body_text += "\n\nBest regards,\nThe Printagram Team"
             
-            # Trigger the Brevo API
             send_system_email(order_info['email'], subject, body_text)
             
         flash(f"Order #{order_id} updated to {new_status} and customer notified!", "success")
@@ -1357,9 +1500,15 @@ def profile():
     user = cursor.fetchone()
     cursor.execute("SELECT * FROM orders WHERE user_id = %s ORDER BY created_at DESC", (user_id,))
     my_orders = cursor.fetchall()
+    
     for order in my_orders:
+        if order.get('created_at'):
+            order['created_at'] += timedelta(hours=8)
+            
         cursor.execute("""
-            SELECT oi.*, p.name as product_name FROM order_items oi
+            SELECT oi.*, p.name as product_name,
+                   COALESCE((SELECT image_url FROM product_images WHERE product_id = p.product_id ORDER BY image_id ASC LIMIT 1), p.image_path) as image_path
+            FROM order_items oi
             JOIN products p ON oi.product_id = p.product_id
             WHERE oi.order_id = %s
         """, (order['order_id'],))
@@ -1375,6 +1524,11 @@ def my_orders():
     cursor.execute("SELECT * FROM orders WHERE user_id = %s ORDER BY created_at DESC", (session['user_id'],))
     orders = cursor.fetchall()
     conn.close()
+    
+    for order in orders:
+        if order.get('created_at'):
+            order['created_at'] += timedelta(hours=8)
+            
     return render_template('my_orders.html', orders=orders)
 
 @app.route('/my_order_details/<int:order_id>')
@@ -1390,8 +1544,12 @@ def my_order_details(order_id):
         conn.close()
         return "Order not found."
         
+    if order.get('created_at'):
+        order['created_at'] += timedelta(hours=8)
+        
     cursor.execute("""
-        SELECT oi.*, p.name as product_name, p.image_path 
+        SELECT oi.*, p.name as product_name, 
+               COALESCE((SELECT image_url FROM product_images WHERE product_id = p.product_id ORDER BY image_id ASC LIMIT 1), p.image_path) as image_path 
         FROM order_items oi
         JOIN products p ON oi.product_id = p.product_id
         WHERE oi.order_id = %s
@@ -1446,8 +1604,6 @@ def cancel_order():
         
     return redirect(url_for('my_order_details', order_id=order_id))
 
-# --- REAL-TIME ADMIN NOTIFICATIONS API ---
-# --- REAL-TIME ADMIN NOTIFICATIONS API ---
 @app.route('/api/admin_notifications_data')
 def admin_notifications_data():
     if session.get('role') not in ['admin', 'super_admin']: 
@@ -1456,9 +1612,8 @@ def admin_notifications_data():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
-        # QA FIX: Added CAST(created_at AS CHAR) to allow chronological sorting in JS
         cursor.execute("""
-            SELECT o.order_id, u.full_name, o.order_status, CAST(o.created_at AS CHAR) as created_at
+            SELECT o.order_id, u.full_name, o.order_status, CAST(DATE_ADD(o.created_at, INTERVAL 8 HOUR) AS CHAR) as created_at
             FROM orders o
             JOIN users u ON o.user_id = u.user_id
             WHERE o.order_status = 'Pending' 
@@ -1475,9 +1630,8 @@ def admin_notifications_data():
         """)
         cancelled_orders = cursor.fetchall()
         
-        # QA FIX: Added CAST(created_at AS CHAR) to allow chronological sorting in JS
         cursor.execute("""
-            SELECT c.message_id, c.message_text, u.full_name, c.sender_id, CAST(c.created_at AS CHAR) as created_at
+            SELECT c.message_id, c.message_text, u.full_name, c.sender_id, CAST(DATE_ADD(c.created_at, INTERVAL 8 HOUR) AS CHAR) as created_at
             FROM chat_messages c
             JOIN users u ON c.sender_id = u.user_id
             WHERE u.role IN ('customer', 'guest') AND (c.is_read = FALSE OR c.is_read IS NULL)
@@ -1499,10 +1653,6 @@ def admin_notifications_data():
             'unread_chats': []
         })
     
-# ==========================================
-# --- LIVE CHAT API ROUTES ---
-# ==========================================
-
 @app.route('/api/admin_sidebar')
 def admin_sidebar():
     if session.get('role') not in ['admin', 'super_admin']:
@@ -1542,11 +1692,9 @@ def heartbeat():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # QA FIX: Extended the offline threshold to 5 minutes
     cursor.execute("SELECT COUNT(*) as admin_count FROM users WHERE role IN ('admin', 'super_admin') AND last_active >= NOW() - INTERVAL 5 MINUTE")
     admin_online = cursor.fetchone()['admin_count'] > 0
     
-    # If the user (or guest) has a session ID, update their activity tracker
     user_id = session.get('user_id')
     if user_id:
         cursor.execute("UPDATE users SET last_active = NOW() WHERE user_id = %s", (user_id,))
@@ -1577,7 +1725,6 @@ def get_messages():
                 ORDER BY created_at ASC
             """, (other_user_id, other_user_id))
         else:
-            # If they are a guest who hasn't sent a message yet, they have no history
             user_id = session.get('user_id')
             if not user_id: return jsonify([])
             
@@ -1606,7 +1753,6 @@ def send_message():
     if role in ['admin', 'super_admin'] and not session.get('loggedin'):
         return jsonify({'status': 'error', 'message': 'Not logged in'}), 401
         
-    # AUTO-CREATE GUEST ACCOUNT if they don't have a user ID yet
     if 'user_id' not in session:
         try:
             conn = get_db_connection()
@@ -1615,7 +1761,6 @@ def send_message():
             guest_name = f"GUEST-{random.randint(1000, 9999)}"
             guest_email = f"guest_{secrets.token_hex(4)}@printagram.local"
             
-            # FIX 1: Added a dummy phone number to prevent MySQL strict-mode crashes!
             cursor.execute("""
                 INSERT INTO users (full_name, email, phone_number, password_hash, role, is_active)
                 VALUES (%s, %s, %s, 'guest_no_login', 'customer', TRUE)
@@ -1655,7 +1800,6 @@ def send_message():
             safe_filename = secure_filename(attachment.filename)
             ext = safe_filename.rsplit('.', 1)[-1].lower() if '.' in safe_filename else ''
             
-            # FIX 2: 'use_filename=True' forces Cloudinary to keep the exact .zip extension!
             if ext in ['zip', 'rar', '7z', 'docx', 'xlsx', 'txt']:
                 upload_result = cloudinary.uploader.upload(
                     attachment, 
@@ -1687,7 +1831,6 @@ def send_message():
         print(f"Chat Send Error: {e}")
         return jsonify({'status': 'error', 'message': str(e)})
     
-# --- DELETE CUSTOMER (ADMIN SIDE) ---
 @app.route('/admin/delete_customer/<int:user_id>', methods=['POST'])
 def admin_delete_customer(user_id):
     if 'role' not in session or session['role'] not in ['admin', 'super_admin']:
@@ -1715,7 +1858,7 @@ def admin_delete_customer(user_id):
         flash(f"Error deleting account: {e}", "error")
         
     return redirect(url_for('admin_dashboard'))
-# --- RESET CUSTOMER PASSWORD (ADMIN SIDE) ---
+
 @app.route('/admin/reset_user_password', methods=['POST'])
 def admin_reset_user_password():
     if 'role' not in session or session['role'] not in ['admin', 'super_admin']:
@@ -1728,7 +1871,6 @@ def admin_reset_user_password():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Hash the new password securely
         hashed_password = generate_password_hash(new_password)
         
         cursor.execute("UPDATE users SET password_hash = %s WHERE user_id = %s", (hashed_password, user_id))
@@ -1741,7 +1883,6 @@ def admin_reset_user_password():
         
     return redirect(url_for('admin_dashboard'))
 
-# --- DELETE MY ACCOUNT (CUSTOMER SIDE) ---
 @app.route('/delete_my_account', methods=['POST'])
 def delete_my_account():
     if not session.get('loggedin'):

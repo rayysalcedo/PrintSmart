@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    body { background-color: #f9f9f9; font-family: 'Alexandria', sans-serif; }
+    
+    .checkout-wrapper { max-width: 1100px; margin: 40px auto; padding: 0 20px; min-height: 60vh; }
+    .page-title { font-size: 28px; font-weight: 700; color: #333; margin-bottom: 5px; }
+    .page-subtitle { color: #666; margin-bottom: 30px; font-size: 15px; }
+
+    /* EMPTY STATE */
+    .empty-state { text-align: center; padding: 80px 20px; background: white; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+    .empty-icon { font-size: 80px; color: #eee; margin-bottom: 25px; }
+    .btn-browse { display: inline-block; background: #DC5500; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 20px; transition: 0.3s; }
+    
+    /* GRID LAYOUT */
+    .checkout-grid { display: grid; grid-template-columns: 1.8fr 1fr; gap: 30px; }
+    .left-section { display: flex; flex-direction: column; gap: 30px; }
+    .card-box { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid #eee; }
+    
+    /* ITEMS LIST */
+    .review-item { display: flex; gap: 20px; border-bottom: 1px solid #f0f0f0; padding-bottom: 20px; margin-bottom: 20px; align-items: flex-start; }
+    .review-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    
+    /* BULK SELECT STYLES */
+    .item-checkbox-container { padding-top: 10px; }
+    .item-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: #DC5500; }
+    .btn-bulk-delete { background: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: 0.2s; font-weight: 600; }
+    .btn-bulk-delete:hover { background: #c82333; }
+
+    .item-img { width: 90px; height: 90px; object-fit: cover; border-radius: 8px; border: 1px solid #eee; }
+    .item-info { flex: 1; }
+    .item-info h4 { margin: 0 0 4px 0; font-size: 18px; color: #333; text-transform: uppercase; font-weight: 700; }
+    .item-qty-badge { font-size: 12px; background: #eee; padding: 2px 8px; border-radius: 12px; color: #555; font-weight: 600; display: inline-block; margin-bottom: 10px; }
+    
+    .item-meta { font-size: 13px; color: #555; line-height: 1.6; margin-bottom: 12px; }
+    .meta-specs { font-weight: 600; color: #222; margin-bottom: 6px; font-size: 14px; }
+    .meta-design { color: #4f46e5; margin-bottom: 4px; }
+    .meta-special { color: #DC5500; margin-bottom: 4px; }
+    .meta-label { font-weight: 700; color: #333; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;}
+
+    .design-links { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+    .design-badge { background: #fff5eb; color: #DC5500; font-size: 11px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ffd8bf; text-decoration: none; font-weight: 600;}
+    .design-badge:hover { background: #ffe1cc; }
+
+    /* EDIT FORM UI */
+    .btn-edit-toggle { background: transparent; border: none; color: #4f46e5; font-size: 12px; cursor: pointer; padding: 0; font-weight: 600; margin-right: 15px;}
+    .btn-edit-toggle:hover { text-decoration: underline; }
+    .remove-link { color: #dc3545; font-size: 12px; text-decoration: none; font-weight: 600;}
+    .remove-link:hover { text-decoration: underline; }
+
+    .edit-item-form { background: #f8f9fb; padding: 15px; border: 1px solid #e0e7ff; border-radius: 8px; margin-top: 10px; }
+    .form-group-sm { margin-bottom: 12px; }
+    .form-group-sm label { display: block; font-size: 11px; color: #555; margin-bottom: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;}
+    .form-control-sm { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; box-sizing: border-box; font-family: inherit;}
+    .btn-save { background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600; }
+    .btn-cancel { background: #eee; color: #555; border: none; padding: 8px 16px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600; }
+
+    .item-price-block { text-align: right; min-width: 100px; }
+    .price-tag { font-weight: 700; font-size: 18px; color: #333; margin-bottom: 8px; }
+
+    .section-head { color: #DC5500; font-size: 18px; font-weight: 600; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+
+    /* SUMMARY BOX */
+    .summary-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; color: #555; }
+    .total-row { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; font-size: 20px; font-weight: 700; color: #DC5500; }
+    .btn-complete { width: 100%; padding: 15px; background: #DC5500; color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 20px; transition: 0.3s; }
+    .btn-complete:hover { background: #b84700; }
+    .btn-complete:disabled { background: #ccc; cursor: not-allowed; }
+
+    @media(max-width: 768px) { .checkout-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div class="checkout-wrapper">
+    <div class="header-section">
+        <h1 class="page-title">Shopping Cart</h1>
+        <p class="page-subtitle">Review the items in your cart before proceeding to payment.</p>
+    </div>
+
+    {% if not cart_items %}
+        <div class="empty-state">
+            <i class="fas fa-shopping-cart empty-icon"></i>
+            <h2>Your Cart is Empty</h2>
+            <p style="color: #666;">You haven't added any printing services to your cart yet.</p>
+            <a href="/services" class="btn-browse">Browse Services</a>
+        </div>
+    {% else %}
+
+    <form id="bulk-delete-form" action="/bulk_remove_from_cart" method="POST"></form>
+
+    <div class="checkout-grid">
+        <div class="left-section">
+            
+            <div class="card-box">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
+                    <div class="section-head" style="border: none; padding: 0; margin: 0;"><i class="fas fa-list-ul"></i> Select Items to Checkout</div>
+                    
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <label style="font-size: 13px; color: #555; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 600;">
+                            <input type="checkbox" id="select-all" class="item-checkbox" onclick="toggleSelectAll(this)" checked> Select All
+                        </label>
+                        <button type="submit" form="bulk-delete-form" id="bulk-delete-btn" class="btn-bulk-delete" style="display: none;" disabled>
+                            <i class="fas fa-trash-alt"></i> Delete Selected
+                        </button>
+                    </div>
+                </div>
+                
+                {% for item in cart_items %}
+                <div class="review-item">
+                    
+                    <div class="item-checkbox-container">
+                        <input type="checkbox" name="selected_cart_ids" value="{{ item.cart_id }}" data-price="{{ item.total_price }}" form="main-checkout-form" class="item-checkbox single-checkbox" onclick="updateBulkDeleteBtn()" checked>
+                    </div>
+
+                    <img src="{% if item.image_path %}{{ item.image_path if 'http' in item.image_path else url_for('static', filename=item.image_path) }}{% else %}{{ url_for('static', filename='images/product_' ~ item.product_id ~ '.jpg') }}{% endif %}" class="item-img" onerror="this.src='{{ url_for('static', filename='images/icon-signage.png') }}'">
+                    
+                    <div class="item-info">
+                        <h4>{{ item.product_name }}</h4>
+                        <div class="item-qty-badge">Qty: {{ item.quantity }}</div>
+                        
+                        <div id="view-mode-{{ item.cart_id }}">
+                            <div class="item-meta">
+                                <div class="meta-specs">{{ item.specs }}</div>
+                                {% if item.design_note %}
+                                    <div class="meta-design"><span class="meta-label">Design Details:</span><br>{{ item.design_note }}</div>
+                                {% endif %}
+                                {% if item.special_note %}
+                                    <div class="meta-special"><span class="meta-label">Special Instructions:</span><br>{{ item.special_note }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            {% if item.file_list %}
+                                <div class="design-links">
+                                    {% for link in item.file_list %}
+                                        <a href="{{ link }}" target="_blank" class="design-badge"><i class="fas fa-image"></i> View Design {{ loop.index }}</a>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            
+                            <div style="margin-top: 15px;">
+                                <button type="button" onclick="toggleEditMode('{{ item.cart_id }}')" class="btn-edit-toggle"><i class="fas fa-edit"></i> Edit Details</button>
+                                <a href="/remove_from_cart/{{ item.cart_id }}" class="remove-link"><i class="fas fa-trash-alt"></i> Remove</a>
+                            </div>
+                        </div>
+
+                        <form action="/update_cart_item" method="POST" enctype="multipart/form-data" id="edit-mode-{{ item.cart_id }}" class="edit-item-form" style="display:none;">
+                            <input type="hidden" name="cart_id" value="{{ item.cart_id }}">
+                            <input type="hidden" name="base_specs" value="{{ item.specs }}">
+                            
+                            <div class="form-group-sm" style="width: 100px;">
+                                <label>Quantity</label>
+                                <input type="number" name="quantity" value="{{ item.quantity }}" min="1" class="form-control-sm">
+                            </div>
+                            
+                            <div class="form-group-sm">
+                                <label>Design & Layout Details</label>
+                                <textarea name="design_note" class="form-control-sm" rows="2" placeholder="Describe how you want your design to look...">{{ item.design_note }}</textarea>
+                            </div>
+
+                            <div class="form-group-sm">
+                                <label>Special Instructions</label>
+                                <textarea name="special_note" class="form-control-sm" rows="2" placeholder="Any specific requests?">{{ item.special_note }}</textarea>
+                            </div>
+
+                            <div class="form-group-sm">
+                                <label>Replace Design File <span style="color:#888; font-weight:normal; text-transform: none;">(Leave blank to keep current)</span></label>
+                                <input type="file" name="design_file" multiple class="form-control-sm" style="background: white;">
+                            </div>
+                            
+                            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                                <button type="submit" class="btn-save"><i class="fas fa-check"></i> Save Changes</button>
+                                <button type="button" onclick="toggleEditMode('{{ item.cart_id }}')" class="btn-cancel">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="item-price-block">
+                        <div class="price-tag">₱{{ "{:,.2f}".format(item.total_price) }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="right-section">
+            <form action="/checkout" method="POST" id="main-checkout-form">
+                <div class="card-box" style="position: sticky; top: 20px;">
+                    <div class="section-head">Order Summary</div>
+                    <div class="summary-row"><span>Subtotal</span><span id="summary-subtotal">₱{{ "{:,.2f}".format(subtotal) }}</span></div>
+                    <div class="summary-row"><span>Processing Fee</span><span id="summary-fee">₱{{ "{:,.2f}".format(processing_fee) }}</span></div>
+                    <div class="total-row"><span>Total</span><span id="summary-total">₱{{ "{:,.2f}".format(grand_total) }}</span></div>
+                    
+                    <button type="submit" id="main-submit-btn" class="btn-complete">Proceed to Checkout <i class="fas fa-arrow-right" style="margin-left: 8px;"></i></button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    function toggleEditMode(cartId) {
+        const viewDiv = document.getElementById('view-mode-' + cartId);
+        const editDiv = document.getElementById('edit-mode-' + cartId);
+        
+        if (editDiv.style.display === 'none') {
+            editDiv.style.display = 'block';
+            viewDiv.style.display = 'none';
+        } else {
+            editDiv.style.display = 'none';
+            viewDiv.style.display = 'block';
+        }
+    }
+
+    function toggleSelectAll(source) {
+        const checkboxes = document.querySelectorAll('.single-checkbox');
+        checkboxes.forEach(cb => cb.checked = source.checked);
+        updateBulkDeleteBtn();
+    }
+
+    function updateBulkDeleteBtn() {
+        const checkboxes = document.querySelectorAll('.single-checkbox');
+        const btn = document.getElementById('bulk-delete-btn');
+        const selectAllCb = document.getElementById('select-all');
+        const submitBtn = document.getElementById('main-submit-btn');
+        
+        let checkedCount = 0;
+        let subtotal = 0;
+
+        checkboxes.forEach(cb => {
+            if(cb.checked) {
+                checkedCount++;
+                subtotal += parseFloat(cb.getAttribute('data-price'));
+                
+                // Keep the bulk delete form in sync
+                let hiddenInput = document.getElementById('delete-hidden-' + cb.value);
+                if(!hiddenInput) {
+                    hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = 'cart_ids';
+                    hiddenInput.value = cb.value;
+                    hiddenInput.id = 'delete-hidden-' + cb.value;
+                    document.getElementById('bulk-delete-form').appendChild(hiddenInput);
+                }
+            } else {
+                let hiddenInput = document.getElementById('delete-hidden-' + cb.value);
+                if(hiddenInput) hiddenInput.remove();
+            }
+        });
+        
+        if (checkedCount > 0) {
+            btn.style.display = 'inline-block';
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fas fa-trash-alt"></i> Delete Selected (${checkedCount})`;
+        } else {
+            btn.style.display = 'none';
+            btn.disabled = true;
+        }
+        
+        selectAllCb.checked = (checkedCount === checkboxes.length && checkboxes.length > 0);
+
+        let fee = subtotal > 0 ? 50.00 : 0.00;
+        let grand = subtotal + fee;
+        
+        document.getElementById('summary-subtotal').innerText = '₱' + subtotal.toLocaleString('en-US', {minimumFractionDigits:2});
+        document.getElementById('summary-fee').innerText = '₱' + fee.toLocaleString('en-US', {minimumFractionDigits:2});
+        document.getElementById('summary-total').innerText = '₱' + grand.toLocaleString('en-US', {minimumFractionDigits:2});
+        
+        submitBtn.disabled = (subtotal === 0);
+        submitBtn.style.opacity = (subtotal === 0) ? '0.5' : '1';
+    }
+
+    document.addEventListener("DOMContentLoaded", updateBulkDeleteBtn);
+</script>
+{% endblock %}

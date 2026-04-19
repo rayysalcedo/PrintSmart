@@ -2,372 +2,276 @@
 
 {% block content %}
 <style>
-    body { background-color: #f9f9f9; font-family: 'Alexandria', sans-serif; }
+    body { background-color: #f4f7f9; font-family: 'Alexandria', sans-serif; }
     
-    .checkout-wrapper { max-width: 1100px; margin: 40px auto; padding: 0 20px; min-height: 60vh; }
-    .page-title { font-size: 28px; font-weight: 700; color: #333; margin-bottom: 5px; }
-    .page-subtitle { color: #666; margin-bottom: 30px; font-size: 15px; }
-
-    /* EMPTY STATE */
-    .empty-state { text-align: center; padding: 80px 20px; background: white; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
-    .empty-icon { font-size: 80px; color: #eee; margin-bottom: 25px; }
-    .btn-browse { display: inline-block; background: #DC5500; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 20px; transition: 0.3s; }
+    .checkout-container { max-width: 1000px; margin: 40px auto; padding: 0 20px; display: grid; grid-template-columns: 1.5fr 1fr; gap: 30px; }
+    .checkout-section { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 15px rgba(0,0,0,0.03); margin-bottom: 20px; border: 1px solid #eee; }
+    .section-title { font-size: 18px; font-weight: 700; color: #222; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
     
-    /* GRID LAYOUT */
-    .checkout-grid { display: grid; grid-template-columns: 1.8fr 1fr; gap: 30px; }
-    .left-section { display: flex; flex-direction: column; gap: 30px; }
-    .card-box { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid #eee; }
-    
-    /* ITEMS LIST */
-    .review-item { display: flex; gap: 20px; border-bottom: 1px solid #f0f0f0; padding-bottom: 20px; margin-bottom: 20px; align-items: flex-start; }
-    .review-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-    
-    /* BULK SELECT STYLES */
-    .item-checkbox-container { padding-top: 10px; }
-    .item-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: #DC5500; }
-    .btn-bulk-delete { background: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: 0.2s; font-weight: 600; }
-    .btn-bulk-delete:hover { background: #c82333; }
+    /* User Info Box */
+    .info-box { background: #fcfcfc; border: 1px solid #eee; padding: 15px; border-radius: 8px; font-size: 14px; color: #555; }
+    .info-box strong { color: #222; }
 
-    .item-img { width: 90px; height: 90px; object-fit: cover; border-radius: 8px; border: 1px solid #eee; }
-    .item-info { flex: 1; }
-    .item-info h4 { margin: 0 0 4px 0; font-size: 18px; color: #333; text-transform: uppercase; font-weight: 700; }
-    .item-qty-badge { font-size: 12px; background: #eee; padding: 2px 8px; border-radius: 12px; color: #555; font-weight: 600; display: inline-block; margin-bottom: 10px; }
-    
-    .item-meta { font-size: 13px; color: #555; line-height: 1.6; margin-bottom: 12px; }
-    .meta-specs { font-weight: 600; color: #222; margin-bottom: 6px; font-size: 14px; }
-    .meta-design { color: #4f46e5; margin-bottom: 4px; }
-    .meta-special { color: #DC5500; margin-bottom: 4px; }
-    .meta-label { font-weight: 700; color: #333; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;}
-
-    .design-links { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
-    .design-badge { background: #fff5eb; color: #DC5500; font-size: 11px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ffd8bf; text-decoration: none; font-weight: 600;}
-    .design-badge:hover { background: #ffe1cc; }
-
-    /* EDIT FORM UI */
-    .btn-edit-toggle { background: transparent; border: none; color: #4f46e5; font-size: 12px; cursor: pointer; padding: 0; font-weight: 600; margin-right: 15px;}
-    .btn-edit-toggle:hover { text-decoration: underline; }
-    .remove-link { color: #dc3545; font-size: 12px; text-decoration: none; font-weight: 600;}
-    .remove-link:hover { text-decoration: underline; }
-
-    .edit-item-form { background: #f8f9fb; padding: 15px; border: 1px solid #e0e7ff; border-radius: 8px; margin-top: 10px; }
-    .form-group-sm { margin-bottom: 12px; }
-    .form-group-sm label { display: block; font-size: 11px; color: #555; margin-bottom: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;}
-    .form-control-sm { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; box-sizing: border-box; font-family: inherit;}
-    .btn-save { background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600; }
-    .btn-cancel { background: #eee; color: #555; border: none; padding: 8px 16px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600; }
-
-    .item-price-block { text-align: right; min-width: 100px; }
-    .price-tag { font-weight: 700; font-size: 18px; color: #333; margin-bottom: 8px; }
-
-    .section-head { color: #DC5500; font-size: 18px; font-weight: 600; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
-
-    /* SUMMARY BOX */
-    .summary-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; color: #555; }
-    .total-row { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; font-size: 20px; font-weight: 700; color: #DC5500; }
-    .btn-complete { width: 100%; padding: 15px; background: #DC5500; color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 20px; transition: 0.3s; }
-    .btn-complete:hover { background: #b84700; }
-    .btn-complete:disabled { background: #ccc; cursor: not-allowed; }
-    .secure-text { text-align: center; font-size: 11px; color: #888; margin-top: 15px; background: #f9f9f9; padding: 10px; border-radius: 4px; border: 1px dashed #ddd; }
-
-    /* --- DELIVERY TOGGLE STYLES --- */
-    .delivery-options-container { display: flex; gap: 15px; margin-bottom: 20px; }
-    .delivery-option { flex: 1; position: relative; }
+    /* Delivery Options */
+    .delivery-options { display: flex; gap: 15px; margin-bottom: 20px; }
+    .delivery-card { flex: 1; border: 2px solid #eee; border-radius: 8px; padding: 15px; text-align: center; cursor: pointer; transition: 0.2s; background: white; position: relative; }
     .delivery-option input { display: none; }
-    .delivery-card { border: 2px solid #eee; border-radius: 8px; padding: 15px; text-align: center; cursor: pointer; transition: 0.3s; background: white; }
-    .delivery-card i { font-size: 24px; color: #888; margin-bottom: 10px; display: block; transition: 0.3s; }
-    .delivery-card span { font-weight: 600; font-size: 14px; color: #555; transition: 0.3s; }
-    
     .delivery-option input:checked + .delivery-card { border-color: #DC5500; background: #fffaf5; }
-    .delivery-option input:checked + .delivery-card i, 
-    .delivery-option input:checked + .delivery-card span { color: #DC5500; }
+    .delivery-option input:checked + .delivery-card i, .delivery-option input:checked + .delivery-card span { color: #DC5500; }
+    .delivery-card i { font-size: 20px; color: #888; margin-bottom: 8px; display: block; }
+    .delivery-card span { font-size: 13px; font-weight: 600; color: #555; }
     
-    .delivery-info-box { background: #f9f9f9; padding: 15px; border-radius: 8px; border-left: 4px solid #DC5500; font-size: 13px; color: #555; line-height: 1.5; display: none; }
-    .delivery-info-box.active { display: block; }
+    .address-box { display: none; margin-top: 15px; }
+    .address-box.active { display: block; }
+    .custom-textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; font-size: 13px; outline: none; transition: 0.2s; box-sizing: border-box; }
+    .custom-textarea:focus { border-color: #DC5500; box-shadow: 0 0 0 3px rgba(220,85,0,0.1); }
 
-    @media(max-width: 768px) { .checkout-grid { grid-template-columns: 1fr; } }
+    /* Custom Inputs */
+    .custom-input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; font-size: 13px; outline: none; transition: 0.2s; box-sizing: border-box; background: white;}
+    .custom-input:focus { border-color: #DC5500; box-shadow: 0 0 0 3px rgba(220,85,0,0.1); }
+    .input-label { font-size: 12px; font-weight: 600; display: block; margin-bottom: 6px; color: #333; }
+
+    /* Order Summary Items */
+    .summary-item { display: flex; gap: 15px; margin-bottom: 15px; align-items: center; }
+    .summary-img { width: 60px; height: 60px; border-radius: 8px; border: 1px solid #eee; object-fit: cover; }
+    .summary-details { flex: 1; }
+    .summary-details h4 { margin: 0 0 4px 0; font-size: 14px; font-weight: 700; color: #333; }
+    .summary-details p { margin: 0; font-size: 11px; color: #777; }
+    .summary-price { font-weight: 700; color: #222; font-size: 14px; }
+    
+    /* Totals */
+    .totals-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; color: #555; }
+    .grand-total { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px dashed #ccc; font-size: 18px; font-weight: 800; color: #DC5500; }
+    
+    .btn-pay { width: 100%; padding: 16px; background: #DC5500; color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 16px; cursor: pointer; transition: 0.3s; margin-top: 20px; box-shadow: 0 4px 15px rgba(220,85,0,0.3); }
+    .btn-pay:hover { background: #b84700; transform: translateY(-2px); }
+
+    @media(max-width: 768px) { .checkout-container { grid-template-columns: 1fr; } }
 </style>
 
-<div class="checkout-wrapper">
-    <div class="header-section">
-        <h1 class="page-title">Checkout</h1>
-        <p class="page-subtitle">Review your items and complete your payment</p>
-    </div>
-
-    {% if not cart_items %}
-        <div class="empty-state">
-            <i class="fas fa-shopping-cart empty-icon"></i>
-            <h2>Your Cart is Empty</h2>
-            <p style="color: #666;">You haven't added any printing services to your cart yet.</p>
-            <a href="/services" class="btn-browse">Browse Services</a>
-        </div>
-    {% else %}
-
-    <form id="bulk-delete-form" action="/bulk_remove_from_cart" method="POST"></form>
-
-    <div class="checkout-grid">
-        <div class="left-section">
+<div class="checkout-container">
+    <div class="checkout-left">
+        <h1 style="font-size: 24px; font-weight: 800; color: #333; margin-bottom: 25px;">Secure Checkout</h1>
+        
+        <form id="place-order-form" action="/place_order" method="POST" onsubmit="return validateCheckout(event)">
+            {% for item in checkout_items %}
+            <input type="hidden" name="checkout_cart_ids" value="{{ item.cart_id }}">
+            {% endfor %}
+            <input type="hidden" name="grand_total" value="{{ grand_total }}">
+            <input type="hidden" name="payment_method" value="PayMongo">
             
-            <div class="card-box">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
-                    <div class="section-head" style="border: none; padding: 0; margin: 0;"><i class="fas fa-list-ul"></i> Review Your Items</div>
+            <div class="checkout-section">
+                <div class="section-title"><i class="fas fa-user-circle" style="color:#DC5500;"></i> Contact Information</div>
+                <div class="info-box">
+                    <p style="font-size: 12px; color: #666; margin-top: 0; margin-bottom: 20px; line-height: 1.5;">Ordering for someone else? You can update the contact details below and we will use this specific information for this order.</p>
                     
-                    <div style="display: flex; align-items: center; gap: 15px;">
-                        <label style="font-size: 13px; color: #555; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 600;">
-                            <input type="checkbox" id="select-all" class="item-checkbox" onclick="toggleSelectAll(this)" checked> Select All
-                        </label>
-                        <button type="submit" form="bulk-delete-form" id="bulk-delete-btn" class="btn-bulk-delete" style="display: none;" disabled>
-                            <i class="fas fa-trash-alt"></i> Delete Selected
-                        </button>
+                    <div style="margin-bottom: 15px;">
+                        <label class="input-label">Full Name <span style="color:red;">*</span></label>
+                        <input type="text" name="contact_name" class="custom-input" value="{{ user_info.full_name }}" required>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label class="input-label">Email Address <span style="color:red;">*</span></label>
+                        <input type="email" name="contact_email" class="custom-input" value="{{ user_info.email }}" required>
+                    </div>
+                    <div>
+                        <label class="input-label">Phone Number <span style="color:red;">*</span></label>
+                        <input type="text" name="contact_phone" class="custom-input" value="{{ user_info.phone_number if user_info.phone_number and user_info.phone_number != 'No Phone' else '' }}" pattern="^(?:\+639|09)\d{9}$" title="Must be a valid PH mobile number (e.g. 09123456789 or +639123456789)" maxlength="13" placeholder="09xxxxxxxxx" required>
                     </div>
                 </div>
+            </div>
+
+            <div class="checkout-section">
+                <div class="section-title"><i class="fas fa-calendar-alt" style="color:#DC5500;"></i> Target Deadline</div>
+                <div class="info-box">
+                    <label class="input-label">Ideal Turnaround Time <span style="color:red;">*</span></label>
+                    <input type="date" name="target_deadline" id="target_deadline" class="custom-input" required>
+                    
+                    <div style="margin-top: 15px; font-size: 12px; color: #DC5500; font-weight: 600; line-height: 1.6; background: #fff5eb; padding: 12px; border-radius: 6px; border: 1px dashed #ffccaa;">
+                        <i class="fas fa-info-circle"></i> We require a minimum of 3 days lead time. No rush orders are accepted. In the event of unforeseen delays, completion will not exceed 1 week.
+                    </div>
+                </div>
+            </div>
+
+            <div class="checkout-section">
+                <div class="section-title"><i class="fas fa-truck" style="color:#DC5500;"></i> Delivery Method</div>
                 
-                {% for item in cart_items %}
-                <div class="review-item">
-                    
-                    <div class="item-checkbox-container">
-                        <input type="checkbox" name="cart_ids" value="{{ item.cart_id }}" data-price="{{ item.total_price }}" form="bulk-delete-form" class="item-checkbox single-checkbox" onclick="updateBulkDeleteBtn()" checked>
-                    </div>
-
-                    <img src="{{ item.image_path if item.image_path and 'http' in item.image_path else url_for('static', filename=item.image_path if item.image_path else 'images/icon-signage.png') }}" class="item-img">
-                    
-                    <div class="item-info">
-                        <h4>{{ item.product_name }}</h4>
-                        <div class="item-qty-badge">Qty: {{ item.quantity }}</div>
-                        
-                        <div id="view-mode-{{ item.cart_id }}">
-                            <div class="item-meta">
-                                <div class="meta-specs">{{ item.specs }}</div>
-                                {% if item.design_note %}
-                                    <div class="meta-design"><span class="meta-label">Design Details:</span><br>{{ item.design_note }}</div>
-                                {% endif %}
-                                {% if item.special_note %}
-                                    <div class="meta-special"><span class="meta-label">Special Instructions:</span><br>{{ item.special_note }}</div>
-                                {% endif %}
-                            </div>
-                            
-                            {% if item.file_list %}
-                                <div class="design-links">
-                                    {% for link in item.file_list %}
-                                        <a href="{{ link }}" target="_blank" class="design-badge"><i class="fas fa-image"></i> View Design {{ loop.index }}</a>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                            
-                            <div style="margin-top: 15px;">
-                                <button type="button" onclick="toggleEditMode('{{ item.cart_id }}')" class="btn-edit-toggle"><i class="fas fa-edit"></i> Edit Details</button>
-                                <a href="/remove_from_cart/{{ item.cart_id }}" class="remove-link"><i class="fas fa-trash-alt"></i> Remove</a>
-                            </div>
+                <div class="delivery-options">
+                    <label class="delivery-option">
+                        <input type="radio" name="delivery_method" value="Pickup" checked onchange="toggleDelivery()">
+                        <div class="delivery-card">
+                            <i class="fas fa-store"></i>
+                            <span>Store Pickup</span>
                         </div>
+                    </label>
+                    <label class="delivery-option">
+                        <input type="radio" name="delivery_method" value="Delivery" onchange="toggleDelivery()">
+                        <div class="delivery-card">
+                            <i class="fas fa-motorcycle"></i>
+                            <span>External Delivery</span>
+                        </div>
+                    </label>
+                </div>
 
-                        <form action="/update_cart_item" method="POST" enctype="multipart/form-data" id="edit-mode-{{ item.cart_id }}" class="edit-item-form" style="display:none;">
-                            <input type="hidden" name="cart_id" value="{{ item.cart_id }}">
-                            <input type="hidden" name="base_specs" value="{{ item.specs }}">
-                            
-                            <div class="form-group-sm" style="width: 100px;">
-                                <label>Quantity</label>
-                                <input type="number" name="quantity" value="{{ item.quantity }}" min="1" class="form-control-sm">
-                            </div>
-                            
-                            <div class="form-group-sm">
-                                <label>Design & Layout Details</label>
-                                <textarea name="design_note" class="form-control-sm" rows="2" placeholder="Describe how you want your design to look...">{{ item.design_note }}</textarea>
-                            </div>
+                <div id="pickup-msg" class="info-box" style="border-left: 3px solid #DC5500;">
+                    <i class="fas fa-info-circle"></i> You will pick up your finished order directly at our physical store located at National Rd. Panilao, Pilar, Bataan.
+                </div>
 
-                            <div class="form-group-sm">
-                                <label>Special Instructions</label>
-                                <textarea name="special_note" class="form-control-sm" rows="2" placeholder="Any specific requests?">{{ item.special_note }}</textarea>
-                            </div>
-
-                            <div class="form-group-sm">
-                                <label>Replace Design File <span style="color:#888; font-weight:normal; text-transform: none;">(Leave blank to keep current)</span></label>
-                                <input type="file" name="design_file" multiple class="form-control-sm" style="background: white;">
-                            </div>
-                            
-                            <div style="display: flex; gap: 10px; margin-top: 15px;">
-                                <button type="submit" class="btn-save"><i class="fas fa-check"></i> Save Changes</button>
-                                <button type="button" onclick="toggleEditMode('{{ item.cart_id }}')" class="btn-cancel">Cancel</button>
-                            </div>
-                        </form>
+                <div id="delivery-address-box" class="address-box">
+                    <label style="font-size: 14px; font-weight: 700; color: #333; margin-bottom: 15px; display: block; border-bottom: 1px solid #eee; padding-bottom: 5px;">Delivery Address Details</label>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #fcfcfc; padding: 15px; border-radius: 8px; border: 1px solid #eee;">
+                        <div style="grid-column: span 2;">
+                            <label class="input-label">House/Unit #, Bldg, Street Name <span style="color:red;">*</span></label>
+                            <input type="text" name="addr_street" class="custom-input req-delivery" placeholder="e.g. 123 Rizal St.">
+                        </div>
+                        
+                        <div>
+                            <label class="input-label">Barangay <span style="color:red;">*</span></label>
+                            <input type="text" name="addr_brgy" class="custom-input req-delivery" placeholder="e.g. 143 or Panilao">
+                        </div>
+                        
+                        <div>
+                            <label class="input-label">City/Municipality <span style="color:red;">*</span></label>
+                            <input type="text" name="addr_city" class="custom-input req-delivery" placeholder="e.g. Pilar" pattern=".*[A-Za-z]+.*" title="Must contain letters">
+                        </div>
+                        
+                        <div>
+                            <label class="input-label">Province <span style="color:red;">*</span></label>
+                            <input type="text" name="addr_province" class="custom-input req-delivery" placeholder="e.g. Bataan" pattern=".*[A-Za-z]+.*" title="Must contain letters">
+                        </div>
+                        
+                        <div>
+                            <label class="input-label">Zip Code <span style="color:red;">*</span></label>
+                            <input type="text" name="addr_zip" class="custom-input req-delivery" placeholder="e.g. 2101" pattern="\d{4}" maxlength="4" minlength="4" title="Must be exactly 4 digits">
+                        </div>
+                        
+                        <div style="grid-column: span 2;">
+                            <label class="input-label">Landmark / Additional Notes (Optional)</label>
+                            <input type="text" name="addr_landmark" class="custom-input" placeholder="e.g. Near the blue gate, opposite 7-Eleven">
+                        </div>
                     </div>
 
-                    <div class="item-price-block">
-                        <div class="price-tag">₱{{ "{:,.2f}".format(item.total_price) }}</div>
+                    <div style="margin-top: 15px; font-size: 11px; color: #DC5500; font-weight: 600; background: #fff5eb; padding: 10px; border-radius: 6px;">
+                        <i class="fas fa-clock"></i> Note: Deliveries take 3-7 days and the shipping fee is paid directly to the rider upon arrival.
                     </div>
+                </div>
+            </div>
+
+            <div class="checkout-section">
+                <div class="section-title"><i class="fas fa-shield-alt" style="color:#28a745;"></i> Secure Payment</div>
+                <div style="text-align: center; color: #555; font-size: 13px;">
+                    <p style="margin-bottom: 15px;">You will be redirected to <strong>PayMongo</strong> to complete your purchase securely.</p>
+                    <div style="display: flex; justify-content: center; gap: 15px; align-items: center;">
+                        <span style="background: #007DFE; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold; font-size: 12px;">GCash</span>
+                        <span style="background: #111; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold; font-size: 12px;">Maya</span>
+                        <i class="fab fa-cc-visa" style="font-size: 28px; color: #1a1f71;"></i>
+                        <i class="fab fa-cc-mastercard" style="font-size: 28px; color: #eb001b;"></i>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="checkout-right">
+        <div class="checkout-section" style="position: sticky; top: 20px;">
+            <div class="section-title">Order Summary</div>
+            
+            <div style="margin-bottom: 20px; max-height: 350px; overflow-y: auto; padding-right: 10px;">
+                {% for item in checkout_items %}
+                <div class="summary-item">
+                    <img src="{% if item.image_path %}{{ item.image_path if 'http' in item.image_path else url_for('static', filename=item.image_path) }}{% else %}{{ url_for('static', filename='images/product_' ~ item.product_id ~ '.jpg') }}{% endif %}" class="summary-img" onerror="this.src='{{ url_for('static', filename='images/icon-signage.png') }}'">
+                    <div class="summary-details">
+                        <h4>{{ item.product_name }}</h4>
+                        <p>Qty: {{ item.quantity }}</p>
+                    </div>
+                    <div class="summary-price">₱{{ "{:,.2f}".format(item.total_price) }}</div>
                 </div>
                 {% endfor %}
             </div>
 
-            <form action="/place_order" method="POST" id="main-checkout-form">
-                <input type="hidden" name="grand_total" id="hidden_grand_total" value="{{ grand_total }}">
-                <input type="hidden" name="payment_method" value="PayMongo">
-                
-                <div class="card-box" style="margin-top: 20px;">
-                    <div class="section-head" style="border: none; padding: 0; margin-bottom: 15px;">
-                        <i class="fas fa-truck"></i> Delivery Method
-                    </div>
-                    
-                    <div class="delivery-options-container">
-                        <label class="delivery-option">
-                            <input type="radio" name="delivery_method" value="Pickup" checked onchange="toggleDeliveryText()">
-                            <div class="delivery-card">
-                                <i class="fas fa-store"></i>
-                                <span>Store Pickup</span>
-                            </div>
-                        </label>
-                        
-                        <label class="delivery-option">
-                            <input type="radio" name="delivery_method" value="Delivery" onchange="toggleDeliveryText()">
-                            <div class="delivery-card">
-                                <i class="fas fa-motorcycle"></i>
-                                <span>External Delivery</span>
-                            </div>
-                        </label>
-                    </div>
+            <div class="totals-row"><span>Subtotal</span><span>₱{{ "{:,.2f}".format(subtotal) }}</span></div>
+            <div class="totals-row"><span>Processing Fee</span><span>₱{{ "{:,.2f}".format(processing_fee) }}</span></div>
+            <div class="grand-total"><span>Total</span><span>₱{{ "{:,.2f}".format(grand_total) }}</span></div>
 
-                    <div id="pickup-text" class="delivery-info-box active">
-                        <strong><i class="fas fa-info-circle"></i> Pick up at shop:</strong> You will pick up your finished order directly at our physical store located at National Rd. Panilao, Pilar, Bataan.
-                    </div>
-                    <div id="delivery-text" class="delivery-info-box">
-                        <strong><i class="fas fa-info-circle"></i> 3rd-Party Courier:</strong> We will book an external rider (Lalamove, J&T, or LBC) to deliver your items. <em>Note: Shipping fees are not included in the total and will be paid directly to the rider upon arrival.</em>
-                        
-                        <div style="margin-top: 15px;">
-                            <label for="shipping_address" style="display: block; font-weight: bold; margin-bottom: 8px; color: #333;">Complete Delivery Address <span style="color:red;">*</span></label>
-                            <textarea name="shipping_address" id="shipping_address" rows="3" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-family: inherit; font-size: 13px; box-sizing: border-box;" placeholder="House/Unit #, Street Name, Barangay, City, Province, Zip Code"></textarea>
-                        </div>
-                        
-                        <div style="margin-top: 12px; color: #DC5500; font-weight: 700; font-size: 12px; background: #fff5eb; padding: 10px; border-radius: 6px; border: 1px dashed #ffd8bf;">
-                            <i class="fas fa-clock"></i> Note: Deliveries may take 3-7 days depending on your location.
-                        </div>
-                    </div>
-                </div>
-
-                <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-top: 20px;">
-                    <h3 style="margin-top: 0; margin-bottom: 20px; color: #333; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
-                        <i class="fas fa-shield-alt" style="color: #28a745;"></i> Secure Payment
-                    </h3>
-                    
-                    <div style="text-align: center; padding: 20px 10px;">
-                        <p style="font-size: 14px; color: #555; margin-bottom: 20px;">
-                            You will be redirected to <strong>PayMongo's secure payment gateway</strong> to complete your purchase safely.
-                        </p>
-                        
-                        <div style="display: flex; justify-content: center; align-items: center; gap: 15px; flex-wrap: wrap;">
-                            <span style="background: #007DFE; color: white; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 14px; letter-spacing: 0.5px;">GCash</span>
-                            <span style="background: #111; color: white; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 14px; letter-spacing: 0.5px;">Maya</span>
-                            <i class="fab fa-cc-visa" style="font-size: 32px; color: #1a1f71;"></i>
-                            <i class="fab fa-cc-mastercard" style="font-size: 32px; color: #eb001b;"></i>
-                        </div>
-                    </div>
-                </div>
-
-            </form>
-        </div>
-
-        <div class="right-section">
-            <div class="card-box" style="position: sticky; top: 20px;">
-                <div class="section-head">Order Summary</div>
-                <div class="summary-row"><span>Subtotal</span><span id="summary-subtotal">₱{{ "{:,.2f}".format(subtotal) }}</span></div>
-                <div class="summary-row"><span>Processing Fee</span><span id="summary-fee">₱{{ "{:,.2f}".format(processing_fee) }}</span></div>
-                <div class="total-row"><span>Total</span><span id="summary-total">₱{{ "{:,.2f}".format(grand_total) }}</span></div>
-                
-                <button type="submit" form="main-checkout-form" id="main-submit-btn" class="btn-complete">Complete Order <i class="fas fa-arrow-right" style="margin-left: 8px;"></i></button>
-                <div class="secure-text"><i class="fas fa-lock" style="color: #28a745;"></i> Secure checkout with PayMongo</div>
-            </div>
+            <button type="submit" form="place-order-form" class="btn-pay">Pay Now ₱{{ "{:,.2f}".format(grand_total) }}</button>
+            <div style="text-align: center; margin-top: 15px;"><a href="/cart" style="color: #666; font-size: 13px; text-decoration: underline;">Return to Cart</a></div>
         </div>
     </div>
-    {% endif %}
 </div>
 
 <script>
-    function toggleEditMode(cartId) {
-        const viewDiv = document.getElementById('view-mode-' + cartId);
-        const editDiv = document.getElementById('edit-mode-' + cartId);
-        
-        if (editDiv.style.display === 'none') {
-            editDiv.style.display = 'block';
-            viewDiv.style.display = 'none';
-        } else {
-            editDiv.style.display = 'none';
-            viewDiv.style.display = 'block';
+    document.addEventListener("DOMContentLoaded", function() {
+        const dateInput = document.getElementById('target_deadline');
+        if(dateInput) {
+            const today = new Date();
+            today.setDate(today.getDate() + 3);
+            const minDate = today.toISOString().split('T')[0];
+            
+            dateInput.min = minDate;
+            dateInput.value = minDate; 
         }
-    }
-
-    // QA FIX: Dynamic Total Calculations based on Checked items
-    function toggleSelectAll(source) {
-        const checkboxes = document.querySelectorAll('.single-checkbox');
-        checkboxes.forEach(cb => cb.checked = source.checked);
-        updateBulkDeleteBtn();
-    }
-
-    function updateBulkDeleteBtn() {
-        const checkboxes = document.querySelectorAll('.single-checkbox');
-        const btn = document.getElementById('bulk-delete-btn');
-        const selectAllCb = document.getElementById('select-all');
-        const submitBtn = document.getElementById('main-submit-btn');
-        
-        let checkedCount = 0;
-        let subtotal = 0;
-
-        checkboxes.forEach(cb => {
-            if(cb.checked) {
-                checkedCount++;
-                subtotal += parseFloat(cb.getAttribute('data-price'));
-            }
-        });
-        
-        // Show/Hide Delete Button
-        if (checkedCount > 0) {
-            btn.style.display = 'inline-block';
-            btn.disabled = false;
-            btn.innerHTML = `<i class="fas fa-trash-alt"></i> Delete Selected (${checkedCount})`;
-        } else {
-            btn.style.display = 'none';
-            btn.disabled = true;
-        }
-        
-        selectAllCb.checked = (checkedCount === checkboxes.length && checkboxes.length > 0);
-
-        // Update Totals
-        let fee = subtotal > 0 ? 50.00 : 0.00;
-        let grand = subtotal + fee;
-        
-        document.getElementById('summary-subtotal').innerText = '₱' + subtotal.toLocaleString('en-US', {minimumFractionDigits:2});
-        document.getElementById('summary-fee').innerText = '₱' + fee.toLocaleString('en-US', {minimumFractionDigits:2});
-        document.getElementById('summary-total').innerText = '₱' + grand.toLocaleString('en-US', {minimumFractionDigits:2});
-        document.getElementById('hidden_grand_total').value = grand;
-        
-        submitBtn.disabled = (subtotal === 0);
-        submitBtn.style.opacity = (subtotal === 0) ? '0.5' : '1';
-    }
-
-    // Connect the selected checkboxes to the Main Checkout Form before submit
-    document.getElementById('main-checkout-form')?.addEventListener('submit', function(e) {
-        document.querySelectorAll('.appended-cart-id').forEach(el => el.remove());
-        document.querySelectorAll('.single-checkbox:checked').forEach(cb => {
-            let inp = document.createElement('input');
-            inp.type = 'hidden';
-            inp.name = 'selected_cart_ids';
-            inp.value = cb.value;
-            inp.className = 'appended-cart-id';
-            this.appendChild(inp);
-        });
     });
 
-    function toggleDeliveryText() {
-        const pickupRadio = document.querySelector('input[value="Pickup"]');
-        const pickupText = document.getElementById('pickup-text');
-        const deliveryText = document.getElementById('delivery-text');
-        const addressInput = document.getElementById('shipping_address');
-        
-        if (pickupRadio.checked) {
-            pickupText.classList.add('active');
-            deliveryText.classList.remove('active');
-            addressInput.removeAttribute('required'); 
+    function toggleDelivery() {
+        const isDelivery = document.querySelector('input[name="delivery_method"][value="Delivery"]').checked;
+        const addrBox = document.getElementById('delivery-address-box');
+        const pickupMsg = document.getElementById('pickup-msg');
+        const deliveryInputs = document.querySelectorAll('.req-delivery');
+
+        if (isDelivery) {
+            addrBox.classList.add('active');
+            pickupMsg.style.display = 'none';
+            deliveryInputs.forEach(input => input.setAttribute('required', 'required'));
         } else {
-            pickupText.classList.remove('active');
-            deliveryText.classList.add('active');
-            addressInput.setAttribute('required', 'required'); 
+            addrBox.classList.remove('active');
+            pickupMsg.style.display = 'block';
+            deliveryInputs.forEach(input => input.removeAttribute('required'));
         }
+    }
+
+    // QA FIX: Rigorous Javascript Validation before form submission (Modified to allow numbered barangays)
+    function validateCheckout(event) {
+        // 1. Double check the Phone Number
+        const phoneInput = document.querySelector('input[name="contact_phone"]');
+        const phoneRegex = /^(?:\+639|09)\d{9}$/;
+        if (!phoneRegex.test(phoneInput.value.trim())) {
+            alert("Please enter a valid Philippine mobile number (e.g., 09123456789).");
+            phoneInput.focus();
+            event.preventDefault();
+            return false;
+        }
+
+        // 2. Validate Address Fields if Delivery is selected
+        const isDelivery = document.querySelector('input[name="delivery_method"][value="Delivery"]').checked;
+        if (isDelivery) {
+            const city = document.querySelector('input[name="addr_city"]');
+            const prov = document.querySelector('input[name="addr_province"]');
+            const zip = document.querySelector('input[name="addr_zip"]');
+
+            const hasLetterRegex = /[a-zA-Z]/;
+            
+            // Barangay check removed to allow purely numerical barangays like "143"
+            
+            if (!hasLetterRegex.test(city.value)) {
+                alert("City/Municipality must contain valid text (letters). Cannot be only numbers.");
+                city.focus();
+                event.preventDefault(); return false;
+            }
+            if (!hasLetterRegex.test(prov.value)) {
+                alert("Province must contain valid text (letters). Cannot be only numbers.");
+                prov.focus();
+                event.preventDefault(); return false;
+            }
+
+            const zipRegex = /^\d{4}$/;
+            if (!zipRegex.test(zip.value)) {
+                alert("Zip Code must be exactly 4 digits.");
+                zip.focus();
+                event.preventDefault(); return false;
+            }
+        }
+        
+        return true;
     }
 </script>
 {% endblock %}
