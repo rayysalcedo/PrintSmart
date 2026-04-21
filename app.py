@@ -87,7 +87,7 @@ facebook = oauth.register(
     client_kwargs={'scope': 'email public_profile'},
 )
 
-# --- RESTORED: SOCIAL AUTH LOGIC ---
+# --- SOCIAL AUTH LOGIC ---
 def social_auth_logic(email, name, provider):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -101,7 +101,10 @@ def social_auth_logic(email, name, provider):
         session['role'] = user[6] if len(user) > 6 else 'customer'
         flash(f"Logged in with {provider.title()}!", "success")
     else:
-        assigned_role = 'super_admin' if email == 'system.printsmart@gmail.com' else 'customer'
+        # QA FIX: Added the new email to the official Super Admin list
+        super_admins = ['system.printsmart@gmail.com', 'printagrambataan2019@gmail.com']
+        assigned_role = 'super_admin' if email in super_admins else 'customer'
+        
         random_pw = secrets.token_hex(16)
         hashed_password = generate_password_hash(random_pw)
         cursor.execute("INSERT INTO users (full_name, email, password_hash, role, is_active) VALUES (%s, %s, %s, %s, TRUE)", 
@@ -1356,10 +1359,18 @@ def add_staff():
             flash("A user with this email already exists.", "error")
         else:
             hashed_password = generate_password_hash(password)
-            cursor.execute("INSERT INTO users (full_name, email, password_hash, role, is_active) VALUES (%s, %s, %s, 'admin', TRUE)", 
-                           (name, email, hashed_password))
+            
+            # QA FIX: Automatically grant super_admin privileges to this specific email
+            assigned_role = 'super_admin' if email in ['system.printsmart@gmail.com', 'printagrambataan2019@gmail.com'] else 'admin'
+            
+            cursor.execute("INSERT INTO users (full_name, email, password_hash, role, is_active) VALUES (%s, %s, %s, %s, TRUE)", 
+                           (name, email, hashed_password, assigned_role))
             conn.commit()
-            flash(f"Staff member {name} added successfully!", "success")
+            
+            # Formats the flash message nicely (e.g. "Super Admin" instead of "super_admin")
+            role_display = assigned_role.replace('_', ' ').title()
+            flash(f"Staff member {name} added successfully as {role_display}!", "success")
+            
         conn.close()
     except Exception as e: flash(f"Database Error: {e}", "error")
     return redirect('/admin')
