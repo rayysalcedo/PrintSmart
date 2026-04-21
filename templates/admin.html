@@ -787,7 +787,7 @@
             // QA FIX: Mark the order as read (dismissed) automatically when clicked!
             if (!dismissedOrders.includes(orderId)) {
                 dismissedOrders.push(orderId);
-                sessionStorage.setItem('printagram_dismissed_orders', JSON.stringify(dismissedOrders));
+                localStorage.setItem('printagram_dismissed_orders', JSON.stringify(dismissedOrders));
                 fetchNotifications(); // Refresh the bell icon instantly
             }
             
@@ -934,8 +934,8 @@
         let knownChats = new Set();
         let isFirstNotifLoad = true;
 
-        // QA FIX: Local Storage Array to remember dismissed orders across refreshes
-        let dismissedOrders = JSON.parse(sessionStorage.getItem('printagram_dismissed_orders') || '[]');
+        // QA FIX: Local Storage Array to remember dismissed orders across refreshes and closures!
+        let dismissedOrders = JSON.parse(localStorage.getItem('printagram_dismissed_orders') || '[]');
 
         function dismissNotification(type, id, event) {
             if (event) {
@@ -945,7 +945,7 @@
             if (type === 'order') {
                 if (!dismissedOrders.includes(id)) {
                     dismissedOrders.push(id);
-                    sessionStorage.setItem('printagram_dismissed_orders', JSON.stringify(dismissedOrders));
+                    localStorage.setItem('printagram_dismissed_orders', JSON.stringify(dismissedOrders));
                 }
             }
             fetchNotifications(); // Visually clear it instantly

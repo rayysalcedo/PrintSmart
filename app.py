@@ -117,8 +117,8 @@ def social_auth_logic(email, name, provider):
     conn.close()
     return redirect('/admin') if session['role'] in ['admin', 'super_admin'] else redirect(url_for('home'))
 
-# --- BREVO EMAIL API HELPER ---
-def send_system_email(to_email, subject, body_text):
+# --- HTML ENHANCED EMAIL API HELPER ---
+def send_system_email(to_email, subject, body_text, html_body=None):
     api_key = os.environ.get('BREVO_API_KEY')
     if not api_key:
         print("ERROR: BREVO_API_KEY is missing from environment variables!")
@@ -128,9 +128,14 @@ def send_system_email(to_email, subject, body_text):
     payload = {
         "sender": {"name": "Printagram", "email": sender_email}, 
         "to": [{"email": to_email}],
-        "subject": subject,
-        "textContent": body_text
+        "subject": subject
     }
+    
+    if html_body:
+        payload["htmlContent"] = html_body
+        
+    payload["textContent"] = body_text
+        
     headers = {
         "accept": "application/json",
         "api-key": api_key,
@@ -145,6 +150,7 @@ def send_system_email(to_email, subject, body_text):
         print(f"REQUEST CRASHED: {e}")
         return False
 
+# --- HTML FORMATTED BACKGROUND PAYMENT REMINDER ---
 def delayed_payment_reminder(order_id, contact_name, email, total_amount, pay_url):
     try:
         print(f"Checking payment status for Order #{order_id}...")
@@ -164,24 +170,52 @@ def delayed_payment_reminder(order_id, contact_name, email, total_amount, pay_ur
             items = cursor.fetchall()
             
             subject = f"Action Required: Complete your Printagram Order #{order_id}"
-            body = f"Hello {contact_name},\n\nWe noticed you haven't completed the payment for your order #{order_id}. Don't worry, your items are safely saved!\n\n"
-            body += "ORDER SUMMARY:\n"
+            fallback_text = f"Hello {contact_name},\n\nWe noticed you haven't completed the payment for your order #{order_id}. Don't worry, your items are safely saved!\n\nPay here: {pay_url}"
             
+            html_items = ""
             for item in items:
-                body += f"- {item['quantity']}x {item['product_name']} (₱{float(item['price_at_time']):,.2f})\n"
                 clean_details = item['item_details'].replace(' || ', ' | ')
-                body += f"  Details: {clean_details}\n"
-                
-            body += f"\nTotal Due: ₱{total_amount:,.2f}\n\n"
-            body += f"Click the link below to securely pay via GCash, Maya, or Card and finalize your order:\n{pay_url}\n\n"
-            body += "If you no longer wish to proceed, you can cancel the order directly from your dashboard."
+                html_items += f"<li style='margin-bottom: 10px;'><strong>{item['quantity']}x {item['product_name']}</strong> (₱{float(item['price_at_time']):,.2f})<br><span style='color:#666; font-size:12px;'>{clean_details}</span></li>"
+
+            html_body = f"""
+            <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; background-color: #ffffff;">
+                <div style="background: #dc3545; color: white; padding: 25px 20px; text-align: center;">
+                    <h2 style="margin: 0; font-size: 24px; font-weight: 700;">Action Required</h2>
+                    <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;">Complete your Order #{order_id}</p>
+                </div>
+                <div style="padding: 30px 25px; color: #333;">
+                    <p style="font-size: 16px; margin-top: 0;">Hello <strong>{contact_name}</strong>,</p>
+                    <p style="font-size: 15px; line-height: 1.5;">We noticed you haven't completed the payment for your recent order. Don't worry, your items are safely saved!</p>
+                    
+                    <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 25px 0; border: 1px solid #eee;">
+                        <h3 style="margin: 0 0 15px 0; color: #333; font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Order Summary</h3>
+                        <ul style="padding-left: 20px; margin: 0; font-size: 14px;">
+                            {html_items}
+                        </ul>
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #ddd; font-size: 18px; font-weight: bold; color: #DC5500; text-align: right;">
+                            Total Due: ₱{total_amount:,.2f}
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin: 35px 0;">
+                        <a href="{pay_url}" style="background: #28a745; color: white; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-size: 16px; font-weight: bold; display: inline-block; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                            💳 Pay Now
+                        </a>
+                    </div>
+                    
+                    <p style="font-size: 13px; color: #888; text-align: center; margin: 0; line-height: 1.5;">
+                        If you accidentally closed the payment window, you can always use the link above to return and complete your purchase.
+                    </p>
+                </div>
+            </div>
+            """
             
-            send_system_email(email, subject, body)
-            print(f"Reminder email successfully sent for Order #{order_id}")
+            send_system_email(email, subject, fallback_text, html_body)
+            print(f"Reminder HTML email successfully sent for Order #{order_id}")
             
         conn.close()
     except Exception as e:
-        print(f"Background Email Error: {e}")
+        print(f"Background HTML Email Error: {e}")
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -646,6 +680,7 @@ def checkout():
     except Exception as e:
         return f"Checkout Error: {e}"
 
+# --- QA FIX: REMOVED IMMEDIATE EMAIL SENDING ---
 @app.route('/place_order', methods=['POST'])
 def place_order():
     if not session.get('loggedin'):
@@ -734,8 +769,12 @@ def place_order():
         cursor.execute("SELECT email FROM users WHERE user_id = %s", (user_id,))
         user_account = cursor.fetchone()
         
+        # QA FIX: REMOVED IMMEDIATE EMAIL SENDING, ONLY BACKGROUND TIMER REMAINS
         if user_account and user_account['email']:
             pay_url = url_for('pay_now', order_id=new_order_id, _external=True)
+            
+            # Start Background Timer (3600 seconds = 1 hour)
+            # You can change 3600.0 to 60.0 here if you want to test the email in 1 minute!
             Timer(3600.0, delayed_payment_reminder, args=(
                 new_order_id, contact_name, user_account['email'], total_amount, pay_url
             )).start()
@@ -765,7 +804,7 @@ def place_order():
                         "name": f"Printagram Order #{new_order_id}",
                         "quantity": 1
                     }],
-                    "payment_method_types": ["card", "gcash", "paymaya"],
+                    "payment_method_types": ["card", "gcash", "paymaya", "qrph"],
                     "success_url": url_for('payment_success', order_id=new_order_id, _external=True),
                     "cancel_url": url_for('cancel_payment', order_id=new_order_id, _external=True),
                     "description": "Professional Printing Services"
@@ -826,7 +865,7 @@ def pay_now(order_id):
                     "show_description": True,
                     "show_line_items": True,
                     "line_items": [{"currency": "PHP", "amount": int(float(order['total_amount']) * 100), "name": f"Printagram Order #{order_id}", "quantity": 1}],
-                    "payment_method_types": ["card", "gcash", "paymaya"],
+                    "payment_method_types": ["card", "gcash", "paymaya", "qrph"],
                     "success_url": url_for('payment_success', order_id=order_id, _external=True),
                     "cancel_url": url_for('my_order_details', order_id=order_id, _external=True),
                     "description": "Professional Printing Services"
@@ -882,19 +921,51 @@ def payment_success(order_id):
             
             if order and order['email']:
                 subject = f"Printagram Order Confirmation - #{order_id}"
-                body = f"Hello {order['full_name']},\n\nYour payment was successful! Your order #{order_id} has been received and our team will begin processing it shortly.\n\n"
-                body += "ORDER SUMMARY:\n"
+                fallback_text = f"Hello {order['full_name']},\n\nYour payment was successful! Your order #{order_id} has been received and our team will begin processing it shortly."
                 
+                html_items = ""
                 for item in items:
-                    body += f"- {item['quantity']}x {item['name']} (₱{item['price_at_time']:,.2f})\n"
                     clean_details = item['item_details'].replace(' || ', ' | ')
-                    body += f"  Details: {clean_details}\n"
-                
-                body += f"\nTotal Paid: ₱{order['total_amount']:,.2f}\n"
-                body += f"Delivery Method: {order['delivery_method']}\n\n"
-                body += "We will notify you again once your order is ready for pickup or out for delivery.\n\nThank you for choosing Printagram!"
-                
-                send_system_email(order['email'], subject, body)
+                    html_items += f"<li style='margin-bottom: 10px;'><strong>{item['quantity']}x {item['name']}</strong> (₱{float(item['price_at_time']):,.2f})<br><span style='color:#666; font-size:12px;'>{clean_details}</span></li>"
+
+                html_body = f"""
+                <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; background-color: #ffffff;">
+                    <div style="background: #28a745; color: white; padding: 25px 20px; text-align: center;">
+                        <h2 style="margin: 0; font-size: 24px; font-weight: 700;">Payment Successful</h2>
+                        <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;">Order #{order_id} Confirmed</p>
+                    </div>
+                    <div style="padding: 30px 25px; color: #333;">
+                        <p style="font-size: 16px; margin-top: 0;">Hello <strong>{order['full_name']}</strong>,</p>
+                        <p style="font-size: 15px; line-height: 1.5;">Your payment has been successfully received and our team will begin processing your order shortly.</p>
+                        
+                        <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 25px 0; border: 1px solid #eee;">
+                            <h3 style="margin: 0 0 15px 0; color: #333; font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Order Summary</h3>
+                            <ul style="padding-left: 20px; margin: 0; font-size: 14px;">
+                                {html_items}
+                            </ul>
+                            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #ddd; font-size: 16px; font-weight: bold; color: #333; display: flex; justify-content: space-between;">
+                                <span>Delivery Method:</span>
+                                <span>{order['delivery_method']}</span>
+                            </div>
+                            <div style="margin-top: 10px; font-size: 18px; font-weight: bold; color: #DC5500; display: flex; justify-content: space-between;">
+                                <span>Total Paid:</span>
+                                <span>₱{order['total_amount']:,.2f}</span>
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center; margin: 35px 0;">
+                            <a href="{url_for('my_order_details', order_id=order_id, _external=True)}" style="background: #333; color: white; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-size: 16px; font-weight: bold; display: inline-block; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                                View Order Details
+                            </a>
+                        </div>
+                        
+                        <p style="font-size: 13px; color: #888; text-align: center; margin: 0; line-height: 1.5;">
+                            We will notify you again once your order is ready for pickup or out for delivery.<br>Thank you for choosing Printagram!
+                        </p>
+                    </div>
+                </div>
+                """
+                send_system_email(order['email'], subject, fallback_text, html_body)
         
         conn.close()
         return render_template('order_success.html', order_id=order_id)
@@ -1165,7 +1236,6 @@ def reset_password(token):
         return redirect(url_for('login'))
     return render_template('reset_password.html', token=token)
 
-# --- QA FIX: ADDED TIMEZONE OFFSETS TO ALL QUERIES ---
 @app.route('/admin')
 def admin_dashboard():
     if 'role' not in session or session['role'] not in ['admin', 'super_admin']:
@@ -1364,6 +1434,7 @@ def delete_gallery_image():
         
     return redirect('/admin')
 
+# --- QA FIX: HTML FORMATTED STATUS UPDATE EMAIL WITH DYNAMIC BUTTONS ---
 @app.route('/admin/update_order_status', methods=['POST'])
 def update_order_status():
     if 'role' not in session or session['role'] not in ['admin', 'super_admin']: 
@@ -1383,7 +1454,7 @@ def update_order_status():
             cursor.execute("UPDATE orders SET order_status = %s, estimated_delivery_date = NULL WHERE order_id = %s", (new_status, order_id))
             
         cursor.execute("""
-            SELECT o.order_id, u.email, u.full_name 
+            SELECT o.order_id, o.payment_status, u.email, u.full_name 
             FROM orders o 
             JOIN users u ON o.user_id = u.user_id 
             WHERE o.order_id = %s
@@ -1395,22 +1466,68 @@ def update_order_status():
 
         if order_info and order_info['email']:
             subject = f"Printagram Order Update: #{order_id} is now {new_status}"
-            body_text = f"Hello {order_info['full_name']},\n\nYour Printagram order #{order_id} has been updated to: {new_status}.\n\n"
             
+            status_message = "Your order has been received and is waiting for processing."
             if new_status == 'Processing':
-                body_text += "Great news! Our team is currently preparing and printing your items. We'll notify you as soon as they are ready."
+                status_message = "Great news! Our team is currently preparing and printing your items. We'll notify you as soon as they are ready."
             elif new_status == 'Ready for Pickup':
-                body_text += "Your order is printed, packed, and ready to be picked up at our store!"
+                status_message = "Your order is printed, packed, and ready to be picked up at our store!"
             elif new_status == 'Out for Delivery':
-                body_text += "Your order is on its way to your shipping address and will arrive soon."
+                status_message = "Your order is on its way to your shipping address and will arrive soon."
             elif new_status == 'Completed':
-                body_text += "Your order has been successfully completed. Thank you for choosing Printagram! We'd love it if you could leave a review for your items on our website."
+                status_message = "Your order has been successfully completed. Thank you for choosing Printagram! We'd love it if you could leave a review for your items on our website."
             elif new_status == 'Cancelled':
-                body_text += "Your order has been cancelled. If you have already paid, please allow 3-5 business days for the refund to process. Contact us if you have any questions."
+                status_message = "Your order has been cancelled. If you have already paid, please allow 3-5 business days for the refund to process. Contact us if you have any questions."
             
-            body_text += "\n\nBest regards,\nThe Printagram Team"
+            fallback_text = f"Hello {order_info['full_name']},\n\nYour Printagram order #{order_id} has been updated to: {new_status}.\n\n{status_message}\n\nBest regards,\nThe Printagram Team"
             
-            send_system_email(order_info['email'], subject, body_text)
+            # Define Button Logic
+            action_url = url_for('my_order_details', order_id=order_id, _external=True)
+            button_text = "View Order Details"
+            button_color = "#333333"
+
+            if order_info['payment_status'] == 'Pending' and new_status not in ['Cancelled', 'Completed']:
+                button_text = "💳 Pay Now"
+                button_color = "#28a745"
+                action_url = url_for('pay_now', order_id=order_id, _external=True)
+            elif new_status == 'Completed':
+                button_text = "⭐ Write a Review"
+                button_color = "#DC5500"
+            elif new_status == 'Cancelled':
+                button_text = "View Cancelled Order"
+                button_color = "#dc3545"
+
+            # Beautiful HTML Wrapper
+            html_body = f"""
+            <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; background-color: #ffffff;">
+                <div style="background: #DC5500; color: white; padding: 25px 20px; text-align: center;">
+                    <h2 style="margin: 0; font-size: 24px; font-weight: 700;">Order Update</h2>
+                    <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;">Transaction #{order_id}</p>
+                </div>
+                <div style="padding: 30px 25px; color: #333;">
+                    <p style="font-size: 16px; margin-top: 0;">Hello <strong>{order_info['full_name']}</strong>,</p>
+                    <p style="font-size: 16px; line-height: 1.5;">Your Printagram order has been updated to: <strong style="color: #DC5500; font-size: 18px;">{new_status}</strong>.</p>
+                    
+                    <div style="background: #fff5eb; border-left: 4px solid #DC5500; padding: 15px 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
+                        <p style="margin: 0; font-size: 15px; color: #555; line-height: 1.5;">{status_message}</p>
+                    </div>
+                    
+                    <div style="text-align: center; margin: 35px 0;">
+                        <a href="{action_url}" style="background: {button_color}; color: white; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-size: 16px; font-weight: bold; display: inline-block; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                            {button_text}
+                        </a>
+                    </div>
+                    
+                    <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;">
+                    <p style="font-size: 13px; color: #888; text-align: center; margin: 0; line-height: 1.5;">
+                        Thank you for choosing Printagram!<br>
+                        If you have any questions, simply reply to this email or submit a support ticket on our website.
+                    </p>
+                </div>
+            </div>
+            """
+            
+            send_system_email(order_info['email'], subject, fallback_text, html_body)
             
         flash(f"Order #{order_id} updated to {new_status} and customer notified!", "success")
         

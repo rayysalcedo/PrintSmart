@@ -11,7 +11,7 @@
 
         <div id="db-variants-data" style="display:none;">
             {% for v in variants %}
-                <span data-name="{{ v.variant_name }}" data-price="{{ v.price }}"></span>
+                <span data-name="{{ v.variant_name }}" data-price="{{ v.price }}" data-stock="{{ v.stock_quantity }}"></span>
             {% endfor %}
         </div>
 
@@ -52,9 +52,11 @@
                 <div class="config-group">
                     <label class="config-label">Material Type</label>
                     <select id="tarp-type" class="custom-select" onchange="calculateTotal()">
-                        <option value="Election Tarp">Election Tarp</option>
-                        <option value="Ordinary Tarp" selected>Ordinary Tarp</option>
-                        <option value="Blackout Tarp">Blackout Tarp</option>
+                        {% for v in variants %}
+                            <option value="{{ v.variant_name }}" {% if v.stock_quantity <= 0 %}disabled{% endif %}>{{ v.variant_name }} {% if v.stock_quantity <= 0 %}(Out of Stock){% endif %}</option>
+                        {% else %}
+                            <option value="Ordinary Tarp">Ordinary Tarp</option>
+                        {% endfor %}
                     </select>
                 </div>
                 <div class="config-group">
@@ -67,12 +69,6 @@
 
                 {% elif product.product_id == 2 %} 
                 <div class="config-group">
-                    <label class="config-label">Thickness</label>
-                    <select id="sintra-thickness" class="custom-select" onchange="calculateTotal()">
-                        <option value="3MM">3MM (Standard)</option><option value="5MM">5MM (Thick)</option>
-                    </select>
-                </div>
-                <div class="config-group">
                     <label class="config-label">Size Mode</label>
                     <div class="chip-row">
                         <label class="chip-btn"><input type="radio" name="sintra_mode" value="standard" checked onchange="toggleSintraMode()"><span>Standard Size</span></label>
@@ -80,11 +76,28 @@
                     </div>
                 </div>
                 <div id="sintra-std-inputs">
-                    <select id="sintra-std-size" class="custom-select" onchange="calculateTotal()">
-                        <option value="4R">4R (4x6 in)</option><option value="5R">5R (5x7 in)</option><option value="A4">A4 (8.3x11.7 in)</option><option value="A3">A3 (11.7x16.5 in)</option>
+                    <label class="config-label">Select Standard Variant</label>
+                    <select id="sintra-std-variant" class="custom-select" onchange="calculateTotal()">
+                        {% for v in variants %}
+                            {% if 'Custom' not in v.variant_name %}
+                                <option value="{{ v.variant_name }}" {% if v.stock_quantity <= 0 %}disabled{% endif %}>{{ v.variant_name }} {% if v.stock_quantity <= 0 %}(Out of Stock){% endif %}</option>
+                            {% endif %}
+                        {% else %}
+                            <option value="3MM - A4">3MM - A4</option>
+                        {% endfor %}
                     </select>
                 </div>
                 <div id="sintra-custom-inputs" style="display:none;">
+                    <label class="config-label">Select Custom Rate</label>
+                    <select id="sintra-custom-variant" class="custom-select" onchange="calculateTotal()" style="margin-bottom:10px;">
+                        {% for v in variants %}
+                            {% if 'Custom' in v.variant_name %}
+                                <option value="{{ v.variant_name }}" {% if v.stock_quantity <= 0 %}disabled{% endif %}>{{ v.variant_name }} {% if v.stock_quantity <= 0 %}(Out of Stock){% endif %}</option>
+                            {% endif %}
+                        {% else %}
+                            <option value="3MM - Custom Rate">3MM - Custom Rate</option>
+                        {% endfor %}
+                    </select>
                     <div class="input-row">
                         <div class="input-wrap"><input type="number" id="sintra-h" value="10" max="48" class="custom-input" oninput="calculateTotal()"><span class="unit-label">H (in) - Max 48</span></div>
                         <div class="input-wrap"><input type="number" id="sintra-w" value="10" max="48" class="custom-input" oninput="calculateTotal()"><span class="unit-label">W (in) - Max 48</span></div>
@@ -101,11 +114,28 @@
                     </div>
                 </div>
                 <div id="sticker-sheet-inputs">
+                    <label class="config-label">Select Sheet Variant</label>
                     <select id="sheet-select" class="custom-select" onchange="calculateTotal()">
-                        <option value="A4">A4</option><option value="A3">A3</option>
+                        {% for v in variants %}
+                            {% if 'Custom' not in v.variant_name %}
+                                <option value="{{ v.variant_name }}" {% if v.stock_quantity <= 0 %}disabled{% endif %}>{{ v.variant_name }} {% if v.stock_quantity <= 0 %}(Out of Stock){% endif %}</option>
+                            {% endif %}
+                        {% else %}
+                            <option value="A4">A4</option>
+                        {% endfor %}
                     </select>
                 </div>
                 <div id="sticker-custom-inputs" style="display:none;">
+                    <label class="config-label">Select Custom Rate</label>
+                    <select id="sticker-custom-variant" class="custom-select" onchange="calculateTotal()" style="margin-bottom:10px;">
+                        {% for v in variants %}
+                            {% if 'Custom' in v.variant_name %}
+                                <option value="{{ v.variant_name }}" {% if v.stock_quantity <= 0 %}disabled{% endif %}>{{ v.variant_name }} {% if v.stock_quantity <= 0 %}(Out of Stock){% endif %}</option>
+                            {% endif %}
+                        {% else %}
+                            <option value="Custom Rate">Custom Rate</option>
+                        {% endfor %}
+                    </select>
                     <div class="input-row">
                         <div class="input-wrap"><input type="number" id="sticker-h" value="2" max="48" class="custom-input" oninput="calculateTotal()"><span class="unit-label">H (in) - Max 48</span></div>
                         <div class="input-wrap"><input type="number" id="sticker-w" value="2" max="48" class="custom-input" oninput="calculateTotal()"><span class="unit-label">W (in) - Max 48</span></div>
@@ -115,40 +145,38 @@
 
                 {% elif product.product_id == 4 %} 
                 <div class="config-group">
-                    <label class="config-label">Size</label>
-                    <select id="doc-size" class="custom-select" style="margin-bottom:10px;" onchange="calculateTotal()">
-                        <option value="Short">Short</option><option value="A4">A4</option><option value="Long">Long</option>
-                    </select>
-                    <label class="config-label">Color Mode</label>
-                    <select id="doc-color" class="custom-select" onchange="calculateTotal()">
-                        <option value="Black & White">Black & White</option><option value="Semi Color">Semi-Color</option><option value="Full Color">Full Color</option>
+                    <label class="config-label">Select Print Variant</label>
+                    <select id="doc-variant" class="custom-select" onchange="calculateTotal()">
+                        {% for v in variants %}
+                            <option value="{{ v.variant_name }}" {% if v.stock_quantity <= 0 %}disabled{% endif %}>{{ v.variant_name }} {% if v.stock_quantity <= 0 %}(Out of Stock){% endif %}</option>
+                        {% else %}
+                            <option value="A4 - Black & White">A4 - Black & White</option>
+                        {% endfor %}
                     </select>
                 </div>
 
                 {% elif product.product_id == 5 %} 
                 <div class="config-group">
-                    <label class="config-label">Photo Size</label>
+                    <label class="config-label">Select Photo Size Variant</label>
                     <select id="photo-variant-select" class="custom-select" onchange="calculateTotal()">
-                        <option value="2R/Wallet Size">2R/Wallet Size (Min 10pcs)</option>
-                        <option value="3R">3R (Min 2pcs)</option>
-                        <option value="4R">4R</option>
-                        <option value="5R">5R</option>
-                        <option value="8R">8R</option>
-                        <option value="A4">A4</option>
+                        {% for v in variants %}
+                            <option value="{{ v.variant_name }}" {% if v.stock_quantity <= 0 %}disabled{% endif %}>{{ v.variant_name }} {% if v.stock_quantity <= 0 %}(Out of Stock){% endif %}</option>
+                        {% else %}
+                            <option value="4R">4R</option>
+                        {% endfor %}
                     </select>
                     <small id="min-qty-msg" style="color:#DC5500; font-size:11px;"></small>
                 </div>
 
                 {% elif product.product_id == 6 %} 
                 <div class="config-group">
-                    <label class="config-label">ID Package</label>
+                    <label class="config-label">Select ID Package</label>
                     <select id="id-package-select" class="custom-select" onchange="calculateTotal()">
-                        <option value="Package A">Package A (8pcs 1x1)</option>
-                        <option value="Package B">Package B (6pcs 2x2)</option>
-                        <option value="Package C">Package C (8pcs Passport)</option>
-                        <option value="Package D">Package D (4pcs Passport, 3pcs 2x2)</option>
-                        <option value="Package E">Package E (4pcs 1x1, 5pcs 2x2)</option>
-                        <option value="Package F">Package F (6pcs 1x1, 3pcs 2x2, 2pcs Passport)</option>
+                        {% for v in variants %}
+                            <option value="{{ v.variant_name }}" {% if v.stock_quantity <= 0 %}disabled{% endif %}>{{ v.variant_name }} {% if v.stock_quantity <= 0 %}(Out of Stock){% endif %}</option>
+                        {% else %}
+                            <option value="Package A">Package A</option>
+                        {% endfor %}
                     </select>
                 </div>
                 <div class="config-group">
@@ -165,31 +193,28 @@
                 </div>
                 
                 <div id="shirt-supply-inputs">
-                    <label class="config-label">Garment</label>
-                    <select id="shirt-garment" class="custom-select" style="margin-bottom:10px;" onchange="updateShirtDropdowns()">
-                        <option value="T-Shirt">T-Shirt</option>
-                        <option value="Polo Shirt">Polo Shirt</option>
-                        <option value="Long Sleeves">Long Sleeves</option>
-                    </select>
-                    
-                    <label class="config-label">Fabric</label>
-                    <select id="shirt-fabric" class="custom-select" style="margin-bottom:10px;" onchange="calculateTotal()"></select>
-                    
-                    <label class="config-label">Size</label>
-                    <select id="shirt-size" class="custom-select" onchange="calculateTotal()">
-                        <option value="XS-Small">XS-Small</option>
-                        <option value="Med-Large">Med-Large</option>
-                        <option value="XL-XXL">XL-XXL</option>
-                        <option value="XXXL+">XXXL+</option>
+                    <label class="config-label">Select Garment Variant</label>
+                    <select id="shirt-supply-variant" class="custom-select" onchange="calculateTotal()">
+                        {% for v in variants %}
+                            {% if 'Print Only' not in v.variant_name %}
+                                <option value="{{ v.variant_name }}" {% if v.stock_quantity <= 0 %}disabled{% endif %}>{{ v.variant_name }} {% if v.stock_quantity <= 0 %}(Out of Stock){% endif %}</option>
+                            {% endif %}
+                        {% else %}
+                            <option value="T-Shirt - CVC Cotton - Med-Large">T-Shirt - CVC Cotton - Med-Large</option>
+                        {% endfor %}
                     </select>
                 </div>
                 
                 <div id="shirt-print-only-inputs" style="display:none;">
-                    <label class="config-label">Print Size</label>
-                    <select id="shirt-print-size" class="custom-select" onchange="calculateTotal()">
-                        <option value="A4">A4</option>
-                        <option value="A3">A3</option>
-                        <option value="Logo/Name">Logo or Name</option>
+                    <label class="config-label">Select Print Size</label>
+                    <select id="shirt-print-variant" class="custom-select" onchange="calculateTotal()">
+                        {% for v in variants %}
+                            {% if 'Print Only' in v.variant_name %}
+                                <option value="{{ v.variant_name }}" {% if v.stock_quantity <= 0 %}disabled{% endif %}>{{ v.variant_name }} {% if v.stock_quantity <= 0 %}(Out of Stock){% endif %}</option>
+                            {% endif %}
+                        {% else %}
+                            <option value="Print Only - A4">Print Only - A4</option>
+                        {% endfor %}
                     </select>
                 </div>
                 {% endif %}
@@ -355,8 +380,12 @@
     .qty-control button { width: 35px; height: 35px; border: none; background: #f8f8f8; cursor: pointer; }
     .qty-control input { width: 50px; text-align: center; border: none; font-weight: 600; }
     .action-buttons { display: flex; gap: 10px; margin-top: 25px; }
-    .btn-cart { flex: 1; padding: 12px; border: 1px solid #DC5500; background: #fff5e6; color: #DC5500; font-weight: 600; border-radius: 6px; cursor: pointer; }
-    .btn-buy { flex: 1; padding: 12px; border: none; background: #DC5500; color: white; font-weight: 600; border-radius: 6px; cursor: pointer; }
+    .btn-cart { flex: 1; padding: 12px; border: 1px solid #DC5500; background: #fff5e6; color: #DC5500; font-weight: 600; border-radius: 6px; cursor: pointer; transition: 0.2s;}
+    .btn-buy { flex: 1; padding: 12px; border: none; background: #DC5500; color: white; font-weight: 600; border-radius: 6px; cursor: pointer; transition: 0.2s;}
+    
+    /* QA FIX: Out of Stock Button State */
+    .btn-disabled { background: #e0e0e0 !important; color: #999 !important; border-color: #ddd !important; cursor: not-allowed !important; box-shadow: none !important; }
+
     .custom-textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family: inherit; box-sizing: border-box; }
     .upload-area { border: 1px dashed #DC5500; background: #fffbf8; text-align: center; position: relative; cursor: pointer; }
     .file-input { position: absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor: pointer; }
@@ -419,7 +448,6 @@
             });
         }
 
-        // Initialize unique dropdowns
         if(productId == 7) updateShirtDropdowns();
         else calculateTotal();
     });
@@ -453,17 +481,6 @@
         if(mode === 'Supply & Print') {
             supplyDiv.style.display = 'block';
             printDiv.style.display = 'none';
-            let garment = document.getElementById('shirt-garment').value;
-            let fabricSelect = document.getElementById('shirt-fabric');
-            fabricSelect.innerHTML = '';
-            
-            if (garment === 'T-Shirt') {
-                fabricSelect.innerHTML = '<option value="CVC Cotton">CVC Cotton</option><option value="Drifit">Drifit</option>';
-            } else if (garment === 'Polo Shirt') {
-                fabricSelect.innerHTML = '<option value="CVC Cotton">CVC Cotton</option><option value="Honeycomb">Honeycomb</option>';
-            } else if (garment === 'Long Sleeves') {
-                fabricSelect.innerHTML = '<option value="Ordinary">Ordinary</option><option value="Premium">Premium</option>';
-            }
         } else {
             supplyDiv.style.display = 'none';
             printDiv.style.display = 'block';
@@ -479,13 +496,19 @@
     }
 
     // ==============================================================
-    // QA FIX: DYNAMIC LIVE DATABASE PRICING SYNC
+    // QA FIX: DYNAMIC LIVE DATABASE PRICING AND STOCK SYNC
     // ==============================================================
     
     function getPriceFromDB(variantName, fallbackPrice) {
         let el = document.querySelector(`#db-variants-data span[data-name="${variantName}"]`);
         if (el) return parseFloat(el.getAttribute('data-price'));
         return fallbackPrice;
+    }
+
+    function getStockFromDB(variantName) {
+        let el = document.querySelector(`#db-variants-data span[data-name="${variantName}"]`);
+        if (el) return parseInt(el.getAttribute('data-stock'));
+        return 999; // Fallback so it doesn't break if a variant isn't strictly matched
     }
 
     function calculateTotal() {
@@ -496,10 +519,11 @@
         
         let total = 0;
         let specs = "";
+        let currentVariant = "";
 
         if (productId == 1) { 
-            // TARPAULIN
             let type = document.getElementById('tarp-type').value;
+            currentVariant = type;
             let fallback = type.includes('Election') ? 12 : type.includes('Blackout') ? 50 : 25;
             let p = getPriceFromDB(type, fallback);
             let h = parseFloat(document.getElementById('tarp-h').value) || 0;
@@ -508,113 +532,94 @@
             total = (p * h * w * qty) + layoutFee;
         }
         else if (productId == 2) { 
-            // SINTRA BOARD
-            let thick = document.getElementById('sintra-thickness').value;
             let mode = document.querySelector('input[name="sintra_mode"]:checked').value;
             let addStand = document.getElementById('sintra-stand').checked;
             let standFee = addStand ? 150 : 0;
             
             if(mode === 'standard') {
-                let size = document.getElementById('sintra-std-size').value;
-                let fallback = size==='4R' ? (thick==='3MM'?50:80) : size==='5R' ? (thick==='3MM'?70:105) : size==='A4' ? (thick==='3MM'?180:280) : (thick==='3MM'?352:528);
-                let p = getPriceFromDB(`${thick} - ${size}`, fallback);
-                specs = `Thickness: ${thick} | Size: ${size}${addStand ? ' | Add-on: Stand' : ''}`;
+                let variant = document.getElementById('sintra-std-variant').value;
+                currentVariant = variant;
+                let p = getPriceFromDB(variant, 50);
+                specs = `Variant: ${variant}${addStand ? ' | Add-on: Stand' : ''}`;
                 total = (p * qty) + standFee + layoutFee;
             } else {
-                let p = getPriceFromDB(`${thick} - Custom Rate`, thick==='3MM' ? 2 : 3);
+                let variant = document.getElementById('sintra-custom-variant').value;
+                currentVariant = variant;
+                let p = getPriceFromDB(variant, 2);
                 let h = parseFloat(document.getElementById('sintra-h').value) || 0;
                 let w = parseFloat(document.getElementById('sintra-w').value) || 0;
-                specs = `Thickness: ${thick} | Custom Size: ${h}x${w} in${addStand ? ' | Add-on: Stand' : ''}`;
+                specs = `Variant: ${variant} | Custom Size: ${h}x${w} in${addStand ? ' | Add-on: Stand' : ''}`;
                 total = (p * h * w * qty) + standFee + layoutFee;
             }
         }
         else if (productId == 3) { 
-            // STICKER
             let mode = document.querySelector('input[name="size_mode"]:checked').value;
             let preCut = document.getElementById('pre-cut').checked;
             let cutFee = preCut ? 50 : 0;
             let stickerLayout = hasLayout ? 300 : 0; 
 
             if(mode === 'sheet') {
-                let size = document.getElementById('sheet-select').value;
-                let p = getPriceFromDB(size, size==='A4' ? 90 : 180);
-                specs = `Mode: Sheet | Size: ${size}${preCut ? ' | Add-on: Pre-cut' : ''}`;
+                let variant = document.getElementById('sheet-select').value;
+                currentVariant = variant;
+                let p = getPriceFromDB(variant, 90);
+                specs = `Mode: Sheet | Size: ${variant}${preCut ? ' | Add-on: Pre-cut' : ''}`;
                 total = (p * qty) + cutFee + stickerLayout;
             } else {
-                let p = getPriceFromDB('Custom Rate', 0.50);
+                let variant = document.getElementById('sticker-custom-variant').value;
+                currentVariant = variant;
+                let p = getPriceFromDB(variant, 0.50);
                 let h = parseFloat(document.getElementById('sticker-h').value) || 0;
                 let w = parseFloat(document.getElementById('sticker-w').value) || 0;
-                specs = `Mode: Custom | Size: ${h}x${w} in${preCut ? ' | Add-on: Pre-cut' : ''}`;
+                specs = `Mode: Custom | Variant: ${variant} | Size: ${h}x${w} in${preCut ? ' | Add-on: Pre-cut' : ''}`;
                 total = (p * h * w * qty) + cutFee + stickerLayout;
             }
         }
         else if (productId == 4) { 
-            // DOCUMENT
-            let size = document.getElementById('doc-size').value;
-            let color = document.getElementById('doc-color').value;
-            let fallback = 5;
-            if (color === 'Black & White') fallback = size==='Short'?5 : size==='A4'?7 : 8;
-            if (color === 'Semi Color') fallback = size==='Short'?7 : size==='A4'?10 : 12;
-            if (color === 'Full Color') fallback = size==='Short'?15 : size==='A4'?20 : 25;
-            
-            let p = getPriceFromDB(`${size} - ${color}`, fallback);
-            specs = `Size: ${size} | Color: ${color}`;
+            let variant = document.getElementById('doc-variant').value;
+            currentVariant = variant;
+            let p = getPriceFromDB(variant, 5);
+            specs = `Variant: ${variant}`;
             total = (p * qty) + layoutFee;
         }
         else if (productId == 5) { 
-            // PHOTO
-            let sel = document.getElementById('photo-variant-select');
-            let size = sel.value;
-            let fallback = size==='2R/Wallet Size'?10 : size==='3R'?20 : size==='4R'?40 : size==='5R'?50 : size==='8R'?80 : 100;
+            let variant = document.getElementById('photo-variant-select').value;
+            currentVariant = variant;
             
-            // Handle Min Quantity logic
             let input = document.getElementById('main-qty');
             let msg = document.getElementById('min-qty-msg');
-            if (size === '2R/Wallet Size') { input.min = 10; msg.innerText="Min 10pcs"; }
-            else if (size === '3R') { input.min = 2; msg.innerText="Min 2pcs"; }
+            if (variant.includes('Wallet') || variant.includes('2R')) { input.min = 10; msg.innerText="Min 10pcs"; }
+            else if (variant.includes('3R')) { input.min = 2; msg.innerText="Min 2pcs"; }
             else { input.min = 1; msg.innerText=""; }
             if(parseInt(input.value) < input.min) { input.value = input.min; qty = input.min; }
 
-            let p = getPriceFromDB(size, fallback);
-            specs = `Size: ${size}`;
+            let p = getPriceFromDB(variant, 10);
+            specs = `Size: ${variant}`;
             total = (p * qty) + layoutFee;
         }
         else if (productId == 6) { 
-            // ID PACKAGE
             let pkg = document.getElementById('id-package-select').value;
-            let fallback = pkg==='Package A' ? 60 : 100;
+            currentVariant = pkg;
             let enhance = document.getElementById('extra-enhance').checked;
             let softcopy = document.getElementById('extra-softcopy').checked;
-            let p = getPriceFromDB(pkg, fallback);
+            let p = getPriceFromDB(pkg, 60);
             
             specs = `Package: ${pkg}${enhance ? ' | +Enhance/Outfit' : ''}${softcopy ? ' | +Softcopy' : ''}`;
             total = ((p + (enhance?50:0) + (softcopy?20:0)) * qty);
         }
         else if (productId == 7) { 
-            // APPAREL
             let mode = document.querySelector('input[name="shirt_mode"]:checked').value;
             
             if (mode === 'Supply & Print') {
-                let garment = document.getElementById('shirt-garment').value;
-                let fabric = document.getElementById('shirt-fabric').value;
-                let size = document.getElementById('shirt-size').value;
-                
-                let fallback = 250;
-                if (garment==='T-Shirt' && fabric==='CVC Cotton') fallback = size==='XS-Small'?250 : size==='Med-Large'?280 : size==='XL-XXL'?320 : 350;
-                if (garment==='T-Shirt' && fabric==='Drifit') fallback = size==='XS-Small'?150 : size==='Med-Large'?180 : size==='XL-XXL'?220 : 250;
-                if (garment==='Polo Shirt' && fabric==='CVC Cotton') fallback = size==='XS-Small'?350 : size==='Med-Large'?380 : size==='XL-XXL'?420 : 450;
-                if (garment==='Polo Shirt' && fabric==='Honeycomb') fallback = size==='XS-Small'?450 : size==='Med-Large'?480 : size==='XL-XXL'?520 : 550;
-                if (garment==='Long Sleeves' && fabric==='Ordinary') fallback = size==='XS-Small'?300 : size==='Med-Large'?350 : size==='XL-XXL'?400 : 450;
-                if (garment==='Long Sleeves' && fabric==='Premium') fallback = size==='XS-Small'?450 : size==='Med-Large'?480 : size==='XL-XXL'?520 : 550;
-
-                let p = getPriceFromDB(`${garment} - ${fabric} - ${size}`, fallback);
-                specs = `Supply & Print: ${garment} | Fabric: ${fabric} | Size: ${size}`;
+                let variant = document.getElementById('shirt-supply-variant').value;
+                currentVariant = variant;
+                let p = getPriceFromDB(variant, 250);
+                specs = `Supply & Print: ${variant}`;
                 total = (p * qty) + layoutFee;
             } else {
-                let pSize = document.getElementById('shirt-print-size').value;
-                let fallback = pSize==='A4'?100 : pSize==='A3'?200 : 50;
-                let p = getPriceFromDB(`Print Only - ${pSize}`, fallback);
-                specs = `Print Only: ${pSize}`;
+                let variant = document.getElementById('shirt-print-variant').value;
+                currentVariant = variant;
+                let p = getPriceFromDB(variant, 50);
+                specs = `Print Only: ${variant}`;
                 total = (p * qty) + layoutFee;
             }
         }
@@ -622,6 +627,27 @@
         document.getElementById('total-price').innerText = total.toLocaleString('en-US', {minimumFractionDigits: 2});
         document.getElementById('calculated_total').value = total;
         document.getElementById('item_specs').value = specs;
+
+        // QA FIX: Disable buttons dynamically if stock is 0
+        let stock = getStockFromDB(currentVariant);
+        let btnCart = document.querySelector('button[value="add_cart"]');
+        let btnBuy = document.querySelector('button[value="buy_now"]');
+
+        if (stock <= 0) {
+            btnCart.disabled = true;
+            btnBuy.disabled = true;
+            btnCart.classList.add('btn-disabled');
+            btnBuy.classList.add('btn-disabled');
+            btnCart.innerHTML = '<i class="fas fa-ban"></i> Out of Stock';
+            btnBuy.innerHTML = '<i class="fas fa-ban"></i> Out of Stock';
+        } else {
+            btnCart.disabled = false;
+            btnBuy.disabled = false;
+            btnCart.classList.remove('btn-disabled');
+            btnBuy.classList.remove('btn-disabled');
+            btnCart.innerText = 'Add to Cart';
+            btnBuy.innerText = 'Buy Now';
+        }
     }
 
     function changeQty(n) {

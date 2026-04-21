@@ -97,7 +97,7 @@
                     
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <label style="font-size: 13px; color: #555; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 600;">
-                            <input type="checkbox" id="select-all" class="item-checkbox" onclick="toggleSelectAll(this)" checked> Select All
+                            <input type="checkbox" id="select-all" class="item-checkbox" onclick="toggleSelectAll(this)" checked> <span id="select-all-text">Unselect All</span>
                         </label>
                         <button type="submit" form="bulk-delete-form" id="bulk-delete-btn" class="btn-bulk-delete" style="display: none;" disabled>
                             <i class="fas fa-trash-alt"></i> Delete Selected
@@ -222,6 +222,7 @@
         const checkboxes = document.querySelectorAll('.single-checkbox');
         const btn = document.getElementById('bulk-delete-btn');
         const selectAllCb = document.getElementById('select-all');
+        const selectAllText = document.getElementById('select-all-text');
         const submitBtn = document.getElementById('main-submit-btn');
         
         let checkedCount = 0;
@@ -257,7 +258,11 @@
             btn.disabled = true;
         }
         
+        // QA FIX: Dynamic logic for the master checkbox and its text
         selectAllCb.checked = (checkedCount === checkboxes.length && checkboxes.length > 0);
+        if (selectAllText) {
+            selectAllText.innerText = selectAllCb.checked ? "Unselect All" : "Select All";
+        }
 
         let fee = subtotal > 0 ? 50.00 : 0.00;
         let grand = subtotal + fee;
