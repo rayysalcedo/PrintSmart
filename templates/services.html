@@ -28,7 +28,6 @@
 
     .hero-overlay {
         position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-        /* I lowered the opacity from 0.85 and 0.95 down to 0.5 and 0.7 */
         background: linear-gradient(135deg, rgba(255, 140, 66, 0.5) 0%, rgba(220, 85, 0, 0.7) 100%); 
         z-index: 1;
     }
@@ -37,7 +36,7 @@
         z-index: 2; 
         display: flex; 
         flex-direction: column; 
-        align-items: center; /* Forces absolute center alignment */
+        align-items: center; 
     }
     .trusted-badge {
         display: inline-block; background: rgba(255,255,255,0.25); padding: 6px 15px; border-radius: 50px;
@@ -47,14 +46,14 @@
     .services-hero p { opacity: 0.95; margin-bottom: 25px; font-size: 16px; font-weight: 300; text-align: center; }
 
     .search-container { 
-        width: 100%; /* Important for centering */
+        width: 100%; 
         max-width: 600px; 
         margin: 0 auto; 
         position: relative; 
     }
     .search-container input {
         width: 100%; 
-        box-sizing: border-box; /* THIS FIXES THE RIGHT-SHIFT BUG */
+        box-sizing: border-box;
         padding: 18px 25px 18px 55px; border-radius: 50px; border: none; font-size: 16px;
         font-family: 'Alexandria', sans-serif; box-shadow: 0 4px 20px rgba(0,0,0,0.2); outline: none; transition: 0.3s;
     }
@@ -114,7 +113,6 @@
     .features li { margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
     .features li i { color: #2e7d32; font-size: 12px; }
 
-    /* NEW: DYNAMIC PRICE ROW STYLING */
     .card-footer {
         display: flex; justify-content: space-between; align-items: flex-end;
         margin-top: auto; padding-top: 15px; border-top: 1px dashed #e0e0e0;
@@ -153,6 +151,35 @@
     .step-item p { font-size: 14px; color: #777; line-height: 1.5; }
     .start-order-btn { background: #DC5500; color: white; border: none; padding: 14px 45px; border-radius: 50px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px; transition: 0.3s; }
     .start-order-btn:hover { background: #b84700; transform: translateY(-2px); }
+
+    /* QA FIX: MOBILE-SPECIFIC MODAL FIXES */
+    @media (max-width: 768px) {
+        .process-modal {
+            padding: 30px 15px; 
+            max-height: 85vh; 
+            overflow-y: auto; 
+        }
+        .process-modal h2 { font-size: 22px; margin-bottom: 5px; }
+        .process-sub { font-size: 13px; margin-bottom: 20px; }
+        
+        /* Change steps to a 2x2 grid so it fits nicely on a phone */
+        .steps-container { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 20px 10px; 
+        }
+        .step-item { min-width: 0; margin-bottom: 0; padding: 0; }
+        .step-circle { width: 45px; height: 45px; font-size: 18px; margin: 0 auto 10px auto; }
+        .step-item h4 { font-size: 14px; margin-bottom: 4px; }
+        .step-item p { font-size: 11px; }
+        
+        .start-order-btn { 
+            width: 100%; 
+            padding: 14px 20px; 
+            font-size: 14px; 
+            margin-top: 25px; 
+        }
+    }
 </style>
 
 <div class="services-hero">

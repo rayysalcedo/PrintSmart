@@ -772,16 +772,14 @@ def place_order():
         cursor.execute("SELECT email FROM users WHERE user_id = %s", (user_id,))
         user_account = cursor.fetchone()
         
-        # QA FIX: REMOVED IMMEDIATE EMAIL SENDING, ONLY BACKGROUND TIMER REMAINS
         if user_account and user_account['email']:
             pay_url = url_for('pay_now', order_id=new_order_id, _external=True)
             
-            # Start Background Timer (3600 seconds = 1 hour)
-            # You can change 3600.0 to 60.0 here if you want to test the email in 1 minute!
-            Timer(3600.0, delayed_payment_reminder, args=(
+           # Start Background Timer (60 seconds = 1 minute)
+            Timer(60.0, delayed_payment_reminder, args=(
                 new_order_id, contact_name, user_account['email'], total_amount, pay_url
             )).start()
-            print(f"Background timer started for Order #{new_order_id}. Will check payment status in 1 hour.")
+            print(f"Background timer started for Order #{new_order_id}. Will check payment status in 1 minute.")
             
         conn.commit()
         conn.close()
