@@ -683,7 +683,7 @@ def checkout():
     except Exception as e:
         return f"Checkout Error: {e}"
 
-# --- QA FIX: REMOVED IMMEDIATE EMAIL SENDING ---
+# --- QA FIX: PAYMENT CHOICE LOGIC ADDED ---
 @app.route('/place_order', methods=['POST'])
 def place_order():
     if not session.get('loggedin'):
@@ -722,6 +722,7 @@ def place_order():
 
         total_amount = float(request.form.get('grand_total'))
         delivery_method = request.form.get('delivery_method', 'Pickup') 
+        payment_choice = request.form.get('payment_method', 'PayMongo') # <-- Reads "Cash" or "PayMongo"
         contact_name = request.form.get('contact_name', '').strip()
         contact_email = request.form.get('contact_email', '').strip()
         contact_phone = request.form.get('contact_phone', '').strip()
@@ -751,8 +752,8 @@ def place_order():
         
         cursor.execute("""
             INSERT INTO orders (user_id, total_amount, payment_status, payment_method, delivery_method, shipping_address, order_status, created_at) 
-            VALUES (%s, %s, 'Pending', 'PayMongo', %s, %s, 'Pending', NOW())
-        """, (user_id, total_amount, delivery_method, full_details))
+            VALUES (%s, %s, 'Pending', %s, %s, %s, 'Pending', NOW())
+        """, (user_id, total_amount, payment_choice, delivery_method, full_details))
         conn.commit() 
         new_order_id = cursor.lastrowid
 
@@ -771,7 +772,24 @@ def place_order():
             
         cursor.execute("SELECT email FROM users WHERE user_id = %s", (user_id,))
         user_account = cursor.fetchone()
-        
+        conn.commit()
+        conn.close()
+
+        # ==========================================
+        # QA FIX: BYPASS PAYMONGO IF THEY CHOSE CASH
+        # ==========================================
+        if payment_choice == 'Cash':
+            if user_account and user_account['email']:
+                subject = f"Printagram Order Received - #{new_order_id}"
+                body = f"Hello {contact_name},\n\nYour order #{new_order_id} has been received! You have selected to pay via Cash at our store. Our team will begin processing your items shortly."
+                send_system_email(user_account['email'], subject, body)
+                
+            flash("Order successfully placed! Please prepare your cash payment at the counter.", "success")
+            return redirect(url_for('my_order_details', order_id=new_order_id))
+
+        # ==========================================
+        # IF ONLINE PAYMENT, PROCEED TO PAYMONGO
+        # ==========================================
         if user_account and user_account['email']:
             pay_url = url_for('pay_now', order_id=new_order_id, _external=True)
             
@@ -781,9 +799,6 @@ def place_order():
             )).start()
             print(f"Background timer started for Order #{new_order_id}. Will check payment status in 1 minute.")
             
-        conn.commit()
-        conn.close()
-
         paymongo_key = os.environ.get('PAYMONGO_SECRET_KEY')
         
         if not paymongo_key:

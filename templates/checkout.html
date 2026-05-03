@@ -4,7 +4,7 @@
 <style>
     body { background-color: #f4f7f9; font-family: 'Alexandria', sans-serif; }
     
-    .checkout-container { max-width: 1000px; margin: 40px auto; padding: 0 20px; display: grid; grid-template-columns: 1.5fr 1fr; gap: 30px; }
+    .checkout-container { max-width: 1000px; margin: 0 auto 40px auto; padding: 0 20px; display: grid; grid-template-columns: 1.5fr 1fr; gap: 30px; }
     .checkout-section { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 15px rgba(0,0,0,0.03); margin-bottom: 20px; border: 1px solid #eee; }
     .section-title { font-size: 18px; font-weight: 700; color: #222; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
     
@@ -43,22 +43,30 @@
     .totals-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; color: #555; }
     .grand-total { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px dashed #ccc; font-size: 18px; font-weight: 800; color: #DC5500; }
     
-    .btn-pay { width: 100%; padding: 16px; background: #DC5500; color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 16px; cursor: pointer; transition: 0.3s; margin-top: 20px; box-shadow: 0 4px 15px rgba(220,85,0,0.3); }
+    .btn-pay { width: 100%; padding: 16px; background: #DC5500; color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 16px; cursor: pointer; transition: 0.3s; margin-top: 10px; box-shadow: 0 4px 15px rgba(220,85,0,0.3); }
     .btn-pay:hover { background: #b84700; transform: translateY(-2px); }
 
     @media(max-width: 768px) { .checkout-container { grid-template-columns: 1fr; } }
 </style>
 
-<div class="checkout-container">
-    <div class="checkout-left">
-        <h1 style="font-size: 24px; font-weight: 800; color: #333; margin-bottom: 25px;">Secure Checkout</h1>
+<!-- QA FIX: Moved the title OUTSIDE the grid so left and right columns perfectly align at the top -->
+<div style="max-width: 1000px; margin: 40px auto 20px auto; padding: 0 20px;">
+    <h1 style="font-size: 28px; font-weight: 800; color: #333; margin: 0;">Secure Checkout</h1>
+</div>
+
+<!-- QA FIX: Wrapped the entire grid in the form tag to ensure all buttons submit properly -->
+<form id="place-order-form" action="/place_order" method="POST" onsubmit="return validateCheckout(event)">
+    <div class="checkout-container">
         
-        <form id="place-order-form" action="/place_order" method="POST" onsubmit="return validateCheckout(event)">
+        <!-- ============================== -->
+        <!-- LEFT COLUMN: Contact & Address -->
+        <!-- ============================== -->
+        <div class="checkout-left">
+            
             {% for item in checkout_items %}
             <input type="hidden" name="checkout_cart_ids" value="{{ item.cart_id }}">
             {% endfor %}
             <input type="hidden" name="grand_total" value="{{ grand_total }}">
-            <input type="hidden" name="payment_method" value="PayMongo">
             
             <div class="checkout-section">
                 <div class="section-title"><i class="fas fa-user-circle" style="color:#DC5500;"></i> Contact Information</div>
@@ -92,7 +100,7 @@
                 </div>
             </div>
 
-            <div class="checkout-section">
+            <div class="checkout-section" style="margin-bottom: 0;">
                 <div class="section-title"><i class="fas fa-truck" style="color:#DC5500;"></i> Delivery Method</div>
                 
                 <div class="delivery-options">
@@ -156,48 +164,86 @@
                     </div>
                 </div>
             </div>
-
-            <div class="checkout-section">
-                <div class="section-title"><i class="fas fa-shield-alt" style="color:#28a745;"></i> Secure Payment</div>
-                <div style="text-align: center; color: #555; font-size: 13px;">
-                    <p style="margin-bottom: 15px;">You will be redirected to <strong>PayMongo</strong> to complete your purchase securely.</p>
-                    <div style="display: flex; justify-content: center; gap: 15px; align-items: center;">
-                        <span style="background: #007DFE; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold; font-size: 12px;">GCash</span>
-                        <span style="background: #111; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold; font-size: 12px;">Maya</span>
-                        <i class="fab fa-cc-visa" style="font-size: 28px; color: #1a1f71;"></i>
-                        <i class="fab fa-cc-mastercard" style="font-size: 28px; color: #eb001b;"></i>
-                    </div>
-                </div>
-            </div>
-        </form>
-    </div>
-
-    <div class="checkout-right">
-        <div class="checkout-section" style="position: sticky; top: 20px;">
-            <div class="section-title">Order Summary</div>
-            
-            <div style="margin-bottom: 20px; max-height: 350px; overflow-y: auto; padding-right: 10px;">
-                {% for item in checkout_items %}
-                <div class="summary-item">
-                    <img src="{% if item.image_path %}{{ item.image_path if 'http' in item.image_path else url_for('static', filename=item.image_path) }}{% else %}{{ url_for('static', filename='images/product_' ~ item.product_id ~ '.jpg') }}{% endif %}" class="summary-img" onerror="this.src='{{ url_for('static', filename='images/icon-signage.png') }}'">
-                    <div class="summary-details">
-                        <h4>{{ item.product_name }}</h4>
-                        <p>Qty: {{ item.quantity }}</p>
-                    </div>
-                    <div class="summary-price">₱{{ "{:,.2f}".format(item.total_price) }}</div>
-                </div>
-                {% endfor %}
-            </div>
-
-            <div class="totals-row"><span>Subtotal</span><span>₱{{ "{:,.2f}".format(subtotal) }}</span></div>
-            <div class="totals-row"><span>Processing Fee</span><span>₱{{ "{:,.2f}".format(processing_fee) }}</span></div>
-            <div class="grand-total"><span>Total</span><span>₱{{ "{:,.2f}".format(grand_total) }}</span></div>
-
-            <button type="submit" form="place-order-form" class="btn-pay">Pay Now ₱{{ "{:,.2f}".format(grand_total) }}</button>
-            <div style="text-align: center; margin-top: 15px;"><a href="/cart" style="color: #666; font-size: 13px; text-decoration: underline;">Return to Cart</a></div>
         </div>
+
+        <!-- ============================== -->
+        <!-- RIGHT COLUMN: Order & Payment  -->
+        <!-- ============================== -->
+        <div class="checkout-right">
+            
+            <!-- We use flexbox and gap so the cards stack perfectly -->
+            <div style="position: sticky; top: 20px; display: flex; flex-direction: column; gap: 20px;">
+                
+                <!-- 1. ORDER SUMMARY -->
+                <div class="checkout-section" style="margin-bottom: 0;">
+                    <div class="section-title">Order Summary</div>
+                    
+                    <div style="margin-bottom: 20px; max-height: 250px; overflow-y: auto; padding-right: 10px;">
+                        {% for item in checkout_items %}
+                        <div class="summary-item">
+                            <img src="{% if item.image_path %}{{ item.image_path if 'http' in item.image_path else url_for('static', filename=item.image_path) }}{% else %}{{ url_for('static', filename='images/product_' ~ item.product_id ~ '.jpg') }}{% endif %}" class="summary-img" onerror="this.src='{{ url_for('static', filename='images/icon-signage.png') }}'">
+                            <div class="summary-details">
+                                <h4>{{ item.product_name }}</h4>
+                                <p>Qty: {{ item.quantity }}</p>
+                            </div>
+                            <div class="summary-price">₱{{ "{:,.2f}".format(item.total_price) }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="totals-row"><span>Subtotal</span><span>₱{{ "{:,.2f}".format(subtotal) }}</span></div>
+                    <div class="totals-row"><span>Processing Fee</span><span>₱{{ "{:,.2f}".format(processing_fee) }}</span></div>
+                    <div class="grand-total"><span>Total</span><span>₱{{ "{:,.2f}".format(grand_total) }}</span></div>
+                </div>
+
+                <!-- 2. PAYMENT METHOD SELECTION -->
+                <div class="checkout-section" style="margin-bottom: 0;">
+                    <div class="section-title"><i class="fas fa-wallet" style="color:#DC5500;"></i> Payment Method</div>
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                        <label style="border: 2px solid #DC5500; padding: 15px; border-radius: 8px; flex: 1; cursor: pointer; display: flex; align-items: center; gap: 10px; background: #fff5eb;" id="onlineLabel">
+                            <input type="radio" name="payment_method" value="PayMongo" checked onclick="updatePayButton('PayMongo')" style="display: none;">
+                            <i class="fas fa-credit-card" style="font-size: 24px; color: #DC5500;"></i>
+                            <div style="display: flex; flex-direction: column;">
+                                <strong style="color: #333;">Pay Online</strong>
+                                <span style="font-size: 11px; color: #666;">GCash, Maya, QRPh, Cards</span>
+                            </div>
+                        </label>
+                        
+                        <label style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; flex: 1; cursor: pointer; display: flex; align-items: center; gap: 10px; background: #fff;" id="cashLabel">
+                            <input type="radio" name="payment_method" value="Cash" onclick="updatePayButton('Cash')" style="display: none;">
+                            <i class="fas fa-money-bill-wave" style="font-size: 24px; color: #888;" id="cashIcon"></i>
+                            <div style="display: flex; flex-direction: column;">
+                                <strong style="color: #333;">Cash (In-Store)</strong>
+                                <span style="font-size: 11px; color: #666;">Pay at the counter</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 3. SECURE PAYMENT LOGOS -->
+                <div class="checkout-section" id="secure-payment-section" style="margin-bottom: 0; padding: 20px;">
+                    <div style="text-align: center; color: #555; font-size: 13px;">
+                        <p style="margin-bottom: 15px; margin-top: 0;">You will be redirected to <strong>PayMongo</strong> to complete your purchase securely.</p>
+                        <div style="display: flex; justify-content: center; gap: 15px; align-items: center;">
+                            <span style="background: #007DFE; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold; font-size: 12px;">GCash</span>
+                            <span style="background: #111; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold; font-size: 12px;">Maya</span>
+                            <i class="fab fa-cc-visa" style="font-size: 28px; color: #1a1f71;"></i>
+                            <i class="fab fa-cc-mastercard" style="font-size: 28px; color: #eb001b;"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. CHECKOUT BUTTON -->
+                <div>
+                    <button type="submit" class="btn-pay" id="main-submit-btn" style="margin-top: 0;">Pay Now ₱{{ "{:,.2f}".format(grand_total) }} <i class="fas fa-arrow-right" style="margin-left: 8px;"></i></button>
+                    <div style="text-align: center; margin-top: 15px;"><a href="/cart" style="color: #666; font-size: 13px; text-decoration: underline;">Return to Cart</a></div>
+                </div>
+
+            </div>
+        </div>
+
     </div>
-</div>
+</form>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
@@ -228,10 +274,40 @@
             deliveryInputs.forEach(input => input.removeAttribute('required'));
         }
     }
+    
+    function updatePayButton(method) {
+        const btn = document.getElementById('main-submit-btn');
+        const cashLabel = document.getElementById('cashLabel');
+        const onlineLabel = document.getElementById('onlineLabel');
+        const secureSection = document.getElementById('secure-payment-section');
+        const cashIcon = document.getElementById('cashIcon');
 
-    // QA FIX: Rigorous Javascript Validation before form submission (Modified to allow numbered barangays)
+        if (method === 'Cash') {
+            if(btn) btn.innerHTML = 'Place Order ₱{{ "{:,.2f}".format(grand_total) }} <i class="fas fa-check" style="margin-left: 8px;"></i>';
+            cashLabel.style.borderColor = '#DC5500';
+            cashLabel.style.background = '#fff5eb';
+            cashIcon.style.color = '#DC5500';
+            
+            onlineLabel.style.borderColor = '#ddd';
+            onlineLabel.style.background = '#fff';
+            onlineLabel.querySelector('i').style.color = '#888';
+            
+            secureSection.style.display = 'none';
+        } else {
+            if(btn) btn.innerHTML = 'Pay Now ₱{{ "{:,.2f}".format(grand_total) }} <i class="fas fa-arrow-right" style="margin-left: 8px;"></i>';
+            onlineLabel.style.borderColor = '#DC5500';
+            onlineLabel.style.background = '#fff5eb';
+            onlineLabel.querySelector('i').style.color = '#DC5500';
+            
+            cashLabel.style.borderColor = '#ddd';
+            cashLabel.style.background = '#fff';
+            cashIcon.style.color = '#888';
+            
+            secureSection.style.display = 'block';
+        }
+    }
+
     function validateCheckout(event) {
-        // 1. Double check the Phone Number
         const phoneInput = document.querySelector('input[name="contact_phone"]');
         const phoneRegex = /^(?:\+639|09)\d{9}$/;
         if (!phoneRegex.test(phoneInput.value.trim())) {
@@ -241,7 +317,6 @@
             return false;
         }
 
-        // 2. Validate Address Fields if Delivery is selected
         const isDelivery = document.querySelector('input[name="delivery_method"][value="Delivery"]').checked;
         if (isDelivery) {
             const city = document.querySelector('input[name="addr_city"]');
@@ -249,8 +324,6 @@
             const zip = document.querySelector('input[name="addr_zip"]');
 
             const hasLetterRegex = /[a-zA-Z]/;
-            
-            // Barangay check removed to allow purely numerical barangays like "143"
             
             if (!hasLetterRegex.test(city.value)) {
                 alert("City/Municipality must contain valid text (letters). Cannot be only numbers.");

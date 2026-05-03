@@ -63,8 +63,15 @@
             </a>
             
             <div style="border-left: 1px solid #eee; padding-left: 20px; text-align: center; min-width: 120px;">
-                {% if 'ending' in order.payment_status|lower %}
-                    <a href="/pay_now/{{ order.order_id }}" class="btn-pay-now"><i class="fas fa-credit-card"></i> Pay Now</a>
+                <!-- QA FIX: Checks for Cash payment method to hide the online Pay Now button -->
+                {% if 'ending' in order.payment_status|lower and order.order_status not in ['Cancelled', 'Completed'] %}
+                    {% if order.payment_method == 'Cash' %}
+                        <span style="background: #eee; color: #555; padding: 8px 15px; border-radius: 6px; font-size: 13px; font-weight: bold; display: inline-block;">
+                            <i class="fas fa-store"></i> Pay In-Store
+                        </span>
+                    {% else %}
+                        <a href="/pay_now/{{ order.order_id }}" class="btn-pay-now"><i class="fas fa-credit-card"></i> Pay Now</a>
+                    {% endif %}
                 {% else %}
                     <a href="/my_order_details/{{ order.order_id }}" style="color: #DC5500;"><i class="fas fa-chevron-right" style="font-size: 24px;"></i></a>
                 {% endif %}
