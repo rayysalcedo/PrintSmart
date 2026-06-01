@@ -232,6 +232,12 @@
         <div class="nav-item" onclick="switchTab('messages', this)">
             <i class="fas fa-comments"></i> Messages
         </div>
+
+        {% if role == 'super_admin' %}
+        <div class="nav-item" onclick="switchTab('audit', this)">
+            <i class="fas fa-clipboard-list"></i> Audit Log
+        </div>
+        {% endif %}
     </div>
 
     <div class="main-content">
@@ -260,9 +266,14 @@
                     </div>
                     
                     <div class="admin-profile-dropdown" id="notificationDropdown" style="width: 320px; right: -10px; top: 120%;">
-                        <div class="apd-header" style="background: #333; padding: 15px 20px;">
-                            <strong style="font-size: 14px;">Notifications</strong>
-                            <span id="notifSubtext" style="color: #aaa; text-transform: none; letter-spacing: 0;">You have 0 pending actions</span>
+                        <div class="apd-header" style="background: #333; padding: 15px 20px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+                            <div>
+                                <strong style="font-size: 14px;">Notifications</strong>
+                                <span id="notifSubtext" style="color: #aaa; text-transform: none; letter-spacing: 0;">You have 0 pending actions</span>
+                            </div>
+                            <a href="#" id="markAllReadBtn" onclick="markAllNotificationsRead(event)" style="color: #ffb37a; font-size: 11px; font-weight: 600; text-decoration: none; white-space: nowrap; flex-shrink: 0; margin-top: 2px;" title="Mark all notifications as read">
+                                <i class="fas fa-check-double"></i> Mark all read
+                            </a>
                         </div>
                         <div id="notifList" style="max-height: 350px; overflow-y: auto; background: white;">
                             <div style="padding: 25px; text-align: center; color: #888; font-size: 13px;"><i class="fas fa-spinner fa-spin" style="margin-bottom: 10px;"></i><br>Connecting to server...</div>
@@ -649,6 +660,36 @@
         </div>
         {% endif %}
 
+        {% if role == 'super_admin' %}
+        <div id="audit" class="view-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <p class="tab-subtitle"><i class="fas fa-clipboard-list"></i> A record of every change made by admin staff. Only you (the Super Admin) can see this tab.</p>
+                <div class="local-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search activity..." oninput="filterTable('audit-table', this.value)">
+                </div>
+            </div>
+
+            <div style="background: white; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); overflow: hidden; border: 1px solid var(--border-color);">
+                <table id="audit-table">
+                    <thead>
+                        <tr>
+                            <th>When</th>
+                            <th>Staff Member</th>
+                            <th>Role</th>
+                            <th>Action</th>
+                            <th>Details</th>
+                            <th>IP Address</th>
+                        </tr>
+                    </thead>
+                    <tbody id="audit-log-body">
+                        <tr><td colspan="6" style="text-align: center; padding: 30px; color: #888;"><i class="fas fa-spinner fa-spin"></i> Loading activity…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
         <div id="profile" class="view-section">
             <p class="tab-subtitle"><i class="fas fa-cog"></i> Update your personal admin account details and security settings.</p>
 
@@ -757,6 +798,8 @@
     <script>
         // QA FIX: TAB MEMORY LOGIC
         function switchTab(tabId, navItem) {
+            const targetSection = document.getElementById(tabId);
+            if (!targetSection) { tabId = 'dashboard'; }
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
             
@@ -771,10 +814,16 @@
                 'staff': 'Staff Management',
                 'profile': 'My Profile',
                 'messages': 'Support Inbox',
-                'analytics': 'Advanced Analytics'
+                'analytics': 'Advanced Analytics',
+                'audit': 'Audit Log'
             };
             document.getElementById('page-title').innerText = titleMap[tabId] || 'Dashboard';
             localStorage.setItem('adminActiveTab', tabId);
+
+            // Lazy-load the audit log the first time / each time the tab is opened
+            if (tabId === 'audit') {
+                loadAuditLog();
+            }
         }
 
         // QA FIX: Smart auto-scroll completely rebuilt to prevent clicking failures and update "read" state
@@ -909,21 +958,45 @@
             setInterval(fetchNotifications, 5000);
         });
 
-        // Dashboard Chart
+        // Dashboard Chart — fed by real monthly revenue from the database
         const ctx = document.getElementById('revenueChart').getContext('2d');
         const myChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                labels: {{ chart_labels | tojson }},
                 datasets: [{
                     label: 'Revenue (₱)',
-                    data: [12000, 19000, 15000, 25000, 22000, 30000],
+                    data: {{ chart_revenue | tojson }},
                     borderColor: '#DC5500',
                     backgroundColor: 'rgba(220, 85, 0, 0.1)',
                     fill: true, tension: 0.4
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, title: { display: true, text: 'Monthly Revenue Trends (Example)' } } }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: 'Monthly Revenue Trends (Last 6 Months)' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return '₱' + Number(context.parsed.y).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '₱' + Number(value).toLocaleString('en-PH');
+                            }
+                        }
+                    }
+                }
+            }
         });
 
         // ==========================================
@@ -949,6 +1022,75 @@
                 }
             }
             fetchNotifications(); // Visually clear it instantly
+        }
+
+        // --- Mark ALL notifications as read for the admin ---
+        function markAllNotificationsRead(event) {
+            if (event) { event.preventDefault(); event.stopPropagation(); }
+            // 1) Dismiss every pending order (client-side store, same one the X buttons use)
+            // 2) Mark every unread customer chat message read (server-side)
+            fetch('/api/admin_notifications_data')
+                .then(res => res.json())
+                .then(data => {
+                    (data.pending_orders || []).forEach(o => {
+                        if (!dismissedOrders.includes(o.order_id)) dismissedOrders.push(o.order_id);
+                    });
+                    localStorage.setItem('printagram_dismissed_orders', JSON.stringify(dismissedOrders));
+                    return fetch('/api/admin_mark_all_read', { method: 'POST' });
+                })
+                .then(res => res.json())
+                .then(() => {
+                    fetchNotifications();
+                    showCustomToast('All notifications marked as read.', 'success');
+                })
+                .catch(err => {
+                    console.error('Mark All Read Error:', err);
+                    showCustomToast('Could not mark all as read. Please try again.', 'error');
+                });
+        }
+
+        // --- Audit Log (Super Admin only) ---
+        function auditEscape(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function loadAuditLog() {
+            const body = document.getElementById('audit-log-body');
+            if (!body) return;
+            body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:#888;"><i class="fas fa-spinner fa-spin"></i> Loading activity…</td></tr>';
+            fetch('/api/admin_audit_log?t=' + new Date().getTime())
+                .then(res => res.json())
+                .then(data => {
+                    const logs = data.logs || [];
+                    if (logs.length === 0) {
+                        body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color:#aaa;"><i class="fas fa-clipboard-list" style="font-size:28px; opacity:0.5; display:block; margin-bottom:10px;"></i>No activity recorded yet.</td></tr>';
+                        return;
+                    }
+                    body.innerHTML = logs.map(log => {
+                        const roleBadge = (log.actor_role === 'super_admin')
+                            ? '<span class="status-badge" style="background:#e3f2fd; color:#0d47a1; border:1px solid #b6d4fe;">Super Admin</span>'
+                            : '<span class="status-badge" style="background:#e8f5e9; color:#2e7d32; border:1px solid #c8e6c9;">Admin</span>';
+                        return `
+                            <tr>
+                                <td style="white-space:nowrap; color:#666; font-size:13px;">${auditEscape(log.created_at)}</td>
+                                <td><strong style="font-size:14px;">${auditEscape(log.actor_name)}</strong><br><span style="color:#999; font-size:11px;">ID #${auditEscape(log.actor_id)}</span></td>
+                                <td>${roleBadge}</td>
+                                <td><span class="status-badge" style="background:var(--primary-light); color:var(--primary); border:1px solid #ffd8bf;">${auditEscape(log.action)}</span></td>
+                                <td style="font-size:13px; color:#444;">${auditEscape(log.details)}</td>
+                                <td style="font-size:12px; color:#999; white-space:nowrap;">${auditEscape(log.ip_address)}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                })
+                .catch(err => {
+                    console.error('Audit Log Load Error:', err);
+                    body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:#dc3545;">Failed to load audit log.</td></tr>';
+                });
         }
 
         // QA FIX: Bulletproof date parser to fix the sorting NaN bug

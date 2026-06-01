@@ -63,6 +63,50 @@ def get_db_connection():
         connection_timeout=5  
     )
 
+# --- AUDIT LOG SYSTEM ---
+def ensure_audit_table(cursor):
+    """Creates the audit log table on first use if it doesn't exist yet."""
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS admin_audit_log (
+            log_id INT AUTO_INCREMENT PRIMARY KEY,
+            actor_id INT,
+            actor_name VARCHAR(255),
+            actor_role VARCHAR(50),
+            action VARCHAR(100),
+            details TEXT,
+            target_type VARCHAR(50),
+            target_id VARCHAR(50),
+            ip_address VARCHAR(64),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+def log_audit(action, details, target_type=None, target_id=None):
+    """Records an action performed by an admin/super_admin. Never raises —
+    audit logging must not break the operation it is recording."""
+    try:
+        actor_id = session.get('user_id')
+        actor_name = session.get('name', 'Unknown')
+        actor_role = session.get('role', 'unknown')
+        try:
+            ip_address = request.headers.get('X-Forwarded-For', request.remote_addr) or 'unknown'
+        except Exception:
+            ip_address = 'unknown'
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        ensure_audit_table(cursor)
+        cursor.execute("""
+            INSERT INTO admin_audit_log
+                (actor_id, actor_name, actor_role, action, details, target_type, target_id, ip_address)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """, (actor_id, actor_name, actor_role, action, details, target_type,
+              str(target_id) if target_id is not None else None, ip_address))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Audit Log Error (non-fatal): {e}")
+
 # --- SOCIAL AUTH SETUP ---
 oauth = OAuth(app)
 google = oauth.register(
@@ -1268,6 +1312,35 @@ def admin_dashboard():
         res_rev = cursor.fetchone()
         total_revenue = res_rev['revenue'] if res_rev and res_rev['revenue'] else 0
         
+        # --- REAL MONTHLY REVENUE FOR THE DASHBOARD CHART (last 6 months) ---
+        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        today = datetime.now()
+        # Build the last 6 month buckets, oldest first
+        buckets = []
+        for i in range(5, -1, -1):
+            mm = today.month - i
+            yy = today.year
+            while mm <= 0:
+                mm += 12
+                yy -= 1
+            buckets.append((yy, mm))
+
+        start_year, start_month = buckets[0]
+        start_date = datetime(start_year, start_month, 1)
+        cursor.execute("""
+            SELECT YEAR(created_at) AS yr, MONTH(created_at) AS mo,
+                   COALESCE(SUM(total_amount), 0) AS revenue
+            FROM orders
+            WHERE order_status != 'Cancelled' AND created_at >= %s
+            GROUP BY YEAR(created_at), MONTH(created_at)
+        """, (start_date,))
+        rev_rows = cursor.fetchall() or []
+        rev_lookup = {(r['yr'], r['mo']): float(r['revenue'] or 0) for r in rev_rows}
+
+        chart_labels = [month_names[mm - 1] for (yy, mm) in buckets]
+        chart_revenue = [rev_lookup.get((yy, mm), 0) for (yy, mm) in buckets]
+        
         cursor.execute("SELECT * FROM products")
         products = cursor.fetchall() or []
         
@@ -1328,7 +1401,8 @@ def admin_dashboard():
             gallery_map[pid].append(img)
             
         return render_template('admin.html', total_orders=total_orders, total_revenue=total_revenue, 
-                               products=products, variants_map=variants_map, gallery_map=gallery_map, orders=orders, customers=customers, staff_members=staff_members, current_admin=current_admin, role=session['role'])
+                               products=products, variants_map=variants_map, gallery_map=gallery_map, orders=orders, customers=customers, staff_members=staff_members, current_admin=current_admin, role=session['role'],
+                               chart_labels=chart_labels, chart_revenue=chart_revenue)
     except Exception as e:
         return f"DB Error: {e}"
 
@@ -1344,6 +1418,7 @@ def admin_update_profile():
                            (request.form.get('name'), request.form.get('email'), request.form.get('phone'), session['user_id']))
             session['name'] = request.form.get('name')
             flash("Profile updated successfully!", "success")
+            log_audit('Update Profile', "Updated own profile information (name / email / phone)", 'user', session['user_id'])
         elif action == 'change_password':
             cursor.execute("SELECT password_hash FROM users WHERE user_id = %s", (session['user_id'],))
             user_data = cursor.fetchone()
@@ -1351,6 +1426,7 @@ def admin_update_profile():
                 cursor.execute("UPDATE users SET password_hash = %s WHERE user_id = %s", 
                                (generate_password_hash(request.form.get('new_password')), session['user_id']))
                 flash("Password changed successfully!", "success")
+                log_audit('Change Password', "Changed own account password", 'user', session['user_id'])
             else:
                 flash("Incorrect current password.", "error")
         conn.commit()
@@ -1383,6 +1459,7 @@ def add_staff():
             # Formats the flash message nicely (e.g. "Super Admin" instead of "super_admin")
             role_display = assigned_role.replace('_', ' ').title()
             flash(f"Staff member {name} added successfully as {role_display}!", "success")
+            log_audit('Add Staff', f"Added staff member {name} ({email}) with role {role_display}", 'user', cursor.lastrowid)
             
         conn.close()
     except Exception as e: flash(f"Database Error: {e}", "error")
@@ -1401,6 +1478,7 @@ def delete_staff(user_id):
         conn.commit()
         conn.close()
         flash("Staff member removed successfully.", "success")
+        log_audit('Delete Staff', f"Removed staff account #{user_id}", 'user', user_id)
     except Exception as e: flash(f"Database Error: {e}", "error")
     return redirect('/admin')
 
@@ -1420,6 +1498,7 @@ def add_variant():
         conn.commit()
         conn.close()
         flash(f"Successfully added variant: {variant_name}", "success")
+        log_audit('Add Variant', f"Added variant '{variant_name}' (price ₱{price}, stock {stock}) to product #{product_id}", 'product', product_id)
     except Exception as e:
         flash(f"Database Error: {e}", "error")
     return redirect('/admin')
@@ -1436,6 +1515,7 @@ def delete_variant():
         conn.commit()
         conn.close()
         flash("Pricing variant deleted successfully!", "success")
+        log_audit('Delete Variant', f"Deleted pricing variant #{variant_id}", 'variant', variant_id)
     except Exception as e:
         flash(f"Database Error: {e}", "error")
     return redirect('/admin')
@@ -1453,6 +1533,7 @@ def delete_gallery_image():
         conn.commit()
         conn.close()
         flash("Image removed from gallery successfully!", "success")
+        log_audit('Delete Image', f"Removed gallery image #{image_id}", 'image', image_id)
     except Exception as e:
         flash(f"Error removing image: {e}", "error")
         
@@ -1554,6 +1635,7 @@ def update_order_status():
             send_system_email(order_info['email'], subject, fallback_text, html_body)
             
         flash(f"Order #{order_id} updated to {new_status} and customer notified!", "success")
+        log_audit('Update Order Status', f"Changed order #{order_id} status to '{new_status}'", 'order', order_id)
         
     except Exception as e:
         flash(f"Error updating status: {e}", "error")
@@ -1581,6 +1663,7 @@ def upload_product_image():
                     cursor.execute("INSERT INTO product_images (product_id, image_url) VALUES (%s, %s)", (product_id, image_url))
             conn.commit()
             flash("Gallery images updated successfully!", "success")
+            log_audit('Upload Images', f"Uploaded gallery image(s) to product #{product_id}", 'product', product_id)
         except Exception as e:
             flash(f"Upload Error: {e}", "error")
         finally:
@@ -1601,6 +1684,7 @@ def update_variant():
         conn.commit()
         conn.close()
         flash("Price and Stock updated!", "success")
+        log_audit('Update Variant', f"Updated variant #{variant_id}: price ₱{new_price}, stock {new_stock}", 'variant', variant_id)
     except Exception as e:
         flash(f"Database Error: {e}", "error")
     return redirect('/admin')
@@ -1794,6 +1878,51 @@ def admin_notifications_data():
             'unread_chats': []
         })
     
+@app.route('/api/admin_mark_all_read', methods=['POST'])
+def admin_mark_all_read():
+    if session.get('role') not in ['admin', 'super_admin']:
+        return jsonify({'status': 'error', 'message': 'Access denied'}), 403
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        # Mark every unread customer/guest chat message as read
+        cursor.execute("""
+            UPDATE chat_messages c
+            JOIN users u ON c.sender_id = u.user_id
+            SET c.is_read = TRUE
+            WHERE u.role IN ('customer', 'guest') AND (c.is_read = FALSE OR c.is_read IS NULL)
+        """)
+        conn.commit()
+        conn.close()
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        print(f"Mark All Read Error: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/admin_audit_log')
+def admin_audit_log():
+    # Audit log is restricted to Super Admins only
+    if session.get('role') != 'super_admin':
+        return jsonify({'status': 'error', 'message': 'Access denied'}), 403
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        ensure_audit_table(cursor)
+        cursor.execute("""
+            SELECT log_id, actor_id, actor_name, actor_role, action, details,
+                   target_type, target_id, ip_address,
+                   CAST(DATE_ADD(created_at, INTERVAL 8 HOUR) AS CHAR) AS created_at
+            FROM admin_audit_log
+            ORDER BY log_id DESC
+            LIMIT 300
+        """)
+        logs = cursor.fetchall() or []
+        conn.close()
+        return jsonify({'status': 'success', 'logs': logs})
+    except Exception as e:
+        print(f"Audit Log Fetch Error: {e}")
+        return jsonify({'status': 'error', 'logs': [], 'message': str(e)}), 500
+
 @app.route('/api/admin_sidebar')
 def admin_sidebar():
     if session.get('role') not in ['admin', 'super_admin']:
@@ -1995,6 +2124,7 @@ def admin_delete_customer(user_id):
         conn.commit()
         conn.close()
         flash("Customer account and all related data have been permanently deleted.", "success")
+        log_audit('Delete Customer', f"Permanently deleted customer #{user_id} and all related data", 'user', user_id)
     except Exception as e:
         flash(f"Error deleting account: {e}", "error")
         
@@ -2019,6 +2149,7 @@ def admin_reset_user_password():
         conn.close()
         
         flash(f"Password has been successfully reset for User #{user_id}.", "success")
+        log_audit('Reset User Password', f"Reset the password for user #{user_id}", 'user', user_id)
     except Exception as e:
         flash(f"Error resetting password: {e}", "error")
         
