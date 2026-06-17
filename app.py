@@ -16,6 +16,8 @@ from authlib.integrations.flask_client import OAuth
 import cloudinary
 import cloudinary.uploader
 import base64
+import csv
+from io import StringIO
 from threading import Timer
 
 # 1. LOAD THE SECRETS
@@ -106,6 +108,75 @@ def log_audit(action, details, target_type=None, target_id=None):
         conn.close()
     except Exception as e:
         print(f"Audit Log Error (non-fatal): {e}")
+
+# --- TRASH / SOFT-DELETE SYSTEM ---
+def ensure_trash_column(cursor):
+    """Adds a deleted_at column to the users table the first time it is needed.
+    Powers the 30-day Trash (soft delete) feature. Non-fatal on error."""
+    try:
+        cursor.execute("""
+            SELECT COUNT(*) AS c FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'users'
+              AND COLUMN_NAME = 'deleted_at'
+        """)
+        row = cursor.fetchone()
+        if row is None:
+            count = 0
+        elif isinstance(row, dict):
+            count = list(row.values())[0]
+        else:
+            count = row[0]
+        if not count:
+            cursor.execute("ALTER TABLE users ADD COLUMN deleted_at DATETIME NULL DEFAULT NULL")
+    except Exception as e:
+        print(f"ensure_trash_column error (non-fatal): {e}")
+
+def _cascade_delete_user(cursor, user_id):
+    """Permanently removes a user and every record tied to them."""
+    cursor.execute("DELETE FROM cart WHERE user_id = %s", (user_id,))
+    cursor.execute("DELETE FROM product_reviews WHERE user_id = %s", (user_id,))
+    cursor.execute("DELETE FROM chat_messages WHERE sender_id = %s OR receiver_id = %s", (user_id, user_id))
+    cursor.execute("""
+        DELETE oi FROM order_items oi
+        INNER JOIN orders o ON oi.order_id = o.order_id
+        WHERE o.user_id = %s
+    """, (user_id,))
+    cursor.execute("DELETE FROM orders WHERE user_id = %s", (user_id,))
+    cursor.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
+
+def purge_expired_trash(cursor):
+    """Permanently deletes accounts that have sat in the Trash for 30+ days.
+    Returns the number of accounts purged."""
+    try:
+        cursor.execute("""
+            SELECT user_id FROM users
+            WHERE deleted_at IS NOT NULL
+              AND deleted_at < (NOW() - INTERVAL 30 DAY)
+        """)
+        rows = cursor.fetchall() or []
+        purged = 0
+        for r in rows:
+            uid = r['user_id'] if isinstance(r, dict) else r[0]
+            _cascade_delete_user(cursor, uid)
+            purged += 1
+        return purged
+    except Exception as e:
+        print(f"purge_expired_trash error (non-fatal): {e}")
+        return 0
+
+# --- CSV EXPORT HELPER ---
+def _make_csv_response(filename, header, rows):
+    """Builds a downloadable CSV response from a header list and row lists."""
+    si = StringIO()
+    writer = csv.writer(si)
+    writer.writerow(header)
+    for r in rows:
+        writer.writerow(r)
+    output = make_response('\ufeff' + si.getvalue())
+    output.headers['Content-Disposition'] = f'attachment; filename={filename}'
+    output.headers['Content-Type'] = 'text/csv; charset=utf-8'
+    return output
 
 # --- SOCIAL AUTH SETUP ---
 oauth = OAuth(app)
@@ -1304,6 +1375,10 @@ def admin_dashboard():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
+        ensure_trash_column(cursor)
+        purge_expired_trash(cursor)
+        conn.commit()
+
         cursor.execute("SELECT COUNT(*) as count FROM orders WHERE order_status != 'Cancelled'")
         res_orders = cursor.fetchone()
         total_orders = res_orders['count'] if res_orders else 0
@@ -1375,7 +1450,7 @@ def admin_dashboard():
                    (SELECT created_at FROM chat_messages WHERE sender_id = u.user_id OR receiver_id = u.user_id ORDER BY created_at DESC LIMIT 1) as latest_time,
                    (SELECT COUNT(*) FROM chat_messages WHERE sender_id = u.user_id AND (is_read = FALSE OR is_read IS NULL)) as unread_count
             FROM users u
-            WHERE u.role IN ('customer', 'guest')
+            WHERE u.role IN ('customer', 'guest') AND u.deleted_at IS NULL
             ORDER BY latest_time DESC, u.user_id DESC
         """)
         customers = cursor.fetchall() or []
@@ -1836,6 +1911,7 @@ def admin_notifications_data():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
+        ensure_trash_column(cursor)
         
         cursor.execute("""
             SELECT o.order_id, u.full_name, o.order_status, CAST(DATE_ADD(o.created_at, INTERVAL 8 HOUR) AS CHAR) as created_at
@@ -1859,7 +1935,7 @@ def admin_notifications_data():
             SELECT c.message_id, c.message_text, u.full_name, c.sender_id, CAST(DATE_ADD(c.created_at, INTERVAL 8 HOUR) AS CHAR) as created_at
             FROM chat_messages c
             JOIN users u ON c.sender_id = u.user_id
-            WHERE u.role IN ('customer', 'guest') AND (c.is_read = FALSE OR c.is_read IS NULL)
+            WHERE u.role IN ('customer', 'guest') AND u.deleted_at IS NULL AND (c.is_read = FALSE OR c.is_read IS NULL)
             ORDER BY c.message_id DESC
         """)
         unread_chats = cursor.fetchall()
@@ -1890,7 +1966,7 @@ def admin_mark_all_read():
             UPDATE chat_messages c
             JOIN users u ON c.sender_id = u.user_id
             SET c.is_read = TRUE
-            WHERE u.role IN ('customer', 'guest') AND (c.is_read = FALSE OR c.is_read IS NULL)
+            WHERE u.role IN ('customer', 'guest') AND u.deleted_at IS NULL AND (c.is_read = FALSE OR c.is_read IS NULL)
         """)
         conn.commit()
         conn.close()
@@ -1931,13 +2007,14 @@ def admin_sidebar():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
+        ensure_trash_column(cursor)
         cursor.execute("""
             SELECT u.user_id, u.full_name,
                    (SELECT message_text FROM chat_messages WHERE sender_id = u.user_id OR receiver_id = u.user_id ORDER BY created_at DESC LIMIT 1) as latest_message,
                    (SELECT created_at FROM chat_messages WHERE sender_id = u.user_id OR receiver_id = u.user_id ORDER BY created_at DESC LIMIT 1) as latest_time,
                    (SELECT COUNT(*) FROM chat_messages WHERE sender_id = u.user_id AND (is_read = FALSE OR is_read IS NULL)) as unread_count
             FROM users u
-            WHERE u.role IN ('customer', 'guest')
+            WHERE u.role IN ('customer', 'guest') AND u.deleted_at IS NULL
             ORDER BY latest_time DESC, u.user_id DESC
         """)
         customers = cursor.fetchall()
@@ -2103,32 +2180,327 @@ def send_message():
     
 @app.route('/admin/delete_customer/<int:user_id>', methods=['POST'])
 def admin_delete_customer(user_id):
+    # Soft delete: the account is moved to Trash and kept for 30 days
+    # (along with all its orders, chats and history) before being purged.
     if 'role' not in session or session['role'] not in ['admin', 'super_admin']:
         return redirect(url_for('login'))
-    
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
-        cursor.execute("DELETE FROM cart WHERE user_id = %s", (user_id,))
-        cursor.execute("DELETE FROM product_reviews WHERE user_id = %s", (user_id,))
-        cursor.execute("DELETE FROM chat_messages WHERE sender_id = %s OR receiver_id = %s", (user_id, user_id))
-        cursor.execute("""
-            DELETE oi FROM order_items oi
-            INNER JOIN orders o ON oi.order_id = o.order_id
-            WHERE o.user_id = %s
-        """, (user_id,))
-        cursor.execute("DELETE FROM orders WHERE user_id = %s", (user_id,))
-        cursor.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
-        
+        ensure_trash_column(cursor)
+
+        cursor.execute(
+            "UPDATE users SET deleted_at = NOW() WHERE user_id = %s AND deleted_at IS NULL",
+            (user_id,)
+        )
+        conn.commit()
+        conn.close()
+        flash("Customer account moved to Trash. It will be permanently deleted after 30 days unless restored.", "success")
+        log_audit('Trash Customer', f"Moved customer #{user_id} to Trash (30-day retention)", 'user', user_id)
+    except Exception as e:
+        flash(f"Error moving account to Trash: {e}", "error")
+
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/restore_customer/<int:user_id>', methods=['POST'])
+def admin_restore_customer(user_id):
+    if 'role' not in session or session['role'] not in ['admin', 'super_admin']:
+        return redirect(url_for('login'))
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        ensure_trash_column(cursor)
+        cursor.execute("UPDATE users SET deleted_at = NULL WHERE user_id = %s", (user_id,))
+        conn.commit()
+        conn.close()
+        flash("Customer account has been restored from Trash.", "success")
+        log_audit('Restore Customer', f"Restored customer #{user_id} from Trash", 'user', user_id)
+    except Exception as e:
+        flash(f"Error restoring account: {e}", "error")
+
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/permanent_delete_customer/<int:user_id>', methods=['POST'])
+def admin_permanent_delete_customer(user_id):
+    if 'role' not in session or session['role'] not in ['admin', 'super_admin']:
+        return redirect(url_for('login'))
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        _cascade_delete_user(cursor, user_id)
         conn.commit()
         conn.close()
         flash("Customer account and all related data have been permanently deleted.", "success")
         log_audit('Delete Customer', f"Permanently deleted customer #{user_id} and all related data", 'user', user_id)
     except Exception as e:
         flash(f"Error deleting account: {e}", "error")
-        
+
     return redirect(url_for('admin_dashboard'))
+
+@app.route('/api/admin_trash')
+def admin_trash():
+    if session.get('role') not in ['admin', 'super_admin']:
+        return jsonify({'status': 'error', 'message': 'Access denied'}), 403
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        ensure_trash_column(cursor)
+        purged = purge_expired_trash(cursor)
+        conn.commit()
+
+        cursor.execute("""
+            SELECT user_id, full_name, email, phone_number,
+                   CAST(DATE_ADD(deleted_at, INTERVAL 8 HOUR) AS CHAR) AS deleted_at,
+                   GREATEST(DATEDIFF(DATE_ADD(deleted_at, INTERVAL 30 DAY), NOW()), 0) AS days_left
+            FROM users
+            WHERE deleted_at IS NOT NULL
+            ORDER BY deleted_at DESC
+        """)
+        trashed = cursor.fetchall() or []
+        conn.close()
+        return jsonify({'status': 'success', 'trashed': trashed, 'purged': purged})
+    except Exception as e:
+        print(f"Trash Fetch Error: {e}")
+        return jsonify({'status': 'error', 'trashed': [], 'message': str(e)}), 500
+
+@app.route('/api/admin_analytics')
+def admin_analytics():
+    if session.get('role') not in ['admin', 'super_admin']:
+        return jsonify({'status': 'error', 'message': 'Access denied'}), 403
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        ensure_trash_column(cursor)
+
+        a = {}
+
+        # --- Headline KPIs (valid = not cancelled) ---
+        cursor.execute("SELECT COUNT(*) AS c, COALESCE(SUM(total_amount),0) AS rev FROM orders WHERE order_status != 'Cancelled'")
+        row = cursor.fetchone()
+        valid_orders = int(row['c'] or 0)
+        total_rev = float(row['rev'] or 0)
+        a['total_orders'] = valid_orders
+        a['total_revenue'] = total_rev
+        a['avg_order_value'] = (total_rev / valid_orders) if valid_orders else 0
+
+        cursor.execute("""
+            SELECT COALESCE(SUM(total_amount),0) AS rev, COUNT(*) AS c FROM orders
+            WHERE order_status != 'Cancelled'
+              AND YEAR(created_at)=YEAR(NOW()) AND MONTH(created_at)=MONTH(NOW())
+        """)
+        row = cursor.fetchone()
+        a['month_revenue'] = float(row['rev'] or 0)
+        a['month_orders'] = int(row['c'] or 0)
+
+        cursor.execute("SELECT COUNT(*) AS c FROM users WHERE role IN ('customer','guest') AND deleted_at IS NULL")
+        a['total_customers'] = int(cursor.fetchone()['c'] or 0)
+
+        cursor.execute("SELECT COUNT(*) AS c FROM orders WHERE order_status = 'Pending'")
+        a['pending_orders'] = int(cursor.fetchone()['c'] or 0)
+
+        # --- Order status breakdown ---
+        cursor.execute("SELECT order_status, COUNT(*) AS c FROM orders GROUP BY order_status ORDER BY c DESC")
+        a['status_breakdown'] = [{'status': r['order_status'] or 'Unknown', 'count': int(r['c'] or 0)} for r in (cursor.fetchall() or [])]
+
+        # --- Payment method breakdown ---
+        cursor.execute("""
+            SELECT COALESCE(payment_method,'Unknown') AS pm, COUNT(*) AS c, COALESCE(SUM(total_amount),0) AS rev
+            FROM orders WHERE order_status != 'Cancelled'
+            GROUP BY payment_method ORDER BY rev DESC
+        """)
+        a['payment_breakdown'] = [{'method': r['pm'], 'count': int(r['c'] or 0), 'revenue': float(r['rev'] or 0)} for r in (cursor.fetchall() or [])]
+
+        # --- Delivery vs pickup ---
+        cursor.execute("""
+            SELECT COALESCE(delivery_method,'Pickup') AS dm, COUNT(*) AS c
+            FROM orders WHERE order_status != 'Cancelled'
+            GROUP BY delivery_method
+        """)
+        a['delivery_breakdown'] = [{'method': r['dm'], 'count': int(r['c'] or 0)} for r in (cursor.fetchall() or [])]
+
+        # --- Top selling products ---
+        cursor.execute("""
+            SELECT p.name AS product_name,
+                   COALESCE(SUM(oi.quantity),0) AS qty,
+                   COALESCE(SUM(oi.price_at_time),0) AS revenue
+            FROM order_items oi
+            JOIN products p ON oi.product_id = p.product_id
+            JOIN orders o ON oi.order_id = o.order_id
+            WHERE o.order_status != 'Cancelled'
+            GROUP BY p.product_id, p.name
+            ORDER BY qty DESC
+            LIMIT 7
+        """)
+        a['top_products'] = [{'name': r['product_name'], 'qty': int(r['qty'] or 0), 'revenue': float(r['revenue'] or 0)} for r in (cursor.fetchall() or [])]
+
+        # --- New customers over the last 6 months ---
+        month_names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+        today = datetime.now()
+        buckets = []
+        for i in range(5, -1, -1):
+            mm = today.month - i
+            yy = today.year
+            while mm <= 0:
+                mm += 12
+                yy -= 1
+            buckets.append((yy, mm))
+        start_year, start_month = buckets[0]
+        start_date = datetime(start_year, start_month, 1)
+        cursor.execute("""
+            SELECT YEAR(created_at) AS yr, MONTH(created_at) AS mo, COUNT(*) AS c
+            FROM users
+            WHERE role = 'customer' AND created_at >= %s
+            GROUP BY YEAR(created_at), MONTH(created_at)
+        """, (start_date,))
+        cust_lookup = {(r['yr'], r['mo']): int(r['c'] or 0) for r in (cursor.fetchall() or [])}
+        a['customer_labels'] = [month_names[mm-1] for (yy, mm) in buckets]
+        a['customer_counts'] = [cust_lookup.get((yy, mm), 0) for (yy, mm) in buckets]
+
+        conn.close()
+        return jsonify({'status': 'success', 'analytics': a})
+    except Exception as e:
+        print(f"Analytics Error: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# ==========================================
+# --- CSV EXPORT ROUTES ---
+# ==========================================
+@app.route('/admin/export/customers')
+def export_customers():
+    if session.get('role') not in ['admin', 'super_admin']:
+        return redirect(url_for('login'))
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        ensure_trash_column(cursor)
+        cursor.execute("""
+            SELECT user_id, full_name, email, phone_number, role,
+                   CAST(created_at AS CHAR) AS created_at
+            FROM users
+            WHERE role IN ('customer','guest') AND deleted_at IS NULL
+            ORDER BY user_id
+        """)
+        rows = cursor.fetchall() or []
+        conn.close()
+        data = [[r['user_id'], r['full_name'], r['email'], r['phone_number'] or '', r['role'], r['created_at'] or ''] for r in rows]
+        log_audit('Export Data', f"Exported {len(data)} customer records to CSV", 'export', 'customers')
+        return _make_csv_response('printagram_customers.csv',
+                                  ['User ID', 'Full Name', 'Email', 'Phone', 'Role', 'Joined'], data)
+    except Exception as e:
+        flash(f"Export failed: {e}", "error")
+        return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/export/orders')
+def export_orders():
+    if session.get('role') not in ['admin', 'super_admin']:
+        return redirect(url_for('login'))
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT o.order_id, u.full_name, o.total_amount, o.order_status,
+                   o.payment_method, o.payment_status, o.delivery_method,
+                   CAST(o.created_at AS CHAR) AS created_at
+            FROM orders o
+            JOIN users u ON o.user_id = u.user_id
+            ORDER BY o.order_id DESC
+        """)
+        rows = cursor.fetchall() or []
+        conn.close()
+        data = [[r['order_id'], r['full_name'], r['total_amount'], r['order_status'],
+                 r['payment_method'] or '', r['payment_status'] or '', r['delivery_method'] or '',
+                 r['created_at'] or ''] for r in rows]
+        log_audit('Export Data', f"Exported {len(data)} order records to CSV", 'export', 'orders')
+        return _make_csv_response('printagram_orders.csv',
+                                  ['Order ID', 'Customer', 'Total', 'Status', 'Payment Method',
+                                   'Payment Status', 'Fulfilment', 'Placed On'], data)
+    except Exception as e:
+        flash(f"Export failed: {e}", "error")
+        return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/export/trash')
+def export_trash():
+    if session.get('role') not in ['admin', 'super_admin']:
+        return redirect(url_for('login'))
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        ensure_trash_column(cursor)
+        cursor.execute("""
+            SELECT user_id, full_name, email, phone_number,
+                   CAST(deleted_at AS CHAR) AS deleted_at,
+                   GREATEST(DATEDIFF(DATE_ADD(deleted_at, INTERVAL 30 DAY), NOW()), 0) AS days_left
+            FROM users
+            WHERE deleted_at IS NOT NULL
+            ORDER BY deleted_at DESC
+        """)
+        rows = cursor.fetchall() or []
+        conn.close()
+        data = [[r['user_id'], r['full_name'], r['email'], r['phone_number'] or '',
+                 r['deleted_at'] or '', r['days_left']] for r in rows]
+        log_audit('Export Data', f"Exported {len(data)} trashed accounts to CSV", 'export', 'trash')
+        return _make_csv_response('printagram_trash.csv',
+                                  ['User ID', 'Full Name', 'Email', 'Phone', 'Deleted On', 'Days Left'], data)
+    except Exception as e:
+        flash(f"Export failed: {e}", "error")
+        return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/export/analytics')
+def export_analytics():
+    if session.get('role') not in ['admin', 'super_admin']:
+        return redirect(url_for('login'))
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        ensure_trash_column(cursor)
+
+        cursor.execute("SELECT COUNT(*) AS c, COALESCE(SUM(total_amount),0) AS rev FROM orders WHERE order_status != 'Cancelled'")
+        row = cursor.fetchone()
+        valid_orders = int(row['c'] or 0)
+        total_rev = float(row['rev'] or 0)
+        aov = (total_rev / valid_orders) if valid_orders else 0
+
+        cursor.execute("SELECT COUNT(*) AS c FROM users WHERE role IN ('customer','guest') AND deleted_at IS NULL")
+        total_customers = int(cursor.fetchone()['c'] or 0)
+
+        rows = []
+        rows.append(['SUMMARY', ''])
+        rows.append(['Total Valid Orders', valid_orders])
+        rows.append(['Total Revenue (PHP)', f"{total_rev:.2f}"])
+        rows.append(['Average Order Value (PHP)', f"{aov:.2f}"])
+        rows.append(['Total Customers', total_customers])
+        rows.append(['', ''])
+
+        rows.append(['ORDER STATUS BREAKDOWN', 'Count'])
+        cursor.execute("SELECT order_status, COUNT(*) AS c FROM orders GROUP BY order_status ORDER BY c DESC")
+        for r in (cursor.fetchall() or []):
+            rows.append([r['order_status'] or 'Unknown', int(r['c'] or 0)])
+        rows.append(['', ''])
+
+        rows.append(['TOP SELLING PRODUCTS', 'Qty Sold / Revenue (PHP)'])
+        cursor.execute("""
+            SELECT p.name AS product_name,
+                   COALESCE(SUM(oi.quantity),0) AS qty,
+                   COALESCE(SUM(oi.price_at_time),0) AS revenue
+            FROM order_items oi
+            JOIN products p ON oi.product_id = p.product_id
+            JOIN orders o ON oi.order_id = o.order_id
+            WHERE o.order_status != 'Cancelled'
+            GROUP BY p.product_id, p.name
+            ORDER BY qty DESC LIMIT 10
+        """)
+        for r in (cursor.fetchall() or []):
+            rows.append([r['product_name'], f"{int(r['qty'] or 0)} / {float(r['revenue'] or 0):.2f}"])
+
+        conn.close()
+        log_audit('Export Data', "Exported analytics summary report to CSV", 'export', 'analytics')
+        return _make_csv_response('printagram_analytics.csv', ['Metric', 'Value'], rows)
+    except Exception as e:
+        flash(f"Export failed: {e}", "error")
+        return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/reset_user_password', methods=['POST'])
 def admin_reset_user_password():

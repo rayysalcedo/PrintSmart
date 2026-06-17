@@ -116,6 +116,18 @@
         .btn-save { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; font-family: inherit;}
         .btn-save:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(220,85,0,0.2); }
 
+        /* --- EXPORT BUTTON + ANALYTICS LAYOUT --- */
+        .btn-export { background: white; color: var(--primary); border: 1px solid var(--primary); padding: 9px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 7px; font-family: inherit; text-decoration: none; transition: 0.2s; }
+        .btn-export:hover { background: var(--primary-light); transform: translateY(-1px); }
+        .filter-select { padding: 9px 14px; border: 1px solid var(--border-color); border-radius: 30px; outline: none; font-family: inherit; font-size: 13px; background: white; color: var(--text-dark); cursor: pointer; transition: 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.02); font-weight: 600; }
+        .filter-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(220,85,0,0.1); }
+        .filter-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+        .chart-card { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid var(--border-color); }
+        .chart-card h4 { margin: 0 0 18px 0; font-size: 16px; color: var(--text-dark); font-weight: 700; }
+        .chart-wrap { position: relative; height: 260px; }
+        @media (max-width: 1100px) { .analytics-grid { grid-template-columns: 1fr; } }
+
         /* --- UNIFIED STATUS BADGE COLORS --- */
         .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; white-space: nowrap; display: inline-block; letter-spacing: 0.5px;}
         .status-Pending { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; } 
@@ -213,6 +225,9 @@
         <div class="nav-item active" onclick="switchTab('dashboard', this)">
             <i class="fas fa-th-large"></i> Dashboard
         </div>
+        <div class="nav-item" onclick="switchTab('analytics', this)">
+            <i class="fas fa-chart-pie"></i> Analytics
+        </div>
         <div class="nav-item" onclick="switchTab('orders', this)">
             <i class="fas fa-shopping-cart"></i> Orders
         </div>
@@ -221,6 +236,9 @@
         </div>
         <div class="nav-item" onclick="switchTab('customers', this)">
             <i class="fas fa-users"></i> Customers
+        </div>
+        <div class="nav-item" onclick="switchTab('trash', this)">
+            <i class="fas fa-trash-alt"></i> Trash
         </div>
         
         {% if role == 'super_admin' %}
@@ -332,6 +350,24 @@
                     <div class="trend">In Catalog</div>
                     <div class="stat-icon"><i class="fas fa-box"></i></div>
                 </div>
+                <div class="stat-card">
+                    <h3>Avg. Order Value</h3>
+                    <div class="value">₱{{ "{:,.2f}".format(total_revenue / total_orders if total_orders else 0) }}</div>
+                    <div class="trend">Per valid order</div>
+                    <div class="stat-icon"><i class="fas fa-receipt"></i></div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Customers</h3>
+                    <div class="value">{{ customers|length }}</div>
+                    <div class="trend">Active accounts</div>
+                    <div class="stat-icon"><i class="fas fa-users"></i></div>
+                </div>
+                <div class="stat-card">
+                    <h3>Pending Orders</h3>
+                    <div class="value">{{ orders | selectattr('order_status', 'equalto', 'Pending') | list | length }}</div>
+                    <div class="trend" style="color:#856404;">Awaiting action</div>
+                    <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                </div>
             </div>
             <div class="chart-container">
                 <canvas id="revenueChart"></canvas>
@@ -339,11 +375,28 @@
         </div>
 
         <div id="orders" class="view-section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; gap: 15px; flex-wrap: wrap;">
                 <p class="tab-subtitle"><i class="fas fa-info-circle"></i> View, process, and update the status of customer orders.</p>
-                <div class="local-search">
-                    <i class="fas fa-search"></i>
-                    <input type="text" placeholder="Search orders..." oninput="filterTable('orders-table', this.value)">
+                <div class="filter-bar">
+                    <a href="/admin/export/orders" class="btn-export"><i class="fas fa-file-csv"></i> Export CSV</a>
+                    <select class="filter-select" onchange="setDataFilter('orders-table', 'status', this.value)">
+                        <option value="">All Statuses</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Processing">Processing</option>
+                        <option value="Ready for Pickup">Ready for Pickup</option>
+                        <option value="Out for Delivery">Out for Delivery</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                    <select class="filter-select" onchange="setDataFilter('orders-table', 'fulfillment', this.value)">
+                        <option value="">All Fulfilment</option>
+                        <option value="Delivery">Delivery</option>
+                        <option value="Pickup">Store Pickup</option>
+                    </select>
+                    <div class="local-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search orders..." oninput="filterTable('orders-table', this.value)">
+                    </div>
                 </div>
             </div>
 
@@ -357,7 +410,7 @@
                     </thead>
                     <tbody>
                         {% for order in orders %}
-                        <tr>
+                        <tr data-status="{{ order.order_status }}" data-fulfillment="{{ 'Delivery' if order.delivery_method == 'Delivery' else 'Pickup' }}">
                             <td><strong>#{{ order.order_id }}</strong></td>
                             <td style="min-width: 180px;">
                                 <div style="font-weight: 700;">{{ order.full_name }}</div>
@@ -562,11 +615,14 @@
         </div>
         
         <div id="customers" class="view-section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; gap: 15px; flex-wrap: wrap;">
                 <p class="tab-subtitle"><i class="fas fa-users-cog"></i> Manage registered users, reset passwords, or remove accounts.</p>
-                <div class="local-search">
-                    <i class="fas fa-search"></i>
-                    <input type="text" placeholder="Search customers..." oninput="filterTable('customers-table', this.value)">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <a href="/admin/export/customers" class="btn-export"><i class="fas fa-file-csv"></i> Export CSV</a>
+                    <div class="local-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search customers..." oninput="filterTable('customers-table', this.value)">
+                    </div>
                 </div>
             </div>
 
@@ -593,7 +649,7 @@
                                         <button type="submit" style="background:#dc3545; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600;">Reset</button>
                                     </form>
 
-                                    <form action="{{ url_for('admin_delete_customer', user_id=cust.user_id) }}" method="POST" onsubmit="return confirm('Are you sure? This will permanently remove this customer and their history.');" style="margin: 0;">
+                                    <form action="{{ url_for('admin_delete_customer', user_id=cust.user_id) }}" method="POST" onsubmit="return confirm('Move this customer to Trash? Their data is kept for 30 days and can be restored.');" style="margin: 0;">
                                         <button type="submit" style="background:transparent; color:#dc3545; border:none; cursor:pointer; font-size:12px; font-weight:600; text-decoration:underline;">Delete</button>
                                     </form>
                                 </div>
@@ -605,13 +661,49 @@
             </div>
         </div>
 
+        <div id="trash" class="view-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; gap: 15px; flex-wrap: wrap;">
+                <p class="tab-subtitle"><i class="fas fa-trash-alt"></i> Deleted accounts are kept here for 30 days, then permanently removed.</p>
+                <div class="filter-bar">
+                    <button class="btn-export" onclick="loadTrash()"><i class="fas fa-sync-alt"></i> Refresh</button>
+                    <a href="/admin/export/trash" class="btn-export"><i class="fas fa-file-csv"></i> Export CSV</a>
+                    <select class="filter-select" onchange="setDataFilter('trash-table', 'urgent', this.value)">
+                        <option value="">All Accounts</option>
+                        <option value="yes">Expiring Soon (≤7 days)</option>
+                    </select>
+                    <div class="local-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search trash..." oninput="filterTable('trash-table', this.value)">
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: white; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); overflow: hidden; border: 1px solid var(--border-color);">
+                <table id="trash-table">
+                    <thead>
+                        <tr><th>ID</th><th>Name</th><th>Contact Info</th><th>Deleted On</th><th>Auto-Delete In</th><th>Action</th></tr>
+                    </thead>
+                    <tbody id="trash-body">
+                        <tr><td colspan="6" style="text-align:center; padding:30px; color:#888;"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         {% if role == 'super_admin' %}
         <div id="staff" class="view-section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; gap: 15px; flex-wrap: wrap;">
                 <p class="tab-subtitle"><i class="fas fa-user-shield"></i> Add or remove administrative staff accounts. Only you (the Super Admin) can see this tab.</p>
-                <div class="local-search">
-                    <i class="fas fa-search"></i>
-                    <input type="text" placeholder="Search staff..." oninput="filterTable('staff-table', this.value)">
+                <div class="filter-bar">
+                    <select class="filter-select" onchange="setDataFilter('staff-table', 'role', this.value)">
+                        <option value="">All Roles</option>
+                        <option value="super_admin">Super Admin</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <div class="local-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search staff..." oninput="filterTable('staff-table', this.value)">
+                    </div>
                 </div>
             </div>
 
@@ -632,7 +724,7 @@
                     </thead>
                     <tbody>
                         {% for staff in staff_members %}
-                        <tr>
+                        <tr data-role="{{ staff.role }}">
                             <td>#{{ staff.user_id }}</td>
                             <td><strong style="font-size: 14px;">{{ staff.full_name }}</strong></td>
                             <td>{{ staff.email }}</td>
@@ -662,11 +754,21 @@
 
         {% if role == 'super_admin' %}
         <div id="audit" class="view-section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; gap: 15px; flex-wrap: wrap;">
                 <p class="tab-subtitle"><i class="fas fa-clipboard-list"></i> A record of every change made by admin staff. Only you (the Super Admin) can see this tab.</p>
-                <div class="local-search">
-                    <i class="fas fa-search"></i>
-                    <input type="text" placeholder="Search activity..." oninput="filterTable('audit-table', this.value)">
+                <div class="filter-bar">
+                    <select id="audit-action-filter" class="filter-select" onchange="setDataFilter('audit-table', 'action', this.value)">
+                        <option value="">All Actions</option>
+                    </select>
+                    <select class="filter-select" onchange="setDataFilter('audit-table', 'role', this.value)">
+                        <option value="">All Roles</option>
+                        <option value="super_admin">Super Admin</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <div class="local-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search activity..." oninput="filterTable('audit-table', this.value)">
+                    </div>
                 </div>
             </div>
 
@@ -785,11 +887,39 @@
         </div>
 
         <div id="analytics" class="view-section">
-            <p class="tab-subtitle"><i class="fas fa-chart-pie"></i> View historical performance data and trends.</p>
-            <div style="background: white; padding: 60px; border-radius: 16px; text-align: center; border: 1px solid var(--border-color);">
-                <i class="fas fa-tools" style="font-size: 50px; color: #ddd; margin-bottom: 20px;"></i>
-                <h4 style="color: #666; font-size: 18px;">Deeper Analytics Coming Soon</h4>
-                <p style="color: #999; font-size: 14px;">This section is reserved for future capstone expansions.</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; gap: 15px; flex-wrap: wrap;">
+                <p class="tab-subtitle"><i class="fas fa-chart-pie"></i> Historical performance, sales trends, and customer insights.</p>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <button class="btn-export" onclick="loadAnalytics()"><i class="fas fa-sync-alt"></i> Refresh</button>
+                    <a href="/admin/export/analytics" class="btn-export"><i class="fas fa-file-csv"></i> Export Report</a>
+                </div>
+            </div>
+
+            <div id="analytics-loading" style="text-align:center; padding:50px; color:#888; background:white; border-radius:16px; border:1px solid var(--border-color);"><i class="fas fa-spinner fa-spin"></i> Loading analytics…</div>
+
+            <div id="analytics-content" style="display:none;">
+                <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+                    <div class="stat-card"><h3>Total Revenue</h3><div class="value" id="an-revenue">₱0.00</div><div class="trend">Valid orders</div><div class="stat-icon"><i class="fas fa-dollar-sign"></i></div></div>
+                    <div class="stat-card"><h3>Avg. Order Value</h3><div class="value" id="an-aov">₱0.00</div><div class="trend">Per order</div><div class="stat-icon"><i class="fas fa-receipt"></i></div></div>
+                    <div class="stat-card"><h3>Total Customers</h3><div class="value" id="an-customers">0</div><div class="trend">Active accounts</div><div class="stat-icon"><i class="fas fa-users"></i></div></div>
+                    <div class="stat-card"><h3>Revenue This Month</h3><div class="value" id="an-month">₱0.00</div><div class="trend" id="an-month-orders">0 orders</div><div class="stat-icon"><i class="fas fa-calendar-day"></i></div></div>
+                </div>
+
+                <div class="analytics-grid" style="margin-top:10px;">
+                    <div class="chart-card"><h4>Order Status Breakdown</h4><div class="chart-wrap"><canvas id="statusChart"></canvas></div></div>
+                    <div class="chart-card"><h4>Revenue by Payment Method</h4><div class="chart-wrap"><canvas id="paymentChart"></canvas></div></div>
+                    <div class="chart-card"><h4>Delivery vs Store Pickup</h4><div class="chart-wrap"><canvas id="deliveryChart"></canvas></div></div>
+                    <div class="chart-card"><h4>New Customers (Last 6 Months)</h4><div class="chart-wrap"><canvas id="newCustomersChart"></canvas></div></div>
+                </div>
+
+                <div class="chart-card" style="margin-top:25px;">
+                    <h4>Top Selling Products</h4>
+                    <div class="chart-wrap" style="height:300px;"><canvas id="topProductsChart"></canvas></div>
+                    <table id="top-products-table" style="margin-top:25px;">
+                        <thead><tr><th>Product</th><th>Units Sold</th><th>Revenue</th></tr></thead>
+                        <tbody id="top-products-body"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -815,14 +945,21 @@
                 'profile': 'My Profile',
                 'messages': 'Support Inbox',
                 'analytics': 'Advanced Analytics',
+                'trash': 'Trash (Deleted Accounts)',
                 'audit': 'Audit Log'
             };
             document.getElementById('page-title').innerText = titleMap[tabId] || 'Dashboard';
             localStorage.setItem('adminActiveTab', tabId);
 
-            // Lazy-load the audit log the first time / each time the tab is opened
+            // Lazy-load tab data the first time / each time the tab is opened
             if (tabId === 'audit') {
                 loadAuditLog();
+            }
+            if (tabId === 'analytics') {
+                loadAnalytics();
+            }
+            if (tabId === 'trash') {
+                loadTrash();
             }
         }
 
@@ -901,15 +1038,60 @@
             if (notifDrop && !e.target.closest('#notifWrapper')) notifDrop.classList.remove('show');
         });
 
-        // QA FIX: LOCAL SEARCH FUNCTIONS
-        function filterTable(tableId, query) {
-            const lowerQuery = query.toLowerCase();
+        // QA FIX: LOCAL SEARCH + FILTER ENGINE
+        // Each table keeps its own state: a free-text query plus any number of
+        // dropdown filters keyed by a data-attribute name. Both are applied together.
+        const filterState = {};
+
+        function applyFilters(tableId) {
             const table = document.getElementById(tableId);
             if (!table) return;
-            const rows = table.querySelectorAll('tbody tr');
-            rows.forEach(row => {
-                row.style.display = row.innerText.toLowerCase().includes(lowerQuery) ? '' : 'none';
+            const state = filterState[tableId] || { query: '', data: {} };
+            const query = (state.query || '').toLowerCase();
+            const dataFilters = state.data || {};
+            table.querySelectorAll('tbody tr').forEach(row => {
+                // Skip placeholder/empty-state rows (they span the whole table)
+                if (row.querySelector('td[colspan]')) { row.style.display = ''; return; }
+                let visible = true;
+                if (query && !row.innerText.toLowerCase().includes(query)) visible = false;
+                if (visible) {
+                    for (const key in dataFilters) {
+                        const val = dataFilters[key];
+                        if (val && (row.dataset[key] || '') !== val) { visible = false; break; }
+                    }
+                }
+                row.style.display = visible ? '' : 'none';
             });
+        }
+
+        // Kept for backwards compatibility — routes text search through the engine
+        function filterTable(tableId, query) {
+            filterState[tableId] = filterState[tableId] || { query: '', data: {} };
+            filterState[tableId].query = query;
+            applyFilters(tableId);
+        }
+
+        // Called by dropdown filters: set/clear one categorical filter for a table
+        function setDataFilter(tableId, key, value) {
+            filterState[tableId] = filterState[tableId] || { query: '', data: {} };
+            filterState[tableId].data[key] = value;
+            applyFilters(tableId);
+        }
+
+        // Rebuilds the Audit "Action" dropdown from whatever rows are loaded
+        function populateAuditActions() {
+            const select = document.getElementById('audit-action-filter');
+            const table = document.getElementById('audit-table');
+            if (!select || !table) return;
+            const current = select.value;
+            const actions = new Set();
+            table.querySelectorAll('tbody tr').forEach(row => {
+                if (row.dataset.action) actions.add(row.dataset.action);
+            });
+            const sorted = Array.from(actions).sort();
+            select.innerHTML = '<option value="">All Actions</option>' +
+                sorted.map(a => `<option value="${auditEscape(a)}">${auditEscape(a)}</option>`).join('');
+            if (current && sorted.includes(current)) select.value = current;
         }
 
         function filterProducts(query) {
@@ -1076,7 +1258,7 @@
                             ? '<span class="status-badge" style="background:#e3f2fd; color:#0d47a1; border:1px solid #b6d4fe;">Super Admin</span>'
                             : '<span class="status-badge" style="background:#e8f5e9; color:#2e7d32; border:1px solid #c8e6c9;">Admin</span>';
                         return `
-                            <tr>
+                            <tr data-action="${auditEscape(log.action)}" data-role="${auditEscape(log.actor_role)}">
                                 <td style="white-space:nowrap; color:#666; font-size:13px;">${auditEscape(log.created_at)}</td>
                                 <td><strong style="font-size:14px;">${auditEscape(log.actor_name)}</strong><br><span style="color:#999; font-size:11px;">ID #${auditEscape(log.actor_id)}</span></td>
                                 <td>${roleBadge}</td>
@@ -1086,6 +1268,8 @@
                             </tr>
                         `;
                     }).join('');
+                    populateAuditActions();
+                    applyFilters('audit-table');
                 })
                 .catch(err => {
                     console.error('Audit Log Load Error:', err);
@@ -1430,6 +1614,152 @@
             })
             .catch(err => console.error("Sidebar Fetch Error:", err));
         }
+
+        // ==========================================
+        // --- ANALYTICS DASHBOARD ---
+        // ==========================================
+        let analyticsCharts = {};
+        const AN_PALETTE = ['#DC5500', '#0d47a1', '#28a745', '#e0a800', '#6f42c1', '#17a2b8', '#e83e8c', '#fd7e14'];
+
+        function peso(n) {
+            return '\u20b1' + Number(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function destroyChart(key) {
+            if (analyticsCharts[key]) { analyticsCharts[key].destroy(); delete analyticsCharts[key]; }
+        }
+
+        function loadAnalytics() {
+            const loading = document.getElementById('analytics-loading');
+            const content = document.getElementById('analytics-content');
+            if (loading) { loading.style.display = 'block'; loading.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading analytics\u2026'; }
+            if (content) content.style.display = 'none';
+
+            fetch('/api/admin_analytics?t=' + Date.now())
+                .then(res => res.json())
+                .then(res => {
+                    if (res.status !== 'success') {
+                        if (loading) loading.innerHTML = '<span style="color:#dc3545;">Failed to load analytics.</span>';
+                        return;
+                    }
+                    const a = res.analytics;
+                    document.getElementById('an-revenue').innerText = peso(a.total_revenue);
+                    document.getElementById('an-aov').innerText = peso(a.avg_order_value);
+                    document.getElementById('an-customers').innerText = a.total_customers;
+                    document.getElementById('an-month').innerText = peso(a.month_revenue);
+                    document.getElementById('an-month-orders').innerText = a.month_orders + ' order' + (a.month_orders == 1 ? '' : 's');
+
+                    if (loading) loading.style.display = 'none';
+                    if (content) content.style.display = 'block';
+
+                    const doughnutOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12, font: { size: 11 } } } } };
+
+                    // Order status
+                    destroyChart('status');
+                    analyticsCharts['status'] = new Chart(document.getElementById('statusChart'), {
+                        type: 'doughnut',
+                        data: { labels: a.status_breakdown.map(s => s.status), datasets: [{ data: a.status_breakdown.map(s => s.count), backgroundColor: AN_PALETTE, borderWidth: 0 }] },
+                        options: doughnutOpts
+                    });
+
+                    // Payment method (by revenue)
+                    destroyChart('payment');
+                    analyticsCharts['payment'] = new Chart(document.getElementById('paymentChart'), {
+                        type: 'doughnut',
+                        data: { labels: a.payment_breakdown.map(p => p.method), datasets: [{ data: a.payment_breakdown.map(p => p.revenue), backgroundColor: AN_PALETTE, borderWidth: 0 }] },
+                        options: Object.assign({}, doughnutOpts, { plugins: { legend: doughnutOpts.plugins.legend, tooltip: { callbacks: { label: c => c.label + ': ' + peso(c.parsed) } } } })
+                    });
+
+                    // Delivery vs pickup
+                    destroyChart('delivery');
+                    analyticsCharts['delivery'] = new Chart(document.getElementById('deliveryChart'), {
+                        type: 'doughnut',
+                        data: { labels: a.delivery_breakdown.map(d => d.method), datasets: [{ data: a.delivery_breakdown.map(d => d.count), backgroundColor: ['#DC5500', '#0d47a1', '#28a745'], borderWidth: 0 }] },
+                        options: doughnutOpts
+                    });
+
+                    // New customers
+                    destroyChart('customers');
+                    analyticsCharts['customers'] = new Chart(document.getElementById('newCustomersChart'), {
+                        type: 'bar',
+                        data: { labels: a.customer_labels, datasets: [{ label: 'New Customers', data: a.customer_counts, backgroundColor: '#DC5500', borderRadius: 6 }] },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+                    });
+
+                    // Top products (horizontal bar)
+                    destroyChart('top');
+                    analyticsCharts['top'] = new Chart(document.getElementById('topProductsChart'), {
+                        type: 'bar',
+                        data: { labels: a.top_products.map(p => p.name), datasets: [{ label: 'Units Sold', data: a.top_products.map(p => p.qty), backgroundColor: '#0d47a1', borderRadius: 6 }] },
+                        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }
+                    });
+
+                    // Top products table
+                    const body = document.getElementById('top-products-body');
+                    if (a.top_products.length === 0) {
+                        body.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:25px; color:#aaa;">No sales data yet.</td></tr>';
+                    } else {
+                        body.innerHTML = a.top_products.map(p =>
+                            `<tr><td><strong>${auditEscape(p.name)}</strong></td><td>${p.qty}</td><td style="font-weight:700;">${peso(p.revenue)}</td></tr>`
+                        ).join('');
+                    }
+                })
+                .catch(err => {
+                    console.error('Analytics Load Error:', err);
+                    if (loading) loading.innerHTML = '<span style="color:#dc3545;">Failed to load analytics.</span>';
+                });
+        }
+
+        // ==========================================
+        // --- TRASH (DELETED ACCOUNTS) ---
+        // ==========================================
+        function loadTrash() {
+            const body = document.getElementById('trash-body');
+            if (!body) return;
+            body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:#888;"><i class="fas fa-spinner fa-spin"></i> Loading\u2026</td></tr>';
+
+            fetch('/api/admin_trash?t=' + Date.now())
+                .then(res => res.json())
+                .then(res => {
+                    const items = res.trashed || [];
+                    if (items.length === 0) {
+                        body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color:#aaa;"><i class="fas fa-trash-alt" style="font-size:28px; opacity:0.4; display:block; margin-bottom:10px;"></i>Trash is empty.</td></tr>';
+                        return;
+                    }
+                    body.innerHTML = items.map(u => {
+                        const days = u.days_left;
+                        const dayColor = days <= 5 ? '#dc3545' : '#856404';
+                        const dayBg = days <= 5 ? '#f8d7da' : '#fff3cd';
+                        const dayBorder = days <= 5 ? '#f5c6cb' : '#ffeeba';
+                        return `<tr data-urgent="${days <= 7 ? 'yes' : 'no'}">
+                            <td>#${u.user_id}</td>
+                            <td><strong style="font-size:14px;">${auditEscape(u.full_name)}</strong></td>
+                            <td>
+                                <div style="margin-bottom:4px;"><i class="fas fa-envelope" style="color:#aaa; width:20px;"></i> ${auditEscape(u.email)}</div>
+                                <div><i class="fas fa-phone" style="color:#aaa; width:20px;"></i> ${auditEscape(u.phone_number || 'No Phone')}</div>
+                            </td>
+                            <td style="color:var(--text-muted); white-space:nowrap;">${auditEscape(u.deleted_at)}</td>
+                            <td><span class="status-badge" style="background:${dayBg}; color:${dayColor}; border:1px solid ${dayBorder};">${days} day${days == 1 ? '' : 's'}</span></td>
+                            <td>
+                                <div style="display:flex; gap:10px; align-items:center;">
+                                    <form action="/admin/restore_customer/${u.user_id}" method="POST" style="margin:0;">
+                                        <button type="submit" class="btn-export" style="padding:6px 12px;"><i class="fas fa-undo"></i> Restore</button>
+                                    </form>
+                                    <form action="/admin/permanent_delete_customer/${u.user_id}" method="POST" style="margin:0;" onsubmit="return confirm('Permanently delete this account and ALL of its data? This cannot be undone.');">
+                                        <button type="submit" style="background:transparent; color:#dc3545; border:1px solid #dc3545; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; font-family:inherit;"><i class="fas fa-times"></i> Delete Forever</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>`;
+                    }).join('');
+                    applyFilters('trash-table');
+                })
+                .catch(err => {
+                    console.error('Trash Load Error:', err);
+                    body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:#dc3545;">Failed to load trash.</td></tr>';
+                });
+        }
+
     </script>
 </body>
 </html>
