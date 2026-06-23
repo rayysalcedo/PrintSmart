@@ -4,7 +4,9 @@ A full-stack online printing storefront. Customers browse print products, upload
 artwork, place and track orders; admins run the entire business — products, orders, staff,
 customers, and analytics — from a single dashboard.
 
-**🔗 Live site:** <https://your-live-url.com> &nbsp;•&nbsp; **Stack:** Python · Flask · MySQL · Cloudinary
+[![Live on Render](https://img.shields.io/badge/Live-Render-46E3B7?logo=render&logoColor=white)](https://your-live-url.onrender.com)
+
+**🔗 Live site:** <https://your-live-url.onrender.com> &nbsp;•&nbsp; **Stack:** Python · Flask · MySQL · Cloudinary · Render
 
 <!-- Add a screenshot or GIF here — it's the single biggest upgrade to this README.
      Capture the storefront home + the admin dashboard. Drop the file in /docs and link it: -->
@@ -43,7 +45,7 @@ customers, and analytics — from a single dashboard.
 | **Auth** | Werkzeug password hashing, Authlib (Google/Facebook OAuth), `itsdangerous` signed tokens |
 | **Media** | Cloudinary |
 | **Frontend** | HTML, CSS, JavaScript (server-rendered Jinja templates) |
-| **Deployment** | Gunicorn, environment-based config, `ProxyFix` for reverse-proxy hosting |
+| **Deployment** | **Render** (cloud host), Gunicorn (WSGI server), environment-based config, `ProxyFix` for reverse-proxy hosting |
 
 **Security notes:** all SQL uses parameterized queries (injection-safe), passwords are
 hashed (never stored in plaintext), uploads pass through `secure_filename`, and reset/OTP
@@ -110,6 +112,22 @@ Fill these in `.env` (see `config.py` / `.env.example` for exact names):
 
 ---
 
+## ☁️ Deployment
+
+Deployed on **[Render](https://render.com/)** as a web service.
+
+- **Server:** Gunicorn runs the Flask app (`gunicorn app:app`).
+- **Config:** all secrets are set as environment variables in the Render dashboard — nothing
+  sensitive is committed to the repo.
+- **Reverse proxy:** `ProxyFix` is enabled so the app correctly reads the real client
+  protocol/host behind Render's proxy (needed for OAuth redirects and secure cookies).
+- **Database:** MySQL (hosted separately), connected via the `DATABASE_URL` / DB env vars.
+
+> Render free-tier services sleep after inactivity, so the first request after idle may take
+> a few seconds to wake the app.
+
+---
+
 ## 📂 Project structure
 
 ```
@@ -132,4 +150,4 @@ PrintSmart/
 
 ---
 
-Built by **Ray Salcedo** — [portfolio]([https://rayysalcedo.github.io/portfolio/](https://raysalcedo.netlify.app)
+Built by **Ray Salcedo** — [portfolio](https://raysalcedo.netlify.app)
