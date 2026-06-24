@@ -1,12 +1,12 @@
 # PrintSmart 🖨️
 
-A full-stack online printing storefront. Customers browse print products, upload their own
+A full-stack online printing storefront built for **Printagram**. Customers browse print products, upload their own
 artwork, place and track orders; admins run the entire business — products, orders, staff,
 customers, and analytics — from a single dashboard.
 
-[![Live on Render](https://img.shields.io/badge/Live-Render-46E3B7?logo=render&logoColor=white)](https://your-live-url.onrender.com)
+[![Live on Render](https://img.shields.io/badge/Live-Render-46E3B7?logo=render&logoColor=white)](https://printagram.onrender.com)
 
-**🔗 Live site:** <https://your-live-url.onrender.com> &nbsp;•&nbsp; **Stack:** Python · Flask · MySQL · Cloudinary · Render
+**🔗 Live site:** <https://printagram.onrender.com>  (Printagram) &nbsp;•&nbsp; **Stack:** Python · Flask · MySQL · Cloudinary · Render
 
 <!-- Add a screenshot or GIF here — it's the single biggest upgrade to this README.
      Capture the storefront home + the admin dashboard. Drop the file in /docs and link it: -->
@@ -150,4 +150,4 @@ PrintSmart/
 
 ---
 
-Built by **Ray Salcedo** — [portfolio](https://raysalcedo.netlify.app)
+Built by **Ray Salcedo** — [portfolio](https://rayysalcedo.github.io/portfolio/)
